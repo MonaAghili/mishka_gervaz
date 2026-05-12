@@ -27,15 +27,27 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
           end
         end
       end
+
+  See `MishkaGervaz.Table.Web.DataLoader`,
+  `MishkaGervaz.Table.Web.DataLoader.Helpers`,
+  `MishkaGervaz.Table.Entities.Pagination`,
+  and the sibling sub-builders `QueryBuilder`, `FilterParser`,
+  `TenantResolver`, `HookRunner`, `RelationLoader`.
   """
 
   alias MishkaGervaz.Table.Web.State
 
+  @doc false
+  @spec extract_results(any()) :: list()
+  def extract_results(%{results: results}) when is_list(results), do: results
+  def extract_results(results) when is_list(results), do: results
+  def extract_results(_), do: []
+
   defmacro __using__(_opts) do
     quote do
-      use MishkaGervaz.Table.Web.DataLoader.Builder
-
       alias MishkaGervaz.Table.Web.State
+
+      import MishkaGervaz.Table.Web.DataLoader.PaginationHandler, only: [extract_results: 1]
 
       @doc """
       Load a page of data with the given query, action, and tenant.
@@ -113,10 +125,6 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
       def calculate_total_pages(total_count, page_size) do
         ceil(total_count / page_size)
       end
-
-      defp extract_results(%{results: results}) when is_list(results), do: results
-      defp extract_results(results) when is_list(results), do: results
-      defp extract_results(_), do: []
 
       defoverridable load_page: 5,
                      get_pagination_type: 1,

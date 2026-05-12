@@ -1,17 +1,23 @@
 defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
   @moduledoc """
-  Builds the final runtime configuration from the form DSL state.
+  Compiles the form DSL state into a single runtime-friendly map and
+  persists it under `:mishka_gervaz_form_config`.
 
-  This transformer runs last and compiles the form DSL configuration into
-  a map structure that can be efficiently accessed at runtime.
+  Runs last in the form transformer pipeline (after
+  `MishkaGervaz.Form.Transformers.ResolveFields`). The compiled config
+  is read at runtime through `MishkaGervaz.Resource.Info.Form.config/1`
+  and the surrounding accessors on that module.
 
-  The compiled configuration is persisted as `:mishka_gervaz_form_config`
-  and can be retrieved via `MishkaGervaz.Resource.Info.Form.config/1`.
+  Each `build_<section>/n` helper takes the DSL state and returns the
+  shape that lands under that key in the persisted config. UI
+  sub-entities flow through one shared `maybe_ui/1` that drops empty
+  structs to `nil` so accessors don't have to check for placeholder
+  zero-value structs at runtime.
   """
 
   use Spark.Dsl.Transformer
+
   alias Spark.Dsl.Transformer
-  import MishkaGervaz.Table.Transformers.Helpers
 
   alias MishkaGervaz.Form.Entities.{
     Field,
@@ -20,13 +26,19 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
     Upload,
     Submit,
     Events,
+    DataLoader,
     Access,
     Header,
     Footer,
     Notice
   }
 
+  import MishkaGervaz.Helpers, only: [compact_to_nil: 1, relation_id_type: 2]
+  import MishkaGervaz.Table.Transformers.Helpers
+
   @form_path [:mishka_gervaz, :form]
+
+  @ui_keys_dropped [:__spark_metadata__]
 
   @impl true
   def after?(MishkaGervaz.Form.Transformers.ResolveFields), do: true
@@ -49,7 +61,9 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
       submit: build_submit(dsl_state, domain_defaults),
       presentation: build_presentation(dsl_state, domain_defaults),
       hooks: build_hooks(dsl_state),
+      state: build_state(dsl_state),
       events: build_events(dsl_state),
+      data_loader: build_data_loader(dsl_state),
       detected_preloads:
         Transformer.get_persisted(dsl_state, :mishka_gervaz_form_detected_preloads, []),
       field_order: Transformer.get_persisted(dsl_state, :mishka_gervaz_form_field_order, [])
@@ -172,7 +186,6 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
 
   defp field_to_map(field, ash_attrs, module) do
     attr = Map.get(ash_attrs, field.name, %{})
-    id_type = resolve_relation_id_type(field, module)
 
     %{
       name: field.name,
@@ -210,125 +223,9 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
       add_label: field.add_label,
       remove_label: field.remove_label,
       type_module: field.type_module,
-      id_type: id_type,
-      ui: maybe_ui(field.ui, &field_ui_to_map/1, &has_field_ui_values?/1),
+      id_type: relation_id_type(field, module),
+      ui: maybe_ui(field.ui),
       preload: maybe_preload(field.preload)
-    }
-  end
-
-  defp resolve_relation_id_type(%{type: :relation} = field, module) do
-    related_resource = resolve_related_resource(field, module)
-
-    if related_resource do
-      get_primary_key_type(related_resource)
-    else
-      :uuid
-    end
-  end
-
-  defp resolve_relation_id_type(_, _), do: nil
-
-  defp resolve_related_resource(%{resource: resource}, _) when not is_nil(resource), do: resource
-
-  defp resolve_related_resource(%{name: name, source: source}, module)
-       when not is_nil(module) do
-    field_name = source || name
-
-    module
-    |> Ash.Resource.Info.relationships()
-    |> Enum.find(&(&1.source_attribute == field_name))
-    |> case do
-      %{destination: dest} -> dest
-      nil -> nil
-    end
-  rescue
-    _ -> nil
-  end
-
-  defp resolve_related_resource(_, _), do: nil
-
-  defp get_primary_key_type(resource) do
-    case Ash.Resource.Info.primary_key(resource) do
-      [pk_field | _] ->
-        case Ash.Resource.Info.attribute(resource, pk_field) do
-          %{type: type} -> normalize_id_type(type)
-          _ -> :uuid
-        end
-
-      _ ->
-        :uuid
-    end
-  rescue
-    _ -> :uuid
-  end
-
-  defp normalize_id_type(type) when is_atom(type) do
-    type_string = Atom.to_string(type)
-
-    cond do
-      type == :uuid or type == Ash.Type.UUID ->
-        :uuid
-
-      type == :integer or type == Ash.Type.Integer ->
-        :integer
-
-      type == :string or type == Ash.Type.String ->
-        :string
-
-      String.contains?(type_string, "UUIDv7") or String.contains?(type_string, "UUID7") ->
-        :uuid_v7
-
-      String.contains?(type_string, "UUID") ->
-        :uuid
-
-      String.contains?(type_string, "Integer") ->
-        :integer
-
-      true ->
-        :uuid
-    end
-  end
-
-  defp normalize_id_type(_), do: :uuid
-
-  defp has_field_ui_values?(%Field.Ui{} = ui) do
-    any_set?([
-      ui.label,
-      ui.placeholder,
-      ui.description,
-      ui.icon,
-      ui.class,
-      ui.wrapper_class,
-      ui.debounce,
-      ui.span,
-      ui.rows,
-      ui.step,
-      ui.autocomplete,
-      ui.add_label,
-      ui.remove_label,
-      ui.disabled_prompt
-    ]) or ui.extra != %{}
-  end
-
-  defp has_field_ui_values?(_), do: false
-
-  defp field_ui_to_map(%Field.Ui{} = ui) do
-    %{
-      label: ui.label,
-      placeholder: ui.placeholder,
-      description: ui.description,
-      icon: ui.icon,
-      class: ui.class,
-      wrapper_class: ui.wrapper_class,
-      debounce: ui.debounce,
-      span: ui.span,
-      rows: ui.rows,
-      step: ui.step,
-      autocomplete: ui.autocomplete,
-      add_label: ui.add_label,
-      remove_label: ui.remove_label,
-      disabled_prompt: ui.disabled_prompt,
-      extra: ui.extra
     }
   end
 
@@ -362,26 +259,7 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
       visible: group.visible,
       restricted: group.restricted,
       position: group.position,
-      ui: maybe_ui(group.ui, &group_ui_to_map/1, &has_group_ui_values?/1)
-    }
-  end
-
-  defp has_group_ui_values?(%Group.Ui{} = ui) do
-    any_set?([ui.label, ui.icon, ui.description, ui.class, ui.header_class, ui.columns]) or
-      ui.extra != %{}
-  end
-
-  defp has_group_ui_values?(_), do: false
-
-  defp group_ui_to_map(%Group.Ui{} = ui) do
-    %{
-      label: ui.label,
-      icon: ui.icon,
-      description: ui.description,
-      class: ui.class,
-      header_class: ui.header_class,
-      columns: ui.columns,
-      extra: ui.extra
+      ui: maybe_ui(group.ui)
     }
   end
 
@@ -468,18 +346,8 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
       restricted: n.restricted,
       only_steps: n.only_steps,
       render: n.render,
-      ui: maybe_ui(n.ui, &notice_ui_to_map/1, &has_notice_ui_values?/1)
+      ui: maybe_ui(n.ui)
     }
-  end
-
-  defp has_notice_ui_values?(%Notice.Ui{} = ui) do
-    any_set?([ui.class]) or ui.extra != %{}
-  end
-
-  defp has_notice_ui_values?(_), do: false
-
-  defp notice_ui_to_map(%Notice.Ui{} = ui) do
-    %{class: ui.class, extra: ui.extra}
   end
 
   defp step_to_map(step) do
@@ -492,24 +360,7 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
       on_enter: step.on_enter,
       before_leave: step.before_leave,
       after_leave: step.after_leave,
-      ui: maybe_ui(step.ui, &step_ui_to_map/1, &has_step_ui_values?/1)
-    }
-  end
-
-  defp has_step_ui_values?(%Step.Ui{} = ui) do
-    any_set?([ui.label, ui.icon, ui.description, ui.class, ui.header_class]) or ui.extra != %{}
-  end
-
-  defp has_step_ui_values?(_), do: false
-
-  defp step_ui_to_map(%Step.Ui{} = ui) do
-    %{
-      label: ui.label,
-      icon: ui.icon,
-      description: ui.description,
-      class: ui.class,
-      header_class: ui.header_class,
-      extra: ui.extra
+      ui: maybe_ui(step.ui)
     }
   end
 
@@ -536,46 +387,29 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
       external: upload.external,
       writer: upload.writer,
       existing: upload.existing,
-      ui: maybe_ui(upload.ui, &upload_ui_to_map/1, &has_upload_ui_values?/1)
-    }
-  end
-
-  defp has_upload_ui_values?(%Upload.Ui{} = ui) do
-    any_set?([ui.label, ui.icon, ui.class, ui.preview_class]) or ui.extra != %{}
-  end
-
-  defp has_upload_ui_values?(_), do: false
-
-  defp upload_ui_to_map(%Upload.Ui{} = ui) do
-    %{
-      label: ui.label,
-      icon: ui.icon,
-      class: ui.class,
-      preview_class: ui.preview_class,
-      extra: ui.extra
+      ui: maybe_ui(upload.ui)
     }
   end
 
   defp build_submit(dsl_state, _domain_defaults) do
-    case find_entity(dsl_state, @form_path, Submit) do
-      nil -> nil
-      %Submit{} = entity -> entity_to_raw_map(entity)
-    end
+    dsl_state |> find_entity(@form_path, Submit) |> submit_to_map()
   end
 
-  defp entity_to_raw_map(%Submit{} = entity) do
+  defp submit_to_map(nil), do: nil
+
+  defp submit_to_map(%Submit{} = entity) do
     %{
-      create: button_to_raw_map(entity.create),
-      update: button_to_raw_map(entity.update),
-      cancel: button_to_raw_map(entity.cancel),
+      create: button_to_map(entity.create),
+      update: button_to_map(entity.update),
+      cancel: button_to_map(entity.cancel),
       position: entity.position,
-      ui: ui_to_raw_map(entity.ui)
+      ui: maybe_ui(entity.ui)
     }
   end
 
-  defp button_to_raw_map(nil), do: nil
+  defp button_to_map(nil), do: nil
 
-  defp button_to_raw_map(%Submit.Button{} = btn) do
+  defp button_to_map(%Submit.Button{} = btn) do
     %{
       label: btn.label,
       active: btn.active,
@@ -583,21 +417,6 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
       restricted: btn.restricted,
       visible: btn.visible
     }
-  end
-
-  defp ui_to_raw_map(nil), do: nil
-
-  defp ui_to_raw_map(%Submit.Ui{} = ui) do
-    if any_set?([ui.submit_class, ui.cancel_class, ui.wrapper_class]) or ui.extra != %{} do
-      %{
-        submit_class: ui.submit_class,
-        cancel_class: ui.cancel_class,
-        wrapper_class: ui.wrapper_class,
-        extra: ui.extra
-      }
-    else
-      nil
-    end
   end
 
   defp build_presentation(dsl_state, domain_defaults) do
@@ -671,33 +490,73 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
 
   defp build_js_hooks(dsl_state) do
     path = @form_path ++ [:hooks, :js]
-    keys = [:on_init, :after_save, :on_cancel, :on_error]
-    values = Map.new(keys, &{&1, get_opt(dsl_state, path, &1)})
+
+    values =
+      [:on_init, :after_save, :on_cancel, :on_error]
+      |> Map.new(&{&1, get_opt(dsl_state, path, &1)})
+
     if any_set?(Map.values(values)), do: values, else: nil
   end
 
   defp build_events(dsl_state) do
-    case find_entity(dsl_state, @form_path, Events) do
-      nil ->
-        nil
-
-      entity ->
-        %{
-          module: entity.module,
-          sanitization: entity.sanitization,
-          validation: entity.validation,
-          submit: entity.submit,
-          step: entity.step,
-          upload: entity.upload,
-          relation: entity.relation,
-          hooks: entity.hooks
-        }
-    end
+    dsl_state |> find_entity(@form_path, Events) |> events_to_map()
   end
 
-  defp maybe_ui(nil, _, _), do: nil
+  defp events_to_map(nil), do: nil
 
-  defp maybe_ui(ui, to_map_fn, has_values_fn) do
-    if has_values_fn.(ui), do: to_map_fn.(ui), else: nil
+  defp events_to_map(%Events{} = entity) do
+    compact_to_nil(%{
+      module: entity.module,
+      sanitization: entity.sanitization,
+      validation: entity.validation,
+      submit: entity.submit,
+      step: entity.step,
+      upload: entity.upload,
+      relation: entity.relation,
+      hooks: entity.hooks
+    })
+  end
+
+  defp build_state(dsl_state) do
+    path = @form_path ++ [:state]
+
+    [:module, :field, :group, :step, :presentation, :access]
+    |> Map.new(&{&1, get_opt(dsl_state, path, &1)})
+    |> compact_to_nil()
+  end
+
+  defp build_data_loader(dsl_state) do
+    dsl_state |> find_entity(@form_path, DataLoader) |> data_loader_to_map()
+  end
+
+  defp data_loader_to_map(nil), do: nil
+
+  defp data_loader_to_map(%DataLoader{} = entity) do
+    compact_to_nil(%{
+      module: entity.module,
+      record: entity.record,
+      tenant: entity.tenant,
+      relation: entity.relation,
+      hooks: entity.hooks
+    })
+  end
+
+  # Drops `__spark_metadata__`, returns the rest as a plain map iff at
+  # least one value is meaningful — non-nil, or a non-empty `:extra` map.
+  # Otherwise returns `nil` so accessors don't have to skip empty UI
+  # placeholders.
+  defp maybe_ui(nil), do: nil
+
+  defp maybe_ui(%_{} = ui) do
+    fields = ui |> Map.from_struct() |> Map.drop(@ui_keys_dropped)
+
+    if ui_any_value?(fields), do: fields, else: nil
+  end
+
+  defp ui_any_value?(%{} = fields) do
+    Enum.any?(fields, fn
+      {:extra, %{} = e} -> e != %{}
+      {_, v} -> not is_nil(v)
+    end)
   end
 end

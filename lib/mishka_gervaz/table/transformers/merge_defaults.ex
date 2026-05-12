@@ -10,6 +10,12 @@ defmodule MishkaGervaz.Table.Transformers.MergeDefaults do
   - Generating `identity.stream_name` if not specified
   - Setting default tenant check function
   - Setting default visibility function for realtime
+
+  See `MishkaGervaz.Table.Transformers.BuildDomainConfig` (upstream),
+  `MishkaGervaz.Table.Transformers.ResolveColumns` (downstream),
+  `MishkaGervaz.Table.Transformers.BuildRuntimeConfig` (final),
+  `MishkaGervaz.Table.Transformers.Helpers`, and the form-side
+  counterpart `MishkaGervaz.Form.Transformers.MergeDefaults`.
   """
 
   use Spark.Dsl.Transformer
@@ -49,7 +55,6 @@ defmodule MishkaGervaz.Table.Transformers.MergeDefaults do
       |> merge_domain_defaults(domain_defaults)
       |> merge_identity_defaults(module)
       |> merge_tenant_defaults(domain_defaults)
-      |> merge_realtime_defaults(domain_defaults)
 
     {:ok, dsl_state}
   end
@@ -128,39 +133,15 @@ defmodule MishkaGervaz.Table.Transformers.MergeDefaults do
   end
 
   @spec merge_tenant_defaults(Spark.Dsl.t(), map() | nil) :: Spark.Dsl.t()
-  defp merge_tenant_defaults(dsl_state, domain_defaults) do
+  defp merge_tenant_defaults(dsl_state, _domain_defaults) do
     tenant_path = @table_path ++ [:source, :tenant]
 
     case get_opt(dsl_state, tenant_path, :master_check) do
       nil ->
-        default_field = if domain_defaults, do: get_in(domain_defaults, [:tenant, :field])
-        field = get_opt(dsl_state, tenant_path, :field, default_field || :site_id)
-
         Transformer.persist(
           dsl_state,
           :mishka_gervaz_default_master_check,
-          {MishkaGervaz.Defaults, :default_master_check, [field]}
-        )
-
-      _ ->
-        dsl_state
-    end
-  end
-
-  @spec merge_realtime_defaults(Spark.Dsl.t(), map() | nil) :: Spark.Dsl.t()
-  defp merge_realtime_defaults(dsl_state, domain_defaults) do
-    realtime_path = @table_path ++ [:realtime]
-    tenant_path = @table_path ++ [:source, :tenant]
-
-    case get_opt(dsl_state, realtime_path, :visible) do
-      nil ->
-        default_field = if domain_defaults, do: get_in(domain_defaults, [:tenant, :field])
-        field = get_opt(dsl_state, tenant_path, :field, default_field || :site_id)
-
-        Transformer.persist(
-          dsl_state,
-          :mishka_gervaz_default_visibility,
-          {MishkaGervaz.Defaults, :default_visibility, [field]}
+          {MishkaGervaz.Helpers, :master_user?, []}
         )
 
       _ ->

@@ -22,6 +22,12 @@ defmodule MishkaGervaz.Table.Web.DataLoader.TenantResolver do
           end
         end
       end
+
+  See `MishkaGervaz.Table.Web.DataLoader`,
+  `MishkaGervaz.Table.Web.DataLoader.Helpers`,
+  `MishkaGervaz.Helpers` (for `user_tenant/1`),
+  and the sibling sub-builders `QueryBuilder`, `FilterParser`,
+  `PaginationHandler`, `HookRunner`, `RelationLoader`.
   """
 
   alias MishkaGervaz.Table.Web.State
@@ -29,8 +35,6 @@ defmodule MishkaGervaz.Table.Web.DataLoader.TenantResolver do
 
   defmacro __using__(_opts) do
     quote do
-      use MishkaGervaz.Table.Web.DataLoader.Builder
-
       alias MishkaGervaz.Table.Web.State
       alias MishkaGervaz.Resource.Info.Table, as: Info
 
@@ -39,7 +43,7 @@ defmodule MishkaGervaz.Table.Web.DataLoader.TenantResolver do
       """
       @spec get_tenant(State.t()) :: any()
       def get_tenant(%State{master_user?: true}), do: nil
-      def get_tenant(%State{current_user: user}), do: Map.get(user, :site_id)
+      def get_tenant(%State{current_user: user}), do: MishkaGervaz.Helpers.user_tenant(user)
 
       @doc """
       Get read action based on archive status.

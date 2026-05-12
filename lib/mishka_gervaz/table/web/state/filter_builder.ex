@@ -19,16 +19,61 @@ defmodule MishkaGervaz.Table.Web.State.FilterBuilder do
           |> Enum.reject(&(&1.name == :internal_field))
         end
       end
+
+  See `MishkaGervaz.Table.Web.State`,
+  `MishkaGervaz.Table.Web.State.Helpers`,
+  `MishkaGervaz.Table.Entities.Filter`,
+  `MishkaGervaz.Table.Types.Filter`, and the sibling builders
+  `ColumnBuilder`, `ActionBuilder`, `Presentation`, `UrlSync`, `Access`.
   """
 
   alias MishkaGervaz.Table.Types.Filter, as: FilterType
 
   @doc false
+  @spec get_resource_calculations(module()) :: map()
+  def get_resource_calculations(resource) do
+    resource
+    |> Ash.Resource.Info.calculations()
+    |> Map.new(&{&1.name, &1})
+  end
+
+  @doc false
+  @spec get_resource_relationships(module()) :: list(struct())
+  def get_resource_relationships(resource) do
+    Ash.Resource.Info.relationships(resource)
+  end
+
+  @doc false
+  @spec find_display_field(module()) :: atom()
+  def find_display_field(resource) do
+    attrs = Ash.Resource.Info.attributes(resource)
+
+    Enum.find_value([:name, :title, :label], :id, fn field ->
+      if Enum.any?(attrs, &(&1.name == field)), do: field
+    end)
+  end
+
+  @doc false
+  @spec maybe_resolve_options(map()) :: map()
+  def maybe_resolve_options(%{options: options} = filter) when is_function(options, 0) do
+    Map.put(filter, :options, options.())
+  end
+
+  def maybe_resolve_options(filter), do: filter
+
   defmacro __using__(_opts) do
     quote do
-      use MishkaGervaz.Table.Web.State.Builder
-
       alias MishkaGervaz.Table.Types.Filter, as: FilterType
+
+      import MishkaGervaz.Helpers, only: [get_resource_attributes: 1]
+
+      import MishkaGervaz.Table.Web.State.FilterBuilder,
+        only: [
+          get_resource_calculations: 1,
+          get_resource_relationships: 1,
+          find_display_field: 1,
+          maybe_resolve_options: 1
+        ]
 
       @doc """
       Builds filters from config, resource, and current user.
@@ -136,13 +181,6 @@ defmodule MishkaGervaz.Table.Web.State.FilterBuilder do
       @spec maybe_resolve_type(map()) :: map()
       defp maybe_resolve_type(filter), do: filter
 
-      @spec maybe_resolve_options(map()) :: map()
-      defp maybe_resolve_options(%{options: options} = filter) when is_function(options, 0) do
-        Map.put(filter, :options, options.())
-      end
-
-      defp maybe_resolve_options(filter), do: filter
-
       @spec maybe_load_relationship_options(map(), list(struct()), map() | nil) :: map()
       defp maybe_load_relationship_options(filter, relationships, current_user) do
         rel =
@@ -156,34 +194,6 @@ defmodule MishkaGervaz.Table.Web.State.FilterBuilder do
         else
           filter
         end
-      end
-
-      @spec get_resource_attributes(module()) :: map()
-      defp get_resource_attributes(resource) do
-        resource
-        |> Ash.Resource.Info.attributes()
-        |> Map.new(&{&1.name, &1})
-      end
-
-      @spec get_resource_calculations(module()) :: map()
-      defp get_resource_calculations(resource) do
-        resource
-        |> Ash.Resource.Info.calculations()
-        |> Map.new(&{&1.name, &1})
-      end
-
-      @spec get_resource_relationships(module()) :: list(struct())
-      defp get_resource_relationships(resource) do
-        Ash.Resource.Info.relationships(resource)
-      end
-
-      @spec find_display_field(module()) :: atom()
-      defp find_display_field(resource) do
-        attrs = Ash.Resource.Info.attributes(resource)
-
-        Enum.find_value([:name, :title, :label], :id, fn field ->
-          if Enum.any?(attrs, &(&1.name == field)), do: field
-        end)
       end
 
       defoverridable build: 3,

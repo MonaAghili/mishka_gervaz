@@ -18,18 +18,20 @@ defmodule MishkaGervaz.Form.Web.State.FieldBuilder do
           super(config, resource) |> Enum.reject(&(&1.name == :hidden_field))
         end
       end
-  """
 
-  alias MishkaGervaz.Resource.Info.Form, as: Info
+  See `MishkaGervaz.Form.Web.State`,
+  `MishkaGervaz.Form.Web.State.Helpers`,
+  `MishkaGervaz.Form.Entities.Field`, and the sibling builders
+  `GroupBuilder`, `StepBuilder`, `Access`, `Presentation`.
+  """
 
   @doc false
   defmacro __using__(_opts) do
     quote do
-      use MishkaGervaz.Form.Web.State.Builder
-
       alias MishkaGervaz.Resource.Info.Form, as: Info
 
-      import MishkaGervaz.Helpers, only: [humanize: 1, get_ui_label: 1]
+      import MishkaGervaz.Helpers,
+        only: [humanize: 1, get_ui_label: 1, get_resource_attributes: 1]
 
       @doc """
       Builds fields from config and resource.
@@ -96,13 +98,6 @@ defmodule MishkaGervaz.Form.Web.State.FieldBuilder do
         |> Map.put(:attribute, attr)
         |> Map.put(:resolved_label, label)
         |> Map.put(:resolved_type, resolve_type(field, attributes))
-      end
-
-      @spec get_resource_attributes(module()) :: map()
-      defp get_resource_attributes(resource) do
-        resource
-        |> Ash.Resource.Info.attributes()
-        |> Map.new(&{&1.name, &1})
       end
 
       defoverridable build: 2, resolve_type: 2, sort_by_order: 2, build_field_config: 3

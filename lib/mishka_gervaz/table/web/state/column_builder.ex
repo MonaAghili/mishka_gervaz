@@ -17,6 +17,12 @@ defmodule MishkaGervaz.Table.Web.State.ColumnBuilder do
           super(config, resource) ++ [custom_audit_column()]
         end
       end
+
+  See `MishkaGervaz.Table.Web.State`,
+  `MishkaGervaz.Table.Web.State.Helpers`,
+  `MishkaGervaz.Table.Entities.Column`,
+  `MishkaGervaz.Table.Types.Column`, and the sibling builders
+  `FilterBuilder`, `ActionBuilder`, `Presentation`, `UrlSync`, `Access`.
   """
 
   alias MishkaGervaz.Resource.Info.Table, as: Info
@@ -25,10 +31,10 @@ defmodule MishkaGervaz.Table.Web.State.ColumnBuilder do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      use MishkaGervaz.Table.Web.State.Builder
-
       alias MishkaGervaz.Resource.Info.Table, as: Info
       alias MishkaGervaz.Table.Types.Column, as: ColumnType
+
+      import MishkaGervaz.Helpers, only: [get_resource_attributes: 1]
 
       @doc """
       Builds columns from config and resource.
@@ -110,13 +116,6 @@ defmodule MishkaGervaz.Table.Web.State.ColumnBuilder do
 
       @spec maybe_resolve_type(map(), map()) :: map()
       defp maybe_resolve_type(col, _attributes), do: col
-
-      @spec get_resource_attributes(module()) :: map()
-      defp get_resource_attributes(resource) do
-        resource
-        |> Ash.Resource.Info.attributes()
-        |> Map.new(&{&1.name, &1})
-      end
 
       defoverridable build: 2, resolve_type: 2, sort_by_order: 2
     end

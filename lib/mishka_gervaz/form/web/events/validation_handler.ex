@@ -17,15 +17,19 @@ defmodule MishkaGervaz.Form.Web.Events.ValidationHandler do
           super(state, params, socket)
         end
       end
+
+  See `MishkaGervaz.Form.Web.Events`,
+  `MishkaGervaz.Form.Web.Events.Helpers` (for `parse_typed_params/2`),
+  and the sibling sub-handlers.
   """
 
   alias MishkaGervaz.Form.Web.State
 
   defmacro __using__(_opts) do
     quote do
-      use MishkaGervaz.Form.Web.Events.Builder
-
       alias MishkaGervaz.Form.Web.State
+
+      import MishkaGervaz.Helpers, only: [merge_relation_field_values: 2]
 
       @doc """
       Validate form params and update the form state.
@@ -58,7 +62,7 @@ defmodule MishkaGervaz.Form.Web.Events.ValidationHandler do
               |> Map.merge(incoming)
               |> merge_relation_field_values(state)
               |> then(
-                &MishkaGervaz.Form.Web.Events.Builder.parse_typed_params(
+                &MishkaGervaz.Form.Web.Events.Helpers.parse_typed_params(
                   state.static.fields,
                   &1
                 )
@@ -98,18 +102,6 @@ defmodule MishkaGervaz.Form.Web.Events.ValidationHandler do
           Enum.reduce(opts, msg, fn {key, value}, acc ->
             String.replace(acc, "%{#{key}}", to_string(value))
           end)
-        end)
-      end
-
-      defp merge_relation_field_values(params, state) do
-        state.static.fields
-        |> Enum.filter(&(&1.type == :relation))
-        |> Enum.reduce(params, fn field, acc ->
-          case Map.get(state.field_values, field.name) do
-            "__nil__" -> Map.put(acc, to_string(field.name), nil)
-            v when v not in [nil, ""] -> Map.put(acc, to_string(field.name), v)
-            _ -> acc
-          end
         end)
       end
 

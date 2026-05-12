@@ -18,16 +18,44 @@ defmodule MishkaGervaz.Table.Web.State.Access do
         def master_user?(%{role: :admin}), do: true
         def master_user?(user), do: super(user)
       end
+
+  See `MishkaGervaz.Table.Web.State`,
+  `MishkaGervaz.Table.Web.State.Helpers`,
+  `MishkaGervaz.Helpers` (for `master_user?/1` and `user_tenant/1`),
+  and the sibling builders `ColumnBuilder`, `FilterBuilder`,
+  `ActionBuilder`, `Presentation`, `UrlSync`.
   """
 
   alias MishkaGervaz.Resource.Info.Table, as: Info
 
   @doc false
+  @spec get_tenant_field(any()) :: atom() | nil
+  def get_tenant_field(record) when is_struct(record) do
+    Ash.Resource.Info.multitenancy_attribute(record.__struct__)
+  end
+
+  def get_tenant_field(_), do: nil
+
+  @doc false
+  @spec default_record_visible?(struct(), map()) :: boolean()
+  def default_record_visible?(record, user) do
+    case get_tenant_field(record) do
+      nil ->
+        true
+
+      tenant_field ->
+        user_tenant = Map.get(user, tenant_field)
+        is_nil(user_tenant) or Map.get(record, tenant_field) in [nil, user_tenant]
+    end
+  end
+
+  @doc false
   defmacro __using__(_opts) do
     quote do
-      use MishkaGervaz.Table.Web.State.Builder
-
       alias MishkaGervaz.Resource.Info.Table, as: Info
+
+      import MishkaGervaz.Table.Web.State.Access,
+        only: [get_tenant_field: 1, default_record_visible?: 2]
 
       @doc """
       Checks if user is a master user (has global access).
@@ -40,11 +68,8 @@ defmodule MishkaGervaz.Table.Web.State.Access do
 
         - `true` if user is a master user, `false` otherwise
       """
-      @spec master_user?(map()) :: boolean()
-      def master_user?(%{site_id: nil}), do: true
-
-      @spec master_user?(term()) :: boolean()
-      def master_user?(_), do: false
+      @spec master_user?(map() | nil) :: boolean()
+      def master_user?(user), do: MishkaGervaz.Helpers.master_user?(user)
 
       @doc """
       Checks if user can modify a record based on tenant permissions.
@@ -133,26 +158,6 @@ defmodule MishkaGervaz.Table.Web.State.Access do
       @spec get_preloads(module(), boolean()) :: list()
       def get_preloads(resource, master_user?) do
         Info.all_preloads(resource, master_user?)
-      end
-
-      @spec get_tenant_field(struct()) :: atom() | nil
-      defp get_tenant_field(record) when is_struct(record) do
-        Ash.Resource.Info.multitenancy_attribute(record.__struct__)
-      end
-
-      @spec get_tenant_field(term()) :: nil
-      defp get_tenant_field(_), do: nil
-
-      @spec default_record_visible?(struct(), map()) :: boolean()
-      defp default_record_visible?(record, user) do
-        case get_tenant_field(record) do
-          nil ->
-            true
-
-          tenant_field ->
-            user_tenant = Map.get(user, tenant_field)
-            is_nil(user_tenant) or Map.get(record, tenant_field) in [nil, user_tenant]
-        end
       end
 
       defoverridable master_user?: 1,

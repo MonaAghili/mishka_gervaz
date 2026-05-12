@@ -1,9 +1,29 @@
+defmodule MishkaGervaz.Test.FormWebHelpers.FakeResource do
+  @moduledoc false
+  use Ash.Resource,
+    domain: MishkaGervaz.Test.Domain,
+    extensions: [MishkaGervaz.Resource],
+    data_layer: Ash.DataLayer.Ets
+
+  attributes do
+    uuid_primary_key :id
+    attribute :title, :string, public?: true
+    attribute :content, :string, public?: true
+    attribute :status, :atom, public?: true, constraints: [one_of: [:draft, :published]]
+  end
+
+  actions do
+    defaults [:read, :destroy, create: :*, update: :*]
+  end
+end
+
 defmodule MishkaGervaz.Test.FormWebHelpers do
   @moduledoc """
   Helper functions for form web layer tests.
 
-  Provides builders for State, Static, and Socket structs
-  without depending on Spark DSL compilation.
+  Provides builders for State, Static, and Socket structs.
+  Default resource is `FakeResource` — a real Spark DSL resource so
+  `Info.Form.events/1` and friends behave correctly under tests.
   """
 
   alias MishkaGervaz.Form.Web.State
@@ -17,7 +37,6 @@ defmodule MishkaGervaz.Test.FormWebHelpers do
       stream_name: Keyword.get(opts, :stream_name, :test_form_stream),
       config: Keyword.get(opts, :config, %{}),
       fields: Keyword.get(opts, :fields, default_fields()),
-      field_order: Keyword.get(opts, :field_order, [:title, :content, :status]),
       groups: Keyword.get(opts, :groups, default_groups()),
       steps: Keyword.get(opts, :steps, []),
       uploads: Keyword.get(opts, :uploads, []),
@@ -36,10 +55,10 @@ defmodule MishkaGervaz.Test.FormWebHelpers do
       theme: Keyword.get(opts, :theme, nil),
       features: Keyword.get(opts, :features, []),
       preloads: Keyword.get(opts, :preloads, []),
+      access: Keyword.get(opts, :access, MishkaGervaz.Form.Web.State.Access.Default),
       layout_mode: Keyword.get(opts, :layout_mode, :standard),
       layout_columns: Keyword.get(opts, :layout_columns, 1),
-      layout_navigation: Keyword.get(opts, :layout_navigation, :sequential),
-      layout_persistence: Keyword.get(opts, :layout_persistence, :none)
+      layout_navigation: Keyword.get(opts, :layout_navigation, :sequential)
     }
   end
 

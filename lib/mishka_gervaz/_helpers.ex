@@ -231,9 +231,6 @@ defmodule MishkaGervaz.Helpers do
   def normalize_options(_), do: []
 
   @spec normalize_option({any(), any()} | atom() | any()) :: {String.t(), String.t()}
-  defp normalize_option({label, value}) when is_atom(value),
-    do: {to_string(label), to_string(value)}
-
   defp normalize_option({label, value}),
     do: {to_string(label), to_string(value)}
 
@@ -439,26 +436,18 @@ defmodule MishkaGervaz.Helpers do
   def known_name?(_, _), do: false
 
   @spec known_name?(String.t(), map(), :filters | :steps | :uploads) :: boolean()
-  def known_name?(name, %{static: %{filters: filters}}, :filters)
-      when is_binary(name) and is_list(filters) do
-    name_in_entities?(name, filters)
-  end
-
-  def known_name?(name, %{static: %{steps: steps}}, :steps)
-      when is_binary(name) and is_list(steps) do
-    name_in_entities?(name, steps)
-  end
-
-  def known_name?(name, %{static: %{uploads: uploads}}, :uploads)
-      when is_binary(name) and is_list(uploads) do
-    name_in_entities?(name, uploads)
+  def known_name?(name, %{static: static}, kind)
+      when is_binary(name) and kind in [:filters, :steps, :uploads] do
+    case Map.get(static, kind) do
+      list when is_list(list) -> name_in_entities?(name, list)
+      _ -> false
+    end
   end
 
   def known_name?(_, _, _), do: false
 
-  defp name_in_entities?(name, entities) do
-    Enum.any?(entities, &(Atom.to_string(&1.name) == name))
-  end
+  defp name_in_entities?(name, entities),
+    do: Enum.any?(entities, &(Atom.to_string(&1.name) == name))
 
   @doc """
   Checks if a value is present (not nil, empty string, or empty list).
@@ -550,8 +539,6 @@ defmodule MishkaGervaz.Helpers do
       "-"
   """
   @spec format_filesize(integer() | nil) :: String.t()
-  def format_filesize(nil), do: "-"
-
   def format_filesize(size) when is_integer(size) do
     cond do
       size < 1024 -> "#{size} B"
@@ -764,4 +751,251 @@ defmodule MishkaGervaz.Helpers do
       end
     end)
   end
+
+  @doc """
+  Returns the resource's Ash attributes as a `%{name => attribute_struct}` map.
+
+  Used by builders that need O(1) attribute lookup by name (FieldBuilder,
+  ColumnBuilder).
+  """
+  @spec get_resource_attributes(module()) :: map()
+  def get_resource_attributes(resource) do
+    resource
+    |> Ash.Resource.Info.attributes()
+    |> Map.new(&{&1.name, &1})
+  end
+
+  @doc """
+  Returns `true` when the user has no tenant — i.e. is a master user.
+
+  Canonical default for `master_user?/1` across the framework. The tenant
+  attribute is currently `:site_id`.
+  """
+  @spec master_user?(map() | struct() | nil) :: boolean()
+  def master_user?(%{site_id: nil}), do: true
+  def master_user?(_), do: false
+
+  @doc """
+  Extracts the tenant value from a user map/struct (currently `:site_id`).
+
+  Returns `nil` for nil users or users without the tenant attribute.
+  """
+  @spec user_tenant(map() | struct() | nil) :: any()
+  def user_tenant(%{site_id: site_id}), do: site_id
+  def user_tenant(_), do: nil
+
+  @doc """
+  Merges form-state relation field values into a params map.
+
+  For each relation field with a value in `state.field_values`, places the
+  value at the string-keyed slot in `params`. The sentinel `"__nil__"` is
+  rewritten to a real `nil` so AshPhoenix can clear the relation. Empty
+  string and `nil` values are ignored.
+
+  Used by validation/submit handlers to ensure relation selections survive
+  param re-merging.
+  """
+  @spec merge_relation_field_values(map(), map()) :: map()
+  def merge_relation_field_values(params, state) do
+    state.static.fields
+    |> Enum.filter(&(&1.type == :relation))
+    |> Enum.reduce(params, fn field, acc ->
+      case Map.get(state.field_values, field.name) do
+        "__nil__" -> Map.put(acc, to_string(field.name), nil)
+        v when v not in [nil, ""] -> Map.put(acc, to_string(field.name), v)
+        _ -> acc
+      end
+    end)
+  end
+
+  @doc """
+  Fetch a key from a possibly-nil map, returning `default` when the key is
+  missing or the value is nil.
+
+  Used by the `Resource.Info.{Form,Table}` and `Domain.Info.{Form,Table}`
+  introspection modules to absorb the repeating
+  `case map do %{key: v} -> v; _ -> default end` shape.
+  """
+  @spec map_get(map() | nil, atom(), term()) :: term()
+  def map_get(nil, _key, default), do: default
+
+  def map_get(map, key, default) do
+    case map do
+      %{^key => value} when not is_nil(value) -> value
+      _ -> default
+    end
+  end
+
+  @doc """
+  Unwrap a preload entry to its source atom. Preloads can be plain atoms or
+  `{source, alias}` tuples — this returns the atom either way.
+  """
+  @spec extract_preload_source(atom() | {atom(), atom()}) :: atom()
+  def extract_preload_source({source, _alias}), do: source
+  def extract_preload_source(source) when is_atom(source), do: source
+
+  @doc """
+  Look up the Ash domain for a resource.
+  """
+  @spec get_domain(module()) :: {:ok, module()} | :error
+  def get_domain(resource) do
+    case Ash.Resource.Info.domain(resource) do
+      nil -> :error
+      domain -> {:ok, domain}
+    end
+  end
+
+  @doc """
+  Fetch the domain-side defaults map for a given section (`:form` or `:table`).
+  Returns `%{}` when the resource has no domain or the domain has no
+  `mishka_gervaz` block.
+  """
+  @spec get_domain_defaults(module(), atom()) :: map()
+  def get_domain_defaults(resource, section) do
+    with {:ok, domain} <- get_domain(resource),
+         config when not is_nil(config) <-
+           Spark.Dsl.Extension.get_persisted(domain, :mishka_gervaz_domain_config) do
+      Map.get(config, section, %{})
+    else
+      _ -> %{}
+    end
+  end
+
+  @doc """
+  Unwraps a Spark singleton sub-entity wrapper into the entity itself.
+
+  Spark stores DSL singleton entities under `key` as a single-element
+  list during parse. After the parent entity's `transform/1` runs, the
+  list is collapsed to the entity struct (or `nil` if absent). Used by
+  every entity that owns one or more singleton sub-entities (e.g. `:ui`,
+  `:preload`, plus `submit`'s `:create` / `:update` / `:cancel`).
+
+  Idempotent: if the value is already a struct (transform already ran)
+  or absent, the map is returned unchanged.
+  """
+  @spec extract_singleton_entity(map(), atom()) :: map()
+  def extract_singleton_entity(map, key) do
+    do_extract_singleton(Map.get(map, key), map, key)
+  end
+
+  defp do_extract_singleton([value | _], map, key), do: Map.put(map, key, value)
+  defp do_extract_singleton([], map, key), do: Map.put(map, key, nil)
+  defp do_extract_singleton(value, map, _key) when is_struct(value), do: map
+  defp do_extract_singleton(_value, map, _key), do: map
+
+  @doc """
+  Drops nil values from a map and returns `nil` if the result is empty,
+  otherwise returns the cleaned map.
+
+  Used by transformers that build optional sub-config blocks where
+  "no overrides set" should compile down to `nil` rather than an empty
+  map. Idempotent on `nil` input.
+  """
+  @spec compact_to_nil(map() | nil) :: map() | nil
+  def compact_to_nil(nil), do: nil
+
+  def compact_to_nil(map) when is_map(map) do
+    cleaned = Map.reject(map, fn {_, v} -> is_nil(v) end)
+    if cleaned == %{}, do: nil, else: cleaned
+  end
+
+  @doc """
+  Normalizes an Ash primary-key type to one of `:uuid`, `:uuid_v7`,
+  `:integer`, or `:string`. Falls back to `:uuid` for anything else,
+  matching the conservative default Phoenix uses for `<input>` shapes.
+
+  Recognises both the bare atom forms (`:uuid`, `:integer`, `:string`)
+  and the `Ash.Type.*` modules. Future `Ash.Type.UUIDv7` / `UUID7` /
+  `UUID` / `Integer` modules are matched by name string so a Spark
+  release that adds new vendor variants (`Ash.Type.UUIDv7Foo`) still
+  routes correctly.
+  """
+  @spec normalize_id_type(any()) :: :uuid | :uuid_v7 | :integer | :string
+  def normalize_id_type(type) when is_atom(type) do
+    type_string = Atom.to_string(type)
+
+    cond do
+      type == :uuid or type == Ash.Type.UUID -> :uuid
+      type == :integer or type == Ash.Type.Integer -> :integer
+      type == :string or type == Ash.Type.String -> :string
+      String.contains?(type_string, "UUIDv7") -> :uuid_v7
+      String.contains?(type_string, "UUID7") -> :uuid_v7
+      String.contains?(type_string, "UUID") -> :uuid
+      String.contains?(type_string, "Integer") -> :integer
+      true -> :uuid
+    end
+  end
+
+  def normalize_id_type(_), do: :uuid
+
+  @doc """
+  Returns the normalized type of `resource`'s primary key as one of
+  `:uuid`, `:uuid_v7`, `:integer`, or `:string`. Defaults to `:uuid`
+  when introspection fails or the resource has no primary key.
+  """
+  @spec primary_key_type(module()) :: :uuid | :uuid_v7 | :integer | :string
+  def primary_key_type(resource) do
+    case Ash.Resource.Info.primary_key(resource) do
+      [pk_field | _] ->
+        case Ash.Resource.Info.attribute(resource, pk_field) do
+          %{type: type} -> normalize_id_type(type)
+          _ -> :uuid
+        end
+
+      _ ->
+        :uuid
+    end
+  rescue
+    _ -> :uuid
+  end
+
+  @doc """
+  Resolves the destination resource of a relation field/filter.
+
+  Accepts any map with `:name` / `:source` / `:resource` keys (the
+  shape Form.Field and Table.Filter both have):
+
+    * If `:resource` is set on the entity, returns it directly.
+    * Otherwise looks up `parent_resource`'s Ash relationships for the
+      one whose `source_attribute` matches `entity.source || entity.name`
+      and returns its `:destination`.
+    * Returns `nil` when no match is found, when `parent_resource` is
+      `nil`, or on any introspection failure.
+  """
+  @spec relation_target_resource(map(), module() | nil) :: module() | nil
+  def relation_target_resource(%{resource: resource}, _parent) when not is_nil(resource),
+    do: resource
+
+  def relation_target_resource(%{name: name, source: source}, parent) when not is_nil(parent) do
+    field_name = source || name
+
+    case parent
+         |> Ash.Resource.Info.relationships()
+         |> Enum.find(&(&1.source_attribute == field_name)) do
+      %{destination: dest} -> dest
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  def relation_target_resource(_, _), do: nil
+
+  @doc """
+  Returns the normalized id-type for a `:relation` entity, defaulting
+  to `:uuid` when the related resource cannot be found.
+
+  Combines `relation_target_resource/2` and `primary_key_type/1`. For
+  non-relation entities returns `nil`.
+  """
+  @spec relation_id_type(map(), module() | nil) ::
+          :uuid | :uuid_v7 | :integer | :string | nil
+  def relation_id_type(%{type: :relation} = entity, parent) do
+    case relation_target_resource(entity, parent) do
+      nil -> :uuid
+      resource -> primary_key_type(resource)
+    end
+  end
+
+  def relation_id_type(_entity, _parent), do: nil
 end

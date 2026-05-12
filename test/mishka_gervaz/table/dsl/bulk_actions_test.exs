@@ -10,12 +10,12 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
 
   describe "bulk action definitions" do
     test "returns all bulk actions for a resource" do
-      actions = ResourceInfo.bulk_actions(Post)
+      actions = ResourceInfo.table_bulk_actions(Post)
       assert is_list(actions)
     end
 
     test "each action is a BulkAction struct" do
-      actions = ResourceInfo.bulk_actions(Post)
+      actions = ResourceInfo.table_bulk_actions(Post)
 
       Enum.each(actions, fn action ->
         assert is_struct(action, MishkaGervaz.Table.Entities.BulkAction)
@@ -25,19 +25,19 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
 
   describe "delete bulk action" do
     test "Post has delete bulk action" do
-      actions = ResourceInfo.bulk_actions(Post)
+      actions = ResourceInfo.table_bulk_actions(Post)
       delete_action = Enum.find(actions, &(&1.name == :delete))
       assert delete_action != nil
     end
 
     test "delete bulk action has confirm message" do
-      actions = ResourceInfo.bulk_actions(Post)
+      actions = ResourceInfo.table_bulk_actions(Post)
       delete_action = Enum.find(actions, &(&1.name == :delete))
       assert delete_action.confirm == "Delete selected posts?"
     end
 
     test "User delete bulk action" do
-      actions = ResourceInfo.bulk_actions(User)
+      actions = ResourceInfo.table_bulk_actions(User)
       delete_action = Enum.find(actions, &(&1.name == :delete))
       assert delete_action != nil
       assert delete_action.confirm == "Delete selected users?"
@@ -46,37 +46,37 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
 
   describe "bulk action counts" do
     test "Post has correct number of bulk actions" do
-      actions = ResourceInfo.bulk_actions(Post)
+      actions = ResourceInfo.table_bulk_actions(Post)
       assert length(actions) == 1
     end
 
     test "User has correct number of bulk actions" do
-      actions = ResourceInfo.bulk_actions(User)
+      actions = ResourceInfo.table_bulk_actions(User)
       assert length(actions) == 1
     end
   end
 
   describe "bulk action handler types" do
     test "parent handler type" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       delete_action = Enum.find(actions, &(&1.name == :delete))
       assert delete_action.handler == :parent
     end
 
     test "atom handler type (single Ash action)" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       archive_action = Enum.find(actions, &(&1.name == :archive))
       assert archive_action.handler == :bulk_archive_action
     end
 
     test "tuple handler type (master/tenant Ash actions)" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       export_action = Enum.find(actions, &(&1.name == :export))
       assert export_action.handler == {:master_bulk_export, :tenant_bulk_export}
     end
 
     test "function handler type" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       custom_action = Enum.find(actions, &(&1.name == :custom_fn))
       assert is_function(custom_action.handler, 2)
     end
@@ -84,7 +84,7 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
 
   describe "bulk action handler defaults" do
     test "handler defaults to :parent when not specified" do
-      actions = ResourceInfo.bulk_actions(Post)
+      actions = ResourceInfo.table_bulk_actions(Post)
       delete_action = Enum.find(actions, &(&1.name == :delete))
       assert delete_action.handler == :parent
     end
@@ -92,7 +92,7 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
 
   describe "bulk action type option" do
     test "type :event sets handler to {:type, :event}" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       action = Enum.find(actions, &(&1.name == :notify))
       assert action.type == :event
       assert action.handler == {:type, :event}
@@ -100,14 +100,14 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
     end
 
     test "type :destroy sets handler to {:type, :destroy}" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       action = Enum.find(actions, &(&1.name == :soft_delete))
       assert action.type == :destroy
       assert action.handler == {:type, :destroy}
     end
 
     test "type :update sets handler to {:type, :update}" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       action = Enum.find(actions, &(&1.name == :activate))
       assert action.type == :update
       assert action.handler == {:type, :update}
@@ -115,27 +115,27 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
     end
 
     test "type :unarchive sets handler to {:type, :unarchive}" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       action = Enum.find(actions, &(&1.name == :unarchive))
       assert action.type == :unarchive
       assert action.handler == {:type, :unarchive}
     end
 
     test "type :permanent_destroy sets handler to {:type, :permanent_destroy}" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       action = Enum.find(actions, &(&1.name == :permanent_delete))
       assert action.type == :permanent_destroy
       assert action.handler == {:type, :permanent_destroy}
     end
 
     test "type-based action has confirm message" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       action = Enum.find(actions, &(&1.name == :unarchive))
       assert action.confirm == "Restore {count} items?"
     end
 
     test "type-based action has visible setting" do
-      actions = ResourceInfo.bulk_actions(BulkActionsResource)
+      actions = ResourceInfo.table_bulk_actions(BulkActionsResource)
       action = Enum.find(actions, &(&1.name == :unarchive))
       assert action.visible == :archived
     end
@@ -150,6 +150,81 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
     end
   end
 
+  describe "BulkAction.transform/1 — handler: <builtin-type-atom> auto-promotion" do
+    alias MishkaGervaz.Table.Entities.BulkAction
+
+    test "handler: :destroy is promoted to {:type, :destroy}" do
+      action = %BulkAction{name: :archive, handler: :destroy}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == {:type, :destroy}
+      assert transformed.type == :destroy
+    end
+
+    test "handler: :update is promoted to {:type, :update}" do
+      action = %BulkAction{name: :activate, handler: :update}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == {:type, :update}
+      assert transformed.type == :update
+    end
+
+    test "handler: :unarchive is promoted to {:type, :unarchive}" do
+      action = %BulkAction{name: :restore, handler: :unarchive}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == {:type, :unarchive}
+      assert transformed.type == :unarchive
+    end
+
+    test "handler: :permanent_destroy is promoted to {:type, :permanent_destroy}" do
+      action = %BulkAction{name: :purge, handler: :permanent_destroy}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == {:type, :permanent_destroy}
+      assert transformed.type == :permanent_destroy
+    end
+
+    test "handler: :event is promoted to {:type, :event}" do
+      action = %BulkAction{name: :notify, handler: :event}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == {:type, :event}
+      assert transformed.type == :event
+    end
+
+    test "handler: <unknown-atom> stays literal (custom Ash action name)" do
+      action = %BulkAction{name: :custom, handler: :my_custom_action}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == :my_custom_action
+      assert transformed.type == nil
+    end
+
+    test "handler: :parent is left unchanged when no type is set" do
+      action = %BulkAction{name: :send_event, handler: :parent}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == :parent
+      assert transformed.type == nil
+    end
+
+    test "type: set with handler: :parent — type-rule takes priority over auto-promotion" do
+      action = %BulkAction{name: :archive, type: :destroy, handler: :parent}
+      assert {:ok, transformed} = BulkAction.transform(action)
+      assert transformed.handler == {:type, :destroy}
+      assert transformed.type == :destroy
+    end
+
+    test "explicit handler: <type-atom> behaves identically to type: <type-atom>" do
+      from_handler =
+        %BulkAction{name: :a, handler: :destroy}
+        |> BulkAction.transform()
+        |> elem(1)
+
+      from_type =
+        %BulkAction{name: :a, type: :destroy, handler: :parent}
+        |> BulkAction.transform()
+        |> elem(1)
+
+      assert from_handler.handler == from_type.handler
+      assert from_handler.type == from_type.type
+    end
+  end
+
   defp get_ui(action) do
     case action.ui do
       [ui | _] -> ui
@@ -160,43 +235,43 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
 
   describe "all BulkAction entity keys (ComplexTestResource)" do
     test "name key is configured" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       assert action.name == :bulk_delete
     end
 
     test "confirm key is configured with string" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       assert action.confirm == "Delete {count} selected posts?"
     end
 
     test "confirm key is configured with boolean true" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_archive))
       assert action.confirm == true
     end
 
     test "confirm key is configured with boolean false" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_publish))
       assert action.confirm == false
     end
 
     test "event key is configured" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       assert action.event == :bulk_delete
     end
 
     test "payload key is configured as function" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       assert is_function(action.payload, 1)
     end
 
     test "payload function returns correct map" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       ids = MapSet.new(["id1", "id2"])
       result = action.payload.(ids)
@@ -204,13 +279,13 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
     end
 
     test "restricted key is configured true" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       assert action.restricted == true
     end
 
     test "restricted key is configured false" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_archive))
       assert action.restricted == false
     end
@@ -218,28 +293,28 @@ defmodule MishkaGervaz.DSL.BulkActionsTest do
 
   describe "all BulkAction.Ui keys (ComplexTestResource)" do
     test "ui label key is configured" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       ui = get_ui(action)
       assert ui.label == "Delete Selected"
     end
 
     test "ui icon key is configured" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       ui = get_ui(action)
       assert ui.icon == "hero-trash"
     end
 
     test "ui class key is configured" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       ui = get_ui(action)
       assert ui.class == "text-red-600"
     end
 
     test "ui extra key is configured" do
-      actions = ResourceInfo.bulk_actions(ComplexTestResource)
+      actions = ResourceInfo.table_bulk_actions(ComplexTestResource)
       action = Enum.find(actions, &(&1.name == :bulk_delete))
       ui = get_ui(action)
       assert ui.extra == %{destructive: true}

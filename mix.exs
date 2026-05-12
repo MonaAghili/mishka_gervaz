@@ -1,14 +1,14 @@
 defmodule MishkaGervaz.MixProject do
   use Mix.Project
 
-  @version "0.0.1"
+  @version "0.0.1-alpha.1"
   @source_url "https://github.com/mishka-group/mishka_gervaz"
 
   def project do
     [
       app: :mishka_gervaz,
       version: @version,
-      elixir: "~> 1.15",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       consolidate_protocols: Mix.env() != :dev,
       deps: deps(),
@@ -18,7 +18,7 @@ defmodule MishkaGervaz.MixProject do
       dialyzer: dialyzer(),
       name: "MishkaGervaz",
       description:
-        "Mishka Gervaz is a comprehensive, declarative UI library for the Ash ecosystem — define tables, forms, and data-driven interfaces entirely through DSL, with built-in sorting, filtering, real-time updates, and extensible templates. Every component, adapter, and behavior is fully overridable and customizable",
+        "Mishka Gervaz is a comprehensive, declarative UI library for the Ash ecosystem — define tables, forms, and data-driven interfaces entirely through DSL, with built-in sorting, filtering, real-time updates, and extensible templates.",
       source_url: @source_url,
       homepage_url: @source_url,
       elixirc_paths: elixirc_paths(Mix.env())
@@ -70,7 +70,87 @@ defmodule MishkaGervaz.MixProject do
       main: "MishkaGervaz",
       source_ref: "v#{@version}",
       source_url: @source_url,
-      extras: ["README.md", "CHANGELOG.md"]
+      extras: ["README.md", "CHANGELOG.md"],
+      groups_for_modules: groups_for_modules()
+    ]
+  end
+
+  defp groups_for_modules do
+    [
+      "DSL Extensions": [
+        MishkaGervaz.Resource,
+        MishkaGervaz.Domain,
+        MishkaGervaz.Dsl,
+        MishkaGervaz.DomainInfo
+      ],
+      Introspection: [
+        ~r/^MishkaGervaz\.Resource\.Info(\..+)?$/,
+        ~r/^MishkaGervaz\.Domain\.Info(\..+)?$/,
+        MishkaGervaz.ResourceInfo
+      ],
+      Errors: [
+        ~r/^MishkaGervaz\.Errors(\..+)?$/
+      ],
+      "Form — DSL Sections": [
+        ~r/^MishkaGervaz\.Form\.Dsl(\..+)?$/
+      ],
+      "Form — Entities": [
+        ~r/^MishkaGervaz\.Form\.Entities(\..+)?$/,
+        MishkaGervaz.Form.SubmitMerger
+      ],
+      "Form — Transformers": [
+        ~r/^MishkaGervaz\.Form\.Transformers(\..+)?$/
+      ],
+      "Form — Verifiers": [
+        ~r/^MishkaGervaz\.Form\.Verifiers(\..+)?$/
+      ],
+      "Form — Behaviours": [
+        ~r/^MishkaGervaz\.Form\.Behaviours(\..+)?$/
+      ],
+      "Form — Field Types": [
+        ~r/^MishkaGervaz\.Form\.Types(\..+)?$/
+      ],
+      "Form — Templates": [
+        ~r/^MishkaGervaz\.Form\.Templates(\..+)?$/
+      ],
+      "Form — Web": [
+        ~r/^MishkaGervaz\.Form\.Web(\..+)?$/
+      ],
+      "Table — DSL Sections": [
+        ~r/^MishkaGervaz\.Table\.Dsl(\..+)?$/,
+        MishkaGervaz.Table.DomainDsl
+      ],
+      "Table — Entities": [
+        ~r/^MishkaGervaz\.Table\.Entities(\..+)?$/
+      ],
+      "Table — Transformers": [
+        ~r/^MishkaGervaz\.Table\.Transformers(\..+)?$/
+      ],
+      "Table — Verifiers": [
+        ~r/^MishkaGervaz\.Table\.Verifiers(\..+)?$/
+      ],
+      "Table — Behaviours": [
+        ~r/^MishkaGervaz\.Table\.Behaviours(\..+)?$/
+      ],
+      "Table — Column / Filter / Action Types": [
+        ~r/^MishkaGervaz\.Table\.Types(\..+)?$/
+      ],
+      "Table — Templates": [
+        ~r/^MishkaGervaz\.Table\.Templates(\..+)?$/
+      ],
+      "Table — Web": [
+        ~r/^MishkaGervaz\.Table\.Web(\..+)?$/,
+        MishkaGervaz.Table.ArchiveMerger
+      ],
+      "UI Adapters": [
+        ~r/^MishkaGervaz\.Behaviours\.UIAdapter$/,
+        ~r/^MishkaGervaz\.UIAdapters(\..+)?$/
+      ],
+      Helpers: [
+        MishkaGervaz.Helpers,
+        MishkaGervaz.Gettext,
+        MishkaGervaz.Messages
+      ]
     ]
   end
 

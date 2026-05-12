@@ -23,6 +23,22 @@ defmodule MishkaGervaz.Resource.Info.Form do
 
   alias Spark.Dsl.Extension
 
+  import MishkaGervaz.Helpers,
+    only: [
+      map_put_if_set: 3,
+      map_get: 3,
+      extract_preload_source: 1,
+      get_domain_defaults: 2
+    ]
+
+  @default_submit %{
+    create: nil,
+    update: nil,
+    cancel: nil,
+    position: :bottom,
+    ui: nil
+  }
+
   @doc """
   Get the full compiled form configuration for a resource.
 
@@ -33,44 +49,17 @@ defmodule MishkaGervaz.Resource.Info.Form do
     config = Extension.get_persisted(resource, :mishka_gervaz_form_config)
 
     if config do
-      domain_defaults = get_domain_defaults(resource)
-      merge_domain_defaults(config, domain_defaults)
+      merge_domain_defaults(config, get_domain_defaults(resource, :form))
     else
       config
     end
   end
 
-  @spec get_domain_defaults(module()) :: map()
-  defp get_domain_defaults(resource) do
-    with {:ok, domain} <- get_domain(resource),
-         config when not is_nil(config) <-
-           Extension.get_persisted(domain, :mishka_gervaz_domain_config) do
-      Map.get(config, :form, %{})
-    else
-      _ -> %{}
-    end
-  end
-
-  @spec get_domain(module()) :: {:ok, module()} | :error
-  defp get_domain(resource) do
-    case Ash.Resource.Info.domain(resource) do
-      nil -> :error
-      domain -> {:ok, domain}
-    end
-  end
-
   @spec merge_domain_defaults(map(), map()) :: map()
-  defp merge_domain_defaults(config, domain_defaults) when domain_defaults == %{} do
-    config
-    |> merge_actions(%{})
-    |> merge_submit(%{})
-    |> resolve_default_master_check()
-  end
-
   defp merge_domain_defaults(config, domain_defaults) do
     config
-    |> update_in([:source, :actor_key], fn v -> v || domain_defaults[:actor_key] end)
-    |> update_in([:source, :master_check], fn v -> v || domain_defaults[:master_check] end)
+    |> update_in([:source, :actor_key], &(&1 || domain_defaults[:actor_key]))
+    |> update_in([:source, :master_check], &(&1 || domain_defaults[:master_check]))
     |> merge_presentation_defaults(domain_defaults)
     |> merge_actions(domain_defaults)
     |> merge_submit(domain_defaults)
@@ -102,41 +91,34 @@ defmodule MishkaGervaz.Resource.Info.Form do
 
   defp merge_presentation_defaults(config, domain_defaults) do
     config
-    |> update_in([:presentation, :template], fn v -> v || domain_defaults[:template] end)
-    |> update_in([:presentation, :features], fn v -> v || domain_defaults[:features] end)
+    |> update_in([:presentation, :template], &(&1 || domain_defaults[:template]))
+    |> update_in([:presentation, :features], &(&1 || domain_defaults[:features]))
   end
 
-  defp merge_layout_defaults(config, domain_defaults) do
-    case domain_defaults[:layout] do
-      nil ->
-        config
-
-      domain_layout ->
-        case config[:layout] do
-          nil ->
-            config
-
-          layout ->
-            put_in(config, [:layout], %{
-              layout
-              | responsive:
-                  if(layout[:responsive] != nil,
-                    do: layout[:responsive],
-                    else: domain_layout[:responsive]
-                  )
-            })
-        end
+  defp merge_layout_defaults(config, %{layout: %{responsive: domain_responsive}})
+       when not is_nil(domain_responsive) do
+    case config[:layout] do
+      nil -> config
+      layout -> put_in(config, [:layout, :responsive], layout[:responsive] || domain_responsive)
     end
   end
+
+  defp merge_layout_defaults(config, _domain_defaults), do: config
 
   defp resolve_default_master_check(%{source: %{master_check: mc}} = config)
        when not is_nil(mc),
        do: config
 
   defp resolve_default_master_check(config) do
-    update_in(config, [:source, :master_check], fn _ ->
-      fn user -> MishkaGervaz.Defaults.default_master_check(user) end
-    end)
+    put_in(config, [:source, :master_check], &MishkaGervaz.Helpers.master_user?/1)
+  end
+
+  @spec identity_get(module(), atom()) :: term()
+  defp identity_get(resource, key) do
+    case config(resource) do
+      %{identity: %{^key => value}} -> value
+      _ -> nil
+    end
   end
 
   @doc """
@@ -144,8 +126,8 @@ defmodule MishkaGervaz.Resource.Info.Form do
   """
   @spec fields(module()) :: [map()]
   def fields(resource) do
-    case config(resource) do
-      %{fields: %{list: list}} when is_list(list) -> list
+    case map_get(config(resource), :fields, %{}) do
+      %{list: list} when is_list(list) -> list
       _ -> []
     end
   end
@@ -170,65 +152,31 @@ defmodule MishkaGervaz.Resource.Info.Form do
   Get all groups for a resource form.
   """
   @spec groups(module()) :: [map()]
-  def groups(resource) do
-    case config(resource) do
-      %{groups: groups} when is_list(groups) -> groups
-      _ -> []
-    end
-  end
+  def groups(resource), do: map_get(config(resource), :groups, [])
 
   @doc """
   Get all uploads for a resource form.
   """
   @spec uploads(module()) :: [map()]
-  def uploads(resource) do
-    case config(resource) do
-      %{uploads: uploads} when is_list(uploads) -> uploads
-      _ -> []
-    end
-  end
+  def uploads(resource), do: map_get(config(resource), :uploads, [])
 
   @doc """
   Get the submit configuration for a resource form.
   """
   @spec submit(module()) :: map()
-  def submit(resource) do
-    case config(resource) do
-      %{submit: submit} when is_map(submit) ->
-        submit
-
-      _ ->
-        %{
-          create: nil,
-          update: nil,
-          cancel: nil,
-          position: :bottom,
-          ui: nil
-        }
-    end
-  end
+  def submit(resource), do: map_get(config(resource), :submit, @default_submit)
 
   @doc """
   Get the layout configuration for a resource form.
   """
   @spec layout(module()) :: map() | nil
-  def layout(resource) do
-    case config(resource) do
-      %{layout: layout} when is_map(layout) -> layout
-      _ -> nil
-    end
-  end
+  def layout(resource), do: map_get(config(resource), :layout, nil)
 
   @doc """
   Get all steps for a resource form.
   """
   @spec steps(module()) :: [map()]
-  def steps(resource) do
-    case layout(resource) do
-      %{steps: steps} when is_list(steps) -> steps
-      _ -> []
-    end
-  end
+  def steps(resource), do: map_get(layout(resource), :steps, [])
 
   @doc """
   Get a specific step by name.
@@ -242,34 +190,19 @@ defmodule MishkaGervaz.Resource.Info.Form do
   Get the form header configuration. Returns nil when no header is declared.
   """
   @spec header(module()) :: map() | nil
-  def header(resource) do
-    case layout(resource) do
-      %{header: header} when is_map(header) -> header
-      _ -> nil
-    end
-  end
+  def header(resource), do: map_get(layout(resource), :header, nil)
 
   @doc """
   Get the form footer configuration. Returns nil when no footer is declared.
   """
   @spec footer(module()) :: map() | nil
-  def footer(resource) do
-    case layout(resource) do
-      %{footer: footer} when is_map(footer) -> footer
-      _ -> nil
-    end
-  end
+  def footer(resource), do: map_get(layout(resource), :footer, nil)
 
   @doc """
   Get all notices declared in the form layout.
   """
   @spec notices(module()) :: [map()]
-  def notices(resource) do
-    case layout(resource) do
-      %{notices: notices} when is_list(notices) -> notices
-      _ -> []
-    end
-  end
+  def notices(resource), do: map_get(layout(resource), :notices, [])
 
   @doc """
   Get a specific notice by name.
@@ -294,12 +227,7 @@ defmodule MishkaGervaz.Resource.Info.Form do
   Returns `:sequential` or `:free`.
   """
   @spec navigation(module()) :: :sequential | :free
-  def navigation(resource) do
-    case layout(resource) do
-      %{navigation: nav} -> nav
-      _ -> :sequential
-    end
-  end
+  def navigation(resource), do: map_get(layout(resource), :navigation, :sequential)
 
   @doc """
   Get the persistence strategy for a resource form.
@@ -307,12 +235,7 @@ defmodule MishkaGervaz.Resource.Info.Form do
   Returns `:none`, `:ets`, or `:client_token`.
   """
   @spec persistence(module()) :: :none | :ets | :client_token
-  def persistence(resource) do
-    case layout(resource) do
-      %{persistence: p} -> p
-      _ -> :none
-    end
-  end
+  def persistence(resource), do: map_get(layout(resource), :persistence, :none)
 
   @doc """
   Get the group maps for a given step name.
@@ -323,8 +246,7 @@ defmodule MishkaGervaz.Resource.Info.Form do
   def step_groups(resource, step_name) do
     case step(resource, step_name) do
       %{groups: step_group_names} when is_list(step_group_names) ->
-        all_groups = groups(resource)
-        Enum.filter(all_groups, &(&1.name in step_group_names))
+        Enum.filter(groups(resource), &(&1.name in step_group_names))
 
       _ ->
         []
@@ -341,8 +263,7 @@ defmodule MishkaGervaz.Resource.Info.Form do
   def action_for(resource, action_type, master_user?) do
     case config(resource) do
       %{source: %{actions: actions}} when is_map(actions) ->
-        action_value = Map.get(actions, action_type)
-        resolve_action_value(action_value, master_user?, action_type)
+        resolve_action_value(Map.get(actions, action_type), master_user?, action_type)
 
       _ ->
         action_type
@@ -366,12 +287,7 @@ defmodule MishkaGervaz.Resource.Info.Form do
   Get all hooks as a map.
   """
   @spec hooks(module()) :: map()
-  def hooks(resource) do
-    case config(resource) do
-      %{hooks: hooks} when is_map(hooks) -> hooks
-      _ -> %{}
-    end
-  end
+  def hooks(resource), do: map_get(config(resource), :hooks, %{})
 
   @doc """
   Get a JS hook function by name from the form config.
@@ -399,22 +315,9 @@ defmodule MishkaGervaz.Resource.Info.Form do
   """
   @spec all_preloads(module(), boolean()) :: [atom()]
   def all_preloads(resource, master_user?) do
-    case config(resource) do
-      %{source: %{preload: preload}} when is_map(preload) ->
-        always = preload[:always] || []
-
-        specific =
-          if master_user?,
-            do: preload[:master] || [],
-            else: preload[:tenant] || []
-
-        (always ++ specific ++ detected_preloads(resource))
-        |> Enum.map(&extract_preload_source/1)
-        |> Enum.uniq()
-
-      _ ->
-        detected_preloads(resource)
-    end
+    (preload_entries(resource, master_user?) ++ detected_preloads(resource))
+    |> Enum.map(&extract_preload_source/1)
+    |> Enum.uniq()
   end
 
   @doc """
@@ -431,54 +334,37 @@ defmodule MishkaGervaz.Resource.Info.Form do
   """
   @spec preload_aliases(module(), boolean()) :: %{atom() => atom()}
   def preload_aliases(resource, master_user?) do
-    case config(resource) do
-      %{source: %{preload: preload}} when is_map(preload) ->
-        always = preload[:always] || []
-
-        specific =
-          if master_user?,
-            do: preload[:master] || [],
-            else: preload[:tenant] || []
-
-        (always ++ specific)
-        |> Enum.reduce(%{}, fn
-          {source, alias_key}, acc when source != alias_key ->
-            Map.put(acc, alias_key, source)
-
-          _, acc ->
-            acc
-        end)
-
-      _ ->
-        %{}
-    end
+    resource
+    |> preload_entries(master_user?)
+    |> Enum.reduce(%{}, fn
+      {source, alias_key}, acc when source != alias_key -> Map.put(acc, alias_key, source)
+      _, acc -> acc
+    end)
   end
 
-  @spec extract_preload_source(atom() | {atom(), atom()}) :: atom()
-  defp extract_preload_source({source, _alias}), do: source
-  defp extract_preload_source(source) when is_atom(source), do: source
+  @spec preload_entries(module(), boolean()) :: [atom() | {atom(), atom()}]
+  defp preload_entries(resource, master_user?) do
+    case config(resource) do
+      %{source: %{preload: preload}} when is_map(preload) ->
+        specific = if master_user?, do: preload[:master] || [], else: preload[:tenant] || []
+        (preload[:always] || []) ++ specific
+
+      _ ->
+        []
+    end
+  end
 
   @doc """
   Get the stream name for a resource form.
   """
   @spec stream_name(module()) :: atom() | nil
-  def stream_name(resource) do
-    case config(resource) do
-      %{identity: %{stream_name: name}} -> name
-      _ -> nil
-    end
-  end
+  def stream_name(resource), do: identity_get(resource, :stream_name)
 
   @doc """
   Get the route for a resource form.
   """
   @spec route(module()) :: String.t() | nil
-  def route(resource) do
-    case config(resource) do
-      %{identity: %{route: route}} -> route
-      _ -> nil
-    end
-  end
+  def route(resource), do: identity_get(resource, :route)
 
   @doc """
   Get the form identity name as a string, suitable for LiveComponent id.
@@ -486,9 +372,47 @@ defmodule MishkaGervaz.Resource.Info.Form do
   """
   @spec component_id(module()) :: String.t() | nil
   def component_id(resource) do
-    case config(resource) do
-      %{identity: %{name: name}} when not is_nil(name) -> to_string(name)
-      _ -> nil
+    case identity_get(resource, :name) do
+      nil -> nil
+      name -> to_string(name)
     end
   end
+
+  @doc """
+  Get the state configuration.
+
+  Returns a map with any configured state module overrides.
+  Keys can include: `:module`, `:field`, `:group`, `:step`, `:presentation`, `:access`.
+  Empty map when no overrides are set.
+  """
+  @spec state(module()) :: map()
+  def state(resource) do
+    %{}
+    |> map_put_if_set(:module, mishka_gervaz_form_state_module(resource))
+    |> map_put_if_set(:field, mishka_gervaz_form_state_field(resource))
+    |> map_put_if_set(:group, mishka_gervaz_form_state_group(resource))
+    |> map_put_if_set(:step, mishka_gervaz_form_state_step(resource))
+    |> map_put_if_set(:presentation, mishka_gervaz_form_state_presentation(resource))
+    |> map_put_if_set(:access, mishka_gervaz_form_state_access(resource))
+  end
+
+  @doc """
+  Get the events configuration.
+
+  Returns a map with optional keys for sub-handler overrides:
+  `:module`, `:sanitization`, `:validation`, `:submit`, `:step`, `:upload`,
+  `:relation`, `:hooks`. Returns an empty map if no events configuration is set.
+  """
+  @spec events(module()) :: map()
+  def events(resource), do: map_get(config(resource), :events, %{})
+
+  @doc """
+  Get the data_loader configuration.
+
+  Returns a map with optional keys for sub-builder overrides:
+  `:module`, `:record`, `:tenant`, `:relation`, `:hooks`.
+  Returns an empty map if no data_loader configuration is set.
+  """
+  @spec data_loader(module()) :: map()
+  def data_loader(resource), do: map_get(config(resource), :data_loader, %{})
 end
