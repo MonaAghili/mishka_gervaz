@@ -13,7 +13,8 @@ defmodule MishkaGervaz.Table.Transformers.BuildDomainConfig do
 
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
-  alias MishkaGervaz.Table.Entities.{MenuGroup, Pagination}
+  alias MishkaGervaz.Entities.MenuGroup
+  alias MishkaGervaz.Table.Entities.Pagination
   import MishkaGervaz.Table.Transformers.Helpers
 
   @table_path [:mishka_gervaz, :table]
@@ -28,7 +29,12 @@ defmodule MishkaGervaz.Table.Transformers.BuildDomainConfig do
     show_indicator: true,
     pause_on_blur: true
   }
-  @url_sync_defaults %{enabled: true, params: [:filters, :sort, :page], prefix: nil}
+  @url_sync_defaults %{
+    enabled: true,
+    mode: :read_only,
+    params: [:filters, :sort, :page],
+    prefix: nil
+  }
   @menu_group_keys [:name, :label, :icon, :position, :resources, :visible]
 
   @impl true
