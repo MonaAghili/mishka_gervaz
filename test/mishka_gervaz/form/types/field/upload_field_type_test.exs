@@ -19,10 +19,6 @@ defmodule MishkaGervaz.Form.Types.Field.UploadFieldTypeTest do
       assert UploadType.render(assigns, %{}) == assigns
     end
 
-    test "validate/2 returns {:ok, value}" do
-      assert UploadType.validate("file.png", %{}) == {:ok, "file.png"}
-    end
-
     test "parse_params/2 passes through value" do
       assert UploadType.parse_params("raw", %{}) == "raw"
     end

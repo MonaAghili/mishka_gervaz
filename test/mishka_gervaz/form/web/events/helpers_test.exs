@@ -23,7 +23,7 @@ defmodule MishkaGervaz.Form.Web.Events.HelpersTest do
         def parse_params(value, _config), do: String.upcase(value)
       end
 
-      fields = [%{name: :title, type_module: TestParseType}]
+      fields = [%{name: :title, type_module: TestParseType, custom_parse_params?: true}]
       assert Helpers.parse_typed_params(fields, %{"title" => "hi"}) == %{"title" => "HI"}
     end
 
@@ -32,7 +32,7 @@ defmodule MishkaGervaz.Form.Web.Events.HelpersTest do
         def parse_params(_value, _config), do: :should_not_run
       end
 
-      fields = [%{name: :missing, type_module: TestSkipType}]
+      fields = [%{name: :missing, type_module: TestSkipType, custom_parse_params?: true}]
       assert Helpers.parse_typed_params(fields, %{"other" => 1}) == %{"other" => 1}
     end
 
@@ -48,7 +48,7 @@ defmodule MishkaGervaz.Form.Web.Events.HelpersTest do
         def sanitize(value, _config), do: String.trim(value)
       end
 
-      fields = [%{name: :title, type_module: TestSanitizeType}]
+      fields = [%{name: :title, type_module: TestSanitizeType, custom_sanitize?: true}]
 
       assert Helpers.sanitize_typed_params(fields, %{"title" => "  hi  "}) ==
                %{"title" => "hi"}

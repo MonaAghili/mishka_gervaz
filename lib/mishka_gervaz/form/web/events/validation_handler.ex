@@ -68,10 +68,21 @@ defmodule MishkaGervaz.Form.Web.Events.ValidationHandler do
                 )
               )
 
+            # Per-field FieldType.validate/2 pass — only fields whose
+            # type module implements validate/2 (cached as
+            # :custom_validate? at state-init) actually run. Result is
+            # already in {field_atom, message} shape, AshPhoenix-ready.
+            field_type_errors =
+              MishkaGervaz.Form.Web.Events.Helpers.validate_typed_params(
+                state.static.fields,
+                form_params
+              )
+
             validated =
               form.source
               |> AshPhoenix.Form.validate(form_params, target: target)
               |> Phoenix.Component.to_form()
+              |> merge_field_type_errors(field_type_errors)
 
             errors =
               cond do
@@ -103,6 +114,17 @@ defmodule MishkaGervaz.Form.Web.Events.ValidationHandler do
             String.replace(acc, "%{#{key}}", to_string(value))
           end)
         end)
+      end
+
+      # Prepends per-field FieldType.validate/2 errors to the form's
+      # existing errors list. Phoenix.HTML.Form stores errors as
+      # `[{field_atom, {message, opts}}]`; we wrap each
+      # `{field_atom, "msg"}` pair into that shape with empty opts.
+      defp merge_field_type_errors(form, []), do: form
+
+      defp merge_field_type_errors(form, errors) when is_list(errors) do
+        wrapped = Enum.map(errors, fn {field, msg} -> {field, {msg, []}} end)
+        %{form | errors: wrapped ++ form.errors}
       end
 
       defoverridable validate: 3, validate: 4, validate: 5, build_errors: 1

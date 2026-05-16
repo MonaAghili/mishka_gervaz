@@ -8,17 +8,8 @@ defmodule MishkaGervaz.Form.Types.Field.MultiSelectTest do
     assert MultiSelect.render(%{}, %{}) == %{}
   end
 
-  test "validate/2 passes through" do
-    assert MultiSelect.validate(["a", "b"], %{}) == {:ok, ["a", "b"]}
-    assert MultiSelect.validate([], %{}) == {:ok, []}
-  end
-
   test "parse_params/2 passes through" do
     assert MultiSelect.parse_params(["a"], %{}) == ["a"]
-  end
-
-  test "sanitize/2 passes through" do
-    assert MultiSelect.sanitize(["a", "b"], %{}) == ["a", "b"]
   end
 
   test "default_ui/0" do

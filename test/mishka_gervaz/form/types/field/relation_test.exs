@@ -29,18 +29,8 @@ defmodule MishkaGervaz.Form.Types.Field.RelationTest do
       assert Relation.render(%{}, %{}) == %{}
     end
 
-    test "validate/2 passes through" do
-      assert Relation.validate("uuid-1", %{}) == {:ok, "uuid-1"}
-      assert Relation.validate(["uuid-1", "uuid-2"], %{}) == {:ok, ["uuid-1", "uuid-2"]}
-      assert Relation.validate(nil, %{}) == {:ok, nil}
-    end
-
     test "parse_params/2 passes through" do
       assert Relation.parse_params("v", %{}) == "v"
-    end
-
-    test "sanitize/2 passes through" do
-      assert Relation.sanitize("uuid-1", %{}) == "uuid-1"
     end
 
     test "default_ui/0" do

@@ -49,18 +49,59 @@ defmodule MishkaGervaz.Form.Web.Events.Helpers do
 
   def sanitize_typed_params(_fields, params), do: params
 
+  @doc """
+  Runs each field's `FieldType.validate/2` over `params` and returns a list
+  of `{field_atom, message}` pairs ready to merge into an AshPhoenix.Form's
+  `errors` keyword list. Fields whose type module doesn't implement
+  `validate/2` (detected via the cached `:custom_validate?` flag) are
+  skipped.
+  """
+  @spec validate_typed_params(list(map()), map()) :: [{atom(), String.t()}]
+  def validate_typed_params(fields, params) when is_list(fields) and is_map(params) do
+    Enum.reduce(fields, [], fn field, acc ->
+      case run_field_validate(field, params) do
+        {:error, msg} -> [{field.name, msg} | acc]
+        _ -> acc
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  def validate_typed_params(_fields, _params), do: []
+
+  defp run_field_validate(field, params) do
+    field_name = to_string(field.name)
+    type_mod = Map.get(field, :type_module)
+
+    with true <- Map.get(field, :custom_validate?, false),
+         {:ok, value} <- Map.fetch(params, field_name),
+         false <- is_nil(type_mod) do
+      type_mod.validate(value, field)
+    else
+      _ -> :ok
+    end
+  end
+
   defp apply_type_fn(params, field, fun_name) do
     field_name = to_string(field.name)
     type_mod = Map.get(field, :type_module)
 
     with {:ok, value} <- Map.fetch(params, field_name),
          true <- not is_nil(type_mod),
-         true <- function_exported?(type_mod, fun_name, 2) do
+         true <- Map.get(field, callback_flag(fun_name), false) do
       Map.put(params, field_name, apply(type_mod, fun_name, [value, field]))
     else
       _ -> params
     end
   end
+
+  # Maps a field-type callback name to the boolean key cached on the field
+  # map by `MishkaGervaz.Form.Web.State.FieldBuilder.build_field_config/3`.
+  # `function_exported?/3` is fast but unnecessary on every keystroke —
+  # the booleans are computed once at state-init time.
+  defp callback_flag(:sanitize), do: :custom_sanitize?
+  defp callback_flag(:parse_params), do: :custom_parse_params?
+  defp callback_flag(:validate), do: :custom_validate?
 
   @doc false
   @spec sanitize_string(any()) :: any()

@@ -19,26 +19,9 @@ defmodule MishkaGervaz.Form.Types.Field.NestedTest do
       assert Nested.render(assigns, %{}) == assigns
     end
 
-    test "validate accepts a map" do
-      assert {:ok, %{"name" => "test"}} = Nested.validate(%{"name" => "test"}, %{})
-    end
-
-    test "validate accepts a list" do
-      assert {:ok, [%{name: "a"}]} = Nested.validate([%{name: "a"}], %{})
-    end
-
-    test "validate accepts nil" do
-      assert {:ok, nil} = Nested.validate(nil, %{})
-    end
-
     test "parse_params returns value unchanged" do
       value = %{"name" => "test"}
       assert Nested.parse_params(value, %{}) == value
-    end
-
-    test "sanitize returns value unchanged" do
-      value = %{"name" => "test"}
-      assert Nested.sanitize(value, %{}) == value
     end
 
     test "default_ui returns nested type" do

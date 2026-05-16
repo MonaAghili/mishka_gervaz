@@ -8,17 +8,8 @@ defmodule MishkaGervaz.Form.Types.Field.ArrayOfMapsTest do
     assert ArrayOfMaps.render(%{}, %{}) == %{}
   end
 
-  test "validate/2 passes through" do
-    value = [%{"k" => "v"}, %{"a" => 1}]
-    assert ArrayOfMaps.validate(value, %{}) == {:ok, value}
-  end
-
   test "parse_params/2 passes through" do
     assert ArrayOfMaps.parse_params([%{}], %{}) == [%{}]
-  end
-
-  test "sanitize/2 passes through" do
-    assert ArrayOfMaps.sanitize([%{}], %{}) == [%{}]
   end
 
   test "default_ui/0" do

@@ -93,11 +93,18 @@ defmodule MishkaGervaz.Form.Web.State.FieldBuilder do
       def build_field_config(field, attributes, _config) do
         attr = Map.get(attributes, field.name)
         label = get_ui_label(field)
+        type_mod = Map.get(field, :type_module)
 
         field
         |> Map.put(:attribute, attr)
         |> Map.put(:resolved_label, label)
         |> Map.put(:resolved_type, resolve_type(field, attributes))
+        |> Map.put(:custom_sanitize?, !!(type_mod && function_exported?(type_mod, :sanitize, 2)))
+        |> Map.put(:custom_validate?, !!(type_mod && function_exported?(type_mod, :validate, 2)))
+        |> Map.put(
+          :custom_parse_params?,
+          !!(type_mod && function_exported?(type_mod, :parse_params, 2))
+        )
       end
 
       defoverridable build: 2, resolve_type: 2, sort_by_order: 2, build_field_config: 3

@@ -1545,13 +1545,18 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         type_mod = MishkaGervaz.Form.Types.Field.get_or_passthrough(sf.type)
         config = %{ash_type: Map.get(sf, :ash_type)}
 
-        with true <- is_atom(type_mod) and type_mod != nil,
-             {:module, _} <- Code.ensure_loaded(type_mod),
-             true <- function_exported?(type_mod, :validate, 2),
-             {:error, msg} <- type_mod.validate(value, config) do
-          [msg | errors]
-        else
-          _ -> errors
+        cond do
+          not is_atom(type_mod) or is_nil(type_mod) ->
+            errors
+
+          not Map.get(sf, :custom_validate?, function_exported?(type_mod, :validate, 2)) ->
+            errors
+
+          true ->
+            case type_mod.validate(value, config) do
+              {:error, msg} -> [msg | errors]
+              _ -> errors
+            end
         end
       else
         errors
