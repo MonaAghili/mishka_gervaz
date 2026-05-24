@@ -385,7 +385,10 @@ defmodule MishkaGervaz.Table.Web.DataLoader do
       defp maybe_sync_url(socket, state) do
         if State.bidirectional_url_sync?(state) do
           path = build_sync_path(state)
-          Phoenix.LiveView.push_patch(socket, to: path, replace: true)
+
+          socket
+          |> Phoenix.Component.assign(:url_sync_pending, true)
+          |> Phoenix.LiveView.push_patch(to: path, replace: true)
         else
           socket
         end

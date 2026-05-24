@@ -163,9 +163,9 @@ defmodule MishkaGervaz.Table.Web.UrlSync do
 
     url_sync_config = TableInfo.url_sync(resource)
 
-    if url_sync_config && url_sync_config[:enabled] do
+    if url_sync_config && url_sync_config[:enabled] && is_list(url_sync_config[:params]) do
       prefix = Keyword.get(opts, :prefix, url_sync_config[:prefix])
-      allowed_params = Keyword.get(opts, :allowed_params, url_sync_config[:params])
+      allowed_params = Keyword.get(opts, :allowed_params, url_sync_config[:params]) || []
 
       max_filter_length =
         Keyword.get(opts, :max_filter_length, url_sync_config[:max_filter_length])
@@ -237,14 +237,16 @@ defmodule MishkaGervaz.Table.Web.UrlSync do
     }
   end
 
-  @spec decode_if_allowed(atom(), list(atom()), (-> any())) :: any()
-  defp decode_if_allowed(param_type, allowed_params, decode_fn) do
+  @spec decode_if_allowed(atom(), list(atom()) | nil, (-> any())) :: any()
+  defp decode_if_allowed(param_type, allowed_params, decode_fn) when is_list(allowed_params) do
     if param_type in allowed_params do
       decode_fn.()
     else
       default_for(param_type)
     end
   end
+
+  defp decode_if_allowed(param_type, _allowed_params, _decode_fn), do: default_for(param_type)
 
   @spec default_for(atom()) :: map() | list() | integer() | nil
   defp default_for(:filters), do: %{}

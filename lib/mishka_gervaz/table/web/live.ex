@@ -119,7 +119,8 @@ defmodule MishkaGervaz.Table.Web.Live do
      |> assign(:table_state, nil)
      |> assign(:initialized, false)
      |> assign(:subscribed, false)
-     |> assign(:refresh_initialized, false)}
+     |> assign(:refresh_initialized, false)
+     |> assign(:url_sync_pending, false)}
   end
 
   @impl true
@@ -183,6 +184,8 @@ defmodule MishkaGervaz.Table.Web.Live do
     url_state = Map.get(assigns, :url_state)
     existing_state = socket.assigns[:table_state]
 
+    url_sync_pending? = socket.assigns[:url_sync_pending] == true
+
     {state, should_load?} =
       cond do
         is_nil(existing_state) ->
@@ -194,7 +197,7 @@ defmodule MishkaGervaz.Table.Web.Live do
 
           {state, true}
 
-        UrlSync.matches_state?(url_state, existing_state) ->
+        url_sync_pending? or UrlSync.matches_state?(url_state, existing_state) ->
           state =
             existing_state
             |> then(fn s ->
@@ -221,6 +224,9 @@ defmodule MishkaGervaz.Table.Web.Live do
       |> assign(:table_state, state)
       |> assign(:resource, resource)
       |> assign(:id, id)
+      |> then(fn s ->
+        if url_sync_pending?, do: assign(s, :url_sync_pending, false), else: s
+      end)
 
     socket =
       if not socket.assigns.initialized do
