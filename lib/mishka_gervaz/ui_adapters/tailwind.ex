@@ -185,7 +185,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     <div
       class="relative"
       id={"search-select-#{@filter_name}"}
-      phx-click-away={if @dropdown_open?, do: "relation_close_dropdown"}
+      phx-click-away="relation_close_dropdown"
       phx-value-filter={@filter_name}
       phx-target={@myself}
     >
@@ -317,7 +317,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     <div
       class="relative"
       id={"load-more-select-#{@filter_name}"}
-      phx-click-away={if @dropdown_open?, do: "relation_close_dropdown"}
+      phx-click-away="relation_close_dropdown"
       phx-value-filter={@filter_name}
       phx-target={@myself}
     >
@@ -426,7 +426,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     <div
       class="relative"
       id={"multi-select-#{@filter_name}"}
-      phx-click-away={if @dropdown_open?, do: "relation_close_dropdown"}
+      phx-click-away="relation_close_dropdown"
       phx-value-filter={@filter_name}
       phx-target={@myself}
     >

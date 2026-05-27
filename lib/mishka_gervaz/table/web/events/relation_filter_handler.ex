@@ -231,8 +231,9 @@ defmodule MishkaGervaz.Table.Web.Events.RelationFilterHandler do
   end
 
   def do_handle("close_dropdown", params, state, socket) do
-    with {:ok, filter_atom, _filter} <- get_filter(params, state) do
-      current_opts = get_current_filter_opts(state, filter_atom)
+    with {:ok, filter_atom, _filter} <- get_filter(params, state),
+         current_opts = get_current_filter_opts(state, filter_atom),
+         true <- Map.get(current_opts, :dropdown_open?, false) do
       selected_options = Map.get(current_opts, :selected_options, [])
 
       new_relation_filter_state =
