@@ -189,6 +189,7 @@ defmodule MishkaGervaz.Table.Web.DataLoader do
       def load_async(socket, state, opts \\ []) do
         page = Keyword.get(opts, :page, 1)
         reset = Keyword.get(opts, :reset, false)
+        sync_url? = Keyword.get(opts, :sync_url, true)
         loading_type = if reset, do: :reset, else: :more
 
         query_mod = resolve_query_builder(state.static.resource)
@@ -205,6 +206,7 @@ defmodule MishkaGervaz.Table.Web.DataLoader do
 
         socket
         |> Phoenix.Component.assign(:table_state, state)
+        |> Phoenix.Component.assign(:skip_next_url_sync?, !sync_url?)
         |> Phoenix.LiveView.start_async(:load_data, fn ->
           execute_load(state, query, page)
         end)
@@ -229,6 +231,7 @@ defmodule MishkaGervaz.Table.Web.DataLoader do
               Phoenix.LiveView.Socket.t()
       def handle_async(:load_data, {:ok, {page, page_result, reset, pagination_info}}, socket) do
         state = socket.assigns.table_state
+        skip_url_sync? = Map.get(socket.assigns, :skip_next_url_sync?, false)
 
         records =
           MishkaGervaz.Helpers.inject_preload_aliases(page_result.results, state.preload_aliases)
@@ -246,8 +249,9 @@ defmodule MishkaGervaz.Table.Web.DataLoader do
 
         socket
         |> Phoenix.Component.assign(:table_state, state)
+        |> Phoenix.Component.assign(:skip_next_url_sync?, false)
         |> Phoenix.LiveView.stream(state.static.stream_name, records, reset: reset)
-        |> maybe_sync_url(state)
+        |> then(fn s -> if skip_url_sync?, do: s, else: maybe_sync_url(s, state) end)
         |> MishkaGervaz.Table.Web.AutoState.after_load(state)
       end
 
