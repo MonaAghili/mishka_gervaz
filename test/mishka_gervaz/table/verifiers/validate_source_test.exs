@@ -233,4 +233,109 @@ defmodule MishkaGervaz.Verifiers.ValidateSourceTest do
       assert config.realtime != nil
     end
   end
+
+  describe "feature-aware required actions (get/destroy)" do
+    defp compile_stderr(code) do
+      ExUnit.CaptureIO.capture_io(:stderr, fn -> Code.compile_string(code) end)
+    end
+
+    # A plain domain with NO gervaz default actions, so get/destroy are required
+    # purely from the resource (isolates the feature-aware behavior from the
+    # domain fallback that MishkaGervaz.Test.Domain provides).
+    defp plain_domain(id), do: "MishkaGervaz.Test.PlainDomain#{id}"
+
+    defp resource(id, name, source_actions, extra_table) do
+      """
+      defmodule #{plain_domain(id)} do
+        use Ash.Domain, validate_config_inclusion?: false
+      end
+
+      defmodule MishkaGervaz.Test.#{name}#{id} do
+        use Ash.Resource, domain: #{plain_domain(id)},
+          extensions: [MishkaGervaz.Resource], data_layer: Ash.DataLayer.Ets
+
+        attributes do
+          uuid_primary_key :id
+          attribute :name, :string, allow_nil?: false, public?: true
+        end
+
+        actions do
+          defaults [:read, :destroy, create: :*, update: :*]
+          read :master_read
+          read :tenant_read
+        end
+
+        mishka_gervaz do
+          table do
+            identity do
+              name :tbl_#{id}
+              route "/admin/tbl-#{id}"
+            end
+
+            source do
+              actions do
+      #{source_actions}
+              end
+            end
+
+            columns do
+              column :name
+            end
+      #{extra_table}
+          end
+        end
+      end
+      """
+    end
+
+    test "a read-only table (no destructive/get feature) needs only read" do
+      id = System.unique_integer([:positive])
+      output = compile_stderr(resource(id, "ReadOnly", "read {:master_read, :tenant_read}", ""))
+
+      refute output =~ "Missing required table source action"
+    end
+
+    test "a :destroy row action WITHOUT get/destroy fails at compile time, with reasons" do
+      id = System.unique_integer([:positive])
+
+      output =
+        compile_stderr(
+          resource(id, "NeedsDestroy", "read {:master_read, :tenant_read}", """
+              row_actions do
+                action :delete do
+                  type :destroy
+                end
+              end
+          """)
+        )
+
+      assert output =~ "Missing required table source action"
+      assert output =~ ":get"
+      assert output =~ ":destroy"
+      assert output =~ "Spark.Error.DslError"
+    end
+
+    test "a :destroy row action WITH get + destroy declared compiles cleanly" do
+      id = System.unique_integer([:positive])
+
+      actions = """
+      read {:master_read, :tenant_read}
+                get {:master_read, :tenant_read}
+                destroy {:destroy, :destroy}
+      """
+
+      output =
+        compile_stderr(
+          resource(id, "HasDestroy", actions, """
+              row_actions do
+                action :delete do
+                  type :destroy
+                end
+              end
+          """)
+        )
+
+      refute output =~ "Missing required table source action"
+    end
+  end
 end

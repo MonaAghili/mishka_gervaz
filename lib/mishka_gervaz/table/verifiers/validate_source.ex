@@ -8,14 +8,20 @@ defmodule MishkaGervaz.Table.Verifiers.ValidateSource do
 
   use Spark.Dsl.Verifier
   alias Spark.Dsl.Verifier
-  alias MishkaGervaz.Table.Entities.Realtime
+  alias MishkaGervaz.Table.Entities.{BulkAction, Realtime, RowAction, RowActionDropdown}
   import MishkaGervaz.Table.Verifiers.Helpers, only: [dsl_error: 3, entities_of: 3]
 
   @actions_path [:mishka_gervaz, :table, :source, :actions]
   @archive_path [:mishka_gervaz, :table, :source, :archive]
   @realtime_path [:mishka_gervaz, :table, :realtime]
+  @row_path [:mishka_gervaz, :table, :row]
+  @row_actions_path [:mishka_gervaz, :table, :row_actions]
+  @bulk_actions_path [:mishka_gervaz, :table, :bulk_actions]
 
-  @required_actions [:read, :get, :destroy]
+  @base_required [:read]
+
+  # Row-action types whose handler fetches a record by id, so they need `get`.
+  @get_row_types [:destroy, :update, :unarchive, :permanent_destroy, :accordion]
 
   @archive_opts [
     :enabled,
@@ -50,7 +56,9 @@ defmodule MishkaGervaz.Table.Verifiers.ValidateSource do
     domain_actions = domain_actions(module)
 
     missing =
-      Enum.filter(@required_actions, fn key ->
+      dsl_state
+      |> required_actions()
+      |> Enum.filter(fn key ->
         is_nil(Verifier.get_option(dsl_state, @actions_path, key)) and
           is_nil(Map.get(domain_actions, key))
       end)
@@ -60,6 +68,38 @@ defmodule MishkaGervaz.Table.Verifiers.ValidateSource do
       _ -> dsl_error(module, @actions_path, missing_actions_message(missing))
     end
   end
+
+  defp required_actions(dsl_state) do
+    @base_required
+    |> append_if(needs_get?(dsl_state), :get)
+    |> append_if(needs_destroy?(dsl_state), :destroy)
+  end
+
+  defp append_if(list, true, item), do: list ++ [item]
+  defp append_if(list, false, _item), do: list
+
+  defp needs_get?(dsl_state) do
+    Verifier.get_option(dsl_state, @row_path, :selectable) == true or
+      bulk_actions(dsl_state) != [] or
+      Enum.any?(row_actions(dsl_state), &(&1.type in @get_row_types))
+  end
+
+  defp needs_destroy?(dsl_state) do
+    Enum.any?(row_actions(dsl_state), &(&1.type == :destroy)) or
+      Enum.any?(bulk_actions(dsl_state), &(&1.type == :destroy))
+  end
+
+  # Top-level row actions plus the actions nested inside dropdowns.
+  defp row_actions(dsl_state) do
+    nested =
+      dsl_state
+      |> entities_of(@row_actions_path, RowActionDropdown)
+      |> Enum.flat_map(fn dropdown -> Enum.filter(dropdown.items, &is_struct(&1, RowAction)) end)
+
+    entities_of(dsl_state, @row_actions_path, RowAction) ++ nested
+  end
+
+  defp bulk_actions(dsl_state), do: entities_of(dsl_state, @bulk_actions_path, BulkAction)
 
   defp domain_actions(module) do
     with {:ok, domain} <- safe_domain(module),
@@ -75,12 +115,15 @@ defmodule MishkaGervaz.Table.Verifiers.ValidateSource do
 
   defp missing_actions_message(missing) do
     keys = Enum.map_join(missing, ", ", &inspect/1)
+    reasons = Enum.map_join(missing, "\n", fn key -> "  * #{inspect(key)} — #{reason(key)}" end)
 
     """
     Missing required table source action(s): #{keys}
 
-    Each of #{Enum.map_join(@required_actions, ", ", &inspect/1)} must be defined
-    either on the resource or on the domain. Resource values win when both are set.
+    #{reasons}
+
+    Each must be defined either on the resource or on the domain (resource wins when
+    both are set). A purely read-only table needs only `read`.
 
     Provide them on the resource:
 
@@ -112,6 +155,15 @@ defmodule MishkaGervaz.Table.Verifiers.ValidateSource do
     or a tuple `{master_action, tenant_action}`.
     """
   end
+
+  defp reason(:read), do: "every table must declare a read action"
+
+  defp reason(:get),
+    do:
+      "the table has interactive rows (a row action, selection, or an expand/accordion) " <>
+        "that fetch a single record by id"
+
+  defp reason(:destroy), do: "the table has a `:destroy` row action or bulk action"
 
   @spec validate_archive_section(Spark.Dsl.t(), module()) ::
           :ok | {:error, Spark.Error.DslError.t()}
