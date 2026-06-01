@@ -2,7 +2,7 @@ defmodule MishkaGervaz.Verifiers.ValidateSourceTest do
   @moduledoc """
   Tests for the ValidateSource verifier.
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias MishkaGervaz.Test.Resources.Post
   alias MishkaGervaz.Test.Resources.ArchivableResource

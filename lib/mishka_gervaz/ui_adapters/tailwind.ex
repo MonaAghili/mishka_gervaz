@@ -93,7 +93,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
   @impl true
   def select(assigns) do
-    normalized = normalize_options(assigns[:options] || [])
+    normalized = normalize_grouped_options(assigns[:options] || [])
 
     assigns =
       assigns
@@ -118,15 +118,40 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         class={[@class, @icon && "pl-9", @disabled && "bg-gray-100 cursor-not-allowed"]}
       >
         <option :if={@prompt} value="">{@prompt}</option>
-        <%= for {label, value} <- @options do %>
-          <option value={value} selected={to_string(@value) == to_string(value)}>
-            {label}
-          </option>
+        <%= for entry <- @options do %>
+          <%= case entry do %>
+            <% {:group, group_label, opts} -> %>
+              <optgroup label={group_label}>
+                <option
+                  :for={{label, value} <- opts}
+                  value={value}
+                  selected={to_string(@value) == to_string(value)}
+                >
+                  {label}
+                </option>
+              </optgroup>
+            <% {:option, label, value} -> %>
+              <option value={value} selected={to_string(@value) == to_string(value)}>{label}</option>
+          <% end %>
         <% end %>
       </select>
     </div>
     """
   end
+
+  # `{group_label, [opts]}` → optgroup; anything else → a flat option.
+  defp normalize_grouped_options(options) when is_list(options) do
+    Enum.map(options, fn
+      {group_label, opts} when is_list(opts) ->
+        {:group, to_string(group_label), normalize_options(opts)}
+
+      other ->
+        [{label, value}] = normalize_options([other])
+        {:option, label, value}
+    end)
+  end
+
+  defp normalize_grouped_options(_), do: []
 
   @doc """
   Single-select dropdown with search support for relation filters.
