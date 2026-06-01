@@ -154,7 +154,11 @@ defmodule MishkaGervaz.Table.Templates.Table do
             static={@static}
             state={@state}
           />
-          <table class={table_classes(@static)}>
+          <table
+            id={"#{@static.stream_name}"}
+            phx-update="stream"
+            class={table_classes(@static)}
+          >
             <.render_header
               static={@static}
               state={@state}
@@ -164,12 +168,8 @@ defmodule MishkaGervaz.Table.Templates.Table do
               features={@features}
               myself={@myself}
             />
-            <tbody
-              id={"#{@static.stream_name}"}
-              phx-update="stream"
-              class="divide-y divide-gray-200"
-            >
-              <tr id={"#{@static.stream_name}-empty-state"} class="hidden only:table-row">
+            <tbody :if={@state.total_count == 0} id={"#{@static.stream_name}-empty-state"}>
+              <tr>
                 <td colspan="100" class="px-4 py-12 text-center text-gray-500">
                   <span
                     :if={get_in(@static.config, [:empty_state, :icon])}
@@ -183,67 +183,18 @@ defmodule MishkaGervaz.Table.Templates.Table do
                     dgettext("mishka_gervaz", "No records found")}
                 </td>
               </tr>
-              <.render_item
-                :for={{id, record} <- @stream}
-                id={id}
-                record={record}
-                static={@static}
-                state={@state}
-                show_checkboxes={@show_checkboxes}
-                show_expand={@show_expand}
-                show_actions={@show_actions}
-                myself={@myself}
-              />
             </tbody>
-            <tbody
-              :if={@state.expanded_id}
-              id={"#{@static.id}-expanded-tbody"}
-            >
-              <tr
-                id={"#{@static.id}-expanded-row"}
-                class="bg-gray-50 border-b"
-                phx-hook="ExpandedRow"
-                data-after-id={"#{@static.stream_name}-#{@state.expanded_id}"}
-              >
-                <td
-                  colspan={
-                    length(get_visible_columns(@static.columns, @state)) +
-                      if(@show_expand, do: 1, else: 0) + if(@show_checkboxes, do: 1, else: 0) +
-                      if(@show_actions, do: 1, else: 0)
-                  }
-                  class="px-6 py-4"
-                >
-                  <div class="flex justify-between items-center mb-2">
-                    <span class="font-semibold text-sm">
-                      {dgettext("mishka_gervaz", "Record Details")}
-                    </span>
-                    <button
-                      phx-click="close_expanded"
-                      phx-target={@myself}
-                      class="text-gray-500 hover:text-gray-700 text-sm"
-                    >
-                      ✕ {dgettext("mishka_gervaz", "Close")}
-                    </button>
-                  </div>
-                  <%= cond do %>
-                    <% @state.expanded_data && @state.expanded_data.loading -> %>
-                      <div class="flex items-center gap-2 text-gray-500">
-                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900">
-                        </div>
-                        {dgettext("mishka_gervaz", "Loading...")}
-                      </div>
-                    <% @state.expanded_data && @state.expanded_data.failed -> %>
-                      <div class="text-red-500">
-                        {dgettext("mishka_gervaz", "Failed to load data")}
-                      </div>
-                    <% @state.expanded_data && @state.expanded_data.ok? -> %>
-                      {Phoenix.HTML.raw(@state.expanded_data.result)}
-                    <% true -> %>
-                      <div class="text-gray-500">{dgettext("mishka_gervaz", "No data")}</div>
-                  <% end %>
-                </td>
-              </tr>
-            </tbody>
+            <.render_item
+              :for={{id, record} <- @stream}
+              id={id}
+              record={record}
+              static={@static}
+              state={@state}
+              show_checkboxes={@show_checkboxes}
+              show_expand={@show_expand}
+              show_actions={@show_actions}
+              myself={@myself}
+            />
           </table>
         </div>
 
@@ -554,7 +505,10 @@ defmodule MishkaGervaz.Table.Templates.Table do
       |> assign(:sort_field_map, sort_field_map)
 
     ~H"""
-    <thead class={(@static.theme && @static.theme[:header_class]) || "bg-gray-50"}>
+    <thead
+      id={"#{@static.stream_name}-thead"}
+      class={(@static.theme && @static.theme[:header_class]) || "bg-gray-50"}
+    >
       <tr>
         <th :if={@show_expand} class="w-8 px-2 py-3"></th>
         <th :if={@show_checkboxes} class="w-10 px-4 py-3">
@@ -656,12 +610,14 @@ defmodule MishkaGervaz.Table.Templates.Table do
     assigns = assign(assigns, :custom_content, custom_content)
 
     ~H"""
-    <tr
-      id={@id}
-      class={["gervaz-row gervaz-row-custom" | row_classes(@static, @state, @record, @is_checked)]}
-    >
-      {@custom_content}
-    </tr>
+    <tbody id={@id}>
+      <tr class={[
+        "gervaz-row gervaz-row-custom border-b border-gray-200"
+        | row_classes(@static, @state, @record, @is_checked)
+      ]}>
+        {@custom_content}
+      </tr>
+    </tbody>
     """
   end
 
@@ -669,22 +625,24 @@ defmodule MishkaGervaz.Table.Templates.Table do
     assigns = assign(assigns, :override_component, component)
 
     ~H"""
-    <tr
-      id={@id}
-      class={["gervaz-row gervaz-row-component" | row_classes(@static, @state, @record, @is_checked)]}
-    >
-      <.live_component
-        module={@override_component}
-        id={"row-override-#{@record.id}"}
-        record={@record}
-        columns={@static.columns}
-        row_actions={@static.row_actions}
-        static={@static}
-        state={@state}
-        ui_adapter={@static.ui_adapter}
-        myself={@myself}
-      />
-    </tr>
+    <tbody id={@id}>
+      <tr class={[
+        "gervaz-row gervaz-row-component border-b border-gray-200"
+        | row_classes(@static, @state, @record, @is_checked)
+      ]}>
+        <.live_component
+          module={@override_component}
+          id={"row-override-#{@record.id}"}
+          record={@record}
+          columns={@static.columns}
+          row_actions={@static.row_actions}
+          static={@static}
+          state={@state}
+          ui_adapter={@static.ui_adapter}
+          myself={@myself}
+        />
+      </tr>
+    </tbody>
     """
   end
 
@@ -692,50 +650,87 @@ defmodule MishkaGervaz.Table.Templates.Table do
     is_expanded = assigns.show_expand && assigns.state.expanded_id == to_string(assigns.record.id)
     filtered_row_actions = Enum.reject(assigns.static.row_actions, &(&1[:type] == :accordion))
 
+    panel_colspan =
+      length(assigns.visible_columns) + if(assigns.show_expand, do: 1, else: 0) +
+        if(assigns.show_checkboxes, do: 1, else: 0) + if(assigns.show_actions, do: 1, else: 0)
+
     assigns =
       assigns
       |> assign(:is_expanded, is_expanded)
       |> assign(:filtered_row_actions, filtered_row_actions)
+      |> assign(:panel_colspan, panel_colspan)
 
     ~H"""
-    <tr id={@id} class={["gervaz-row" | row_classes(@static, @state, @record, @is_checked)]}>
-      <td :if={@show_expand} class="w-8 px-2 py-3 text-center">
-        <button
-          phx-click="expand_row"
-          phx-value-id={@record.id}
-          phx-target={@myself}
-          class="text-gray-400 hover:text-gray-700 transition-transform duration-200"
-          style={if @is_expanded, do: "transform: rotate(90deg)", else: ""}
-        >
-          &#9654;
-        </button>
-      </td>
-      <td :if={@show_checkboxes} class="w-10 px-4 py-3">
-        <.dynamic_component
-          module={@static.ui_adapter}
-          function={:checkbox}
-          phx-click="toggle_select"
-          phx-value-id={@record.id}
-          phx-target={@myself}
-          {@checkbox_assigns}
-        />
-      </td>
-      <td :for={column <- @visible_columns} class={cell_classes(column)}>
-        <Shared.render_cell column={column} record={@record} static={@static} state={@state} />
-      </td>
-      <td
-        :if={@show_actions}
-        class="px-4 py-3 text-right"
-      >
-        <Shared.render_row_actions
-          row_actions={@filtered_row_actions}
-          record={@record}
-          static={@static}
-          state={@state}
-          myself={@myself}
-        />
-      </td>
-    </tr>
+    <tbody id={@id} class="gervaz-row-group">
+      <tr class={[
+        "gervaz-row border-b border-gray-200" | row_classes(@static, @state, @record, @is_checked)
+      ]}>
+        <td :if={@show_expand} class="w-8 px-2 py-3 text-center">
+          <button
+            phx-click="expand_row"
+            phx-value-id={@record.id}
+            phx-target={@myself}
+            class="text-gray-400 hover:text-gray-700 transition-transform duration-200"
+            style={if @is_expanded, do: "transform: rotate(90deg)", else: ""}
+          >
+            &#9654;
+          </button>
+        </td>
+        <td :if={@show_checkboxes} class="w-10 px-4 py-3">
+          <.dynamic_component
+            module={@static.ui_adapter}
+            function={:checkbox}
+            phx-click="toggle_select"
+            phx-value-id={@record.id}
+            phx-target={@myself}
+            {@checkbox_assigns}
+          />
+        </td>
+        <td :for={column <- @visible_columns} class={cell_classes(column)}>
+          <Shared.render_cell column={column} record={@record} static={@static} state={@state} />
+        </td>
+        <td :if={@show_actions} class="px-4 py-3 text-right">
+          <Shared.render_row_actions
+            row_actions={@filtered_row_actions}
+            record={@record}
+            static={@static}
+            state={@state}
+            myself={@myself}
+          />
+        </td>
+      </tr>
+      <tr :if={@is_expanded} class="bg-gray-50 border-b border-gray-200">
+        <td colspan={@panel_colspan} class="px-6 py-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-semibold text-sm">
+              {dgettext("mishka_gervaz", "Record Details")}
+            </span>
+            <button
+              phx-click="close_expanded"
+              phx-target={@myself}
+              class="text-gray-500 hover:text-gray-700 text-sm"
+            >
+              ✕ {dgettext("mishka_gervaz", "Close")}
+            </button>
+          </div>
+          <%= cond do %>
+            <% @state.expanded_data && @state.expanded_data.loading -> %>
+              <div class="flex items-center gap-2 text-gray-500">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                {dgettext("mishka_gervaz", "Loading...")}
+              </div>
+            <% @state.expanded_data && @state.expanded_data.failed -> %>
+              <div class="text-red-500">
+                {dgettext("mishka_gervaz", "Failed to load data")}
+              </div>
+            <% @state.expanded_data && @state.expanded_data.ok? -> %>
+              {Phoenix.HTML.raw(@state.expanded_data.result)}
+            <% true -> %>
+              <div class="text-gray-500">{dgettext("mishka_gervaz", "No data")}</div>
+          <% end %>
+        </td>
+      </tr>
+    </tbody>
     """
   end
 

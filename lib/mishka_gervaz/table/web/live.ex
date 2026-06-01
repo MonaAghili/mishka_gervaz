@@ -129,9 +129,7 @@ defmodule MishkaGervaz.Table.Web.Live do
 
     if state do
       state = State.update(state, expanded_data: AsyncResult.ok(state.expanded_data, html))
-      socket = assign(socket, :table_state, state) |> reinsert_expanded_record(state)
-
-      {:ok, socket}
+      {:ok, socket |> assign(:table_state, state) |> reinsert_expanded_record(state)}
     else
       {:ok, socket}
     end
@@ -141,15 +139,8 @@ defmodule MishkaGervaz.Table.Web.Live do
     state = socket.assigns.table_state
 
     if state do
-      state =
-        State.update(state,
-          expanded_data: AsyncResult.failed(state.expanded_data, reason)
-        )
-
-      socket = assign(socket, :table_state, state)
-      socket = reinsert_expanded_record(socket, state)
-
-      {:ok, socket}
+      state = State.update(state, expanded_data: AsyncResult.failed(state.expanded_data, reason))
+      {:ok, socket |> assign(:table_state, state) |> reinsert_expanded_record(state)}
     else
       {:ok, socket}
     end
@@ -411,6 +402,9 @@ defmodule MishkaGervaz.Table.Web.Live do
     end
   end
 
+  # The expanded panel renders inline inside the record's own stream `<tbody>`, so
+  # re-streaming the expanded record re-renders the panel in place (LiveView patches
+  # it where it already is — no node is ever moved, so it cannot "pop"/jump).
   @spec reinsert_expanded_record(Phoenix.LiveView.Socket.t(), State.t()) ::
           Phoenix.LiveView.Socket.t()
   defp reinsert_expanded_record(socket, %{expanded_id: nil}), do: socket
