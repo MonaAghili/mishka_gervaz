@@ -215,6 +215,7 @@ defmodule MishkaGervaz.Table.Web.Live do
       |> assign(:table_state, state)
       |> assign(:resource, resource)
       |> assign(:id, id)
+      |> assign(:before_table, Map.get(assigns, :before_table))
       |> then(fn s ->
         if url_sync_pending?, do: assign(s, :url_sync_pending, false), else: s
       end)

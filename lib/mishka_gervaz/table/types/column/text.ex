@@ -25,7 +25,7 @@ defmodule MishkaGervaz.Table.Types.Column.Text do
     max_length = extra[:max_length]
     suffix = extra[:truncate_suffix] || "..."
 
-    text = to_string(value)
+    text = stringify(value)
 
     {display_text, truncated} =
       if max_length && String.length(text) > max_length do
@@ -45,4 +45,10 @@ defmodule MishkaGervaz.Table.Types.Column.Text do
   @spec get_extra(map()) :: map()
   defp get_extra(%{ui: %{extra: extra}}) when is_map(extra), do: extra
   defp get_extra(_), do: %{}
+
+  defp stringify(value) when is_binary(value), do: value
+
+  defp stringify(value) do
+    if String.Chars.impl_for(value), do: to_string(value), else: inspect(value)
+  end
 end

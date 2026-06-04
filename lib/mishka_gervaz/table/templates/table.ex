@@ -108,6 +108,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
       |> assign(:features, features)
       |> assign(:infinite_scroll?, is_infinite_scroll?)
       |> assign(:viewport_event, viewport_event)
+      |> assign_new(:before_table, fn -> nil end)
 
     ~H"""
     <div class="mishka-gervaz-table">
@@ -144,6 +145,9 @@ defmodule MishkaGervaz.Table.Templates.Table do
         />
 
         {render_notices_at(assigns, :before_table)}
+        <%= if @before_table do %>
+          {render_slot(@before_table)}
+        <% end %>
 
         <div class="relative overflow-x-auto" style="isolation: isolate;">
           <.render_loading_overlay
