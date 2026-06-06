@@ -45,6 +45,7 @@ defmodule MishkaGervaz.Table.Types.Column do
       uuid: {Column.UUID, [Ash.Type.UUID, Ash.Type.UUIDv7]},
       array: {Column.Array, [:__array__]},
       badge: {Column.Badge, []},
+      tags: {Column.Tags, []},
       link: {Column.Link, []}
     },
     default: Column.Text

@@ -106,6 +106,7 @@ defmodule MishkaGervaz.Behaviours.UIAdapter do
     {:cell_datetime, "Render datetime cell value"},
     {:cell_code, "Render code/monospace cell value"},
     {:cell_array, "Render array/list container"},
+    {:cell_tags, "Render a list of tags/chips with a +N inline expand/collapse toggle"},
     {:filter_reset_button, "Render filter reset/clear button"},
     {:archive_toggle, "Render archive status toggle"},
     {:bulk_action_bar, "Render bulk actions bar container"},

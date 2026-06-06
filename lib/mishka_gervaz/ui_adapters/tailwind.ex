@@ -1111,6 +1111,79 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   end
 
   @doc """
+  Render a list of tags/chips with a `+N` inline expand/collapse toggle.
+
+  Shows `:shown` chips, then a `+N` chip for the `:rest`. Clicking `+N` reveals the rest inline (the
+  `+N` swaps to a `−` collapse handle); clicking `−` again — or anywhere outside — collapses. The
+  toggle is a pure `Phoenix.LiveView.JS` class swap (no `:focus`, no absolute panel), so it works on
+  click in every browser and is never clipped by the table's `overflow-x-auto` wrapper.
+
+  ## Assigns
+    * `:id` - Stable, unique element id (namespaces the toggle targets)
+    * `:shown` - Chips always visible
+    * `:rest` - Chips revealed on expand
+    * `:more` - Count for the `+N` chip (`0` hides the toggle)
+    * `:badge_class` - Chip CSS class
+    * `:empty` - Text shown when there are no chips (default `"—"`)
+  """
+  @tags_default_badge "inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+
+  @impl true
+  def cell_tags(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:shown, fn -> [] end)
+      |> assign_new(:rest, fn -> [] end)
+      |> assign_new(:more, fn -> 0 end)
+      |> assign_new(:badge_class, fn -> nil end)
+      |> assign_new(:empty, fn -> nil end)
+
+    assigns =
+      assigns
+      |> assign(:badge_class, assigns.badge_class || @tags_default_badge)
+      |> assign(:empty, assigns.empty || "—")
+      |> assign(:any?, assigns.shown != [] or assigns.rest != [])
+
+    ~H"""
+    <div
+      :if={@any?}
+      id={@id}
+      class="inline-flex flex-wrap items-center gap-1"
+      phx-click-away={@more > 0 && tags_collapse(@id)}
+    >
+      <span :for={item <- @shown} class={@badge_class}>{item}</span>
+      <span id={@id <> "-rest"} class="hidden">
+        <span :for={item <- @rest} class={[@badge_class, "mr-1"]}>{item}</span>
+      </span>
+      <button
+        :if={@more > 0}
+        type="button"
+        class={[@badge_class, "cursor-pointer text-gray-500 hover:bg-gray-200 focus:outline-none"]}
+        phx-click={tags_toggle(@id)}
+      >
+        <span id={@id <> "-more"}>+{@more}</span>
+        <span id={@id <> "-less"} class="hidden">−</span>
+      </button>
+    </div>
+    <span :if={not @any?} class="text-xs text-gray-400">{@empty}</span>
+    """
+  end
+
+  # `+N` ⇄ `−`: toggle the hidden rest chips and swap the chip's own label. Click-away resets to the
+  # collapsed state regardless of where the toggle currently sits.
+  defp tags_toggle(id) do
+    JS.toggle_class("hidden", to: "##{id}-rest")
+    |> JS.toggle_class("hidden", to: "##{id}-more")
+    |> JS.toggle_class("hidden", to: "##{id}-less")
+  end
+
+  defp tags_collapse(id) do
+    JS.add_class("hidden", to: "##{id}-rest")
+    |> JS.add_class("hidden", to: "##{id}-less")
+    |> JS.remove_class("hidden", to: "##{id}-more")
+  end
+
+  @doc """
   Render filter reset/clear button.
 
   ## Assigns
