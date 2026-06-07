@@ -108,7 +108,7 @@ defmodule MishkaGervaz.Table.Web.Events.RecordHandler do
       alias MishkaGervaz.Resource.Info.Table, as: Info
 
       @impl true
-      @spec get_record(State.t(), binary(), :active | :archived) :: struct()
+      @spec get_record(State.t(), binary(), :active | :archived) :: struct() | nil
       def get_record(state, id, archive_status) do
         action =
           case archive_status do
@@ -124,12 +124,21 @@ defmodule MishkaGervaz.Table.Web.Events.RecordHandler do
         opts = [action: action, actor: state.current_user, load: State.get_preloads(state)]
         opts = if tenant, do: Keyword.put(opts, :tenant, tenant), else: opts
 
-        Ash.get!(state.static.resource, id, opts)
-        |> MishkaGervaz.Helpers.inject_preload_aliases(state.preload_aliases)
+        # A row can be deleted while still rendered (stale stream / open expand), so a miss returns
+        # nil instead of raising — callers treat nil as "gone" rather than crashing the LiveView.
+        case Ash.get(state.static.resource, id, opts) do
+          {:ok, record} ->
+            MishkaGervaz.Helpers.inject_preload_aliases(record, state.preload_aliases)
+
+          {:error, _} ->
+            nil
+        end
       end
 
       @impl true
-      @spec delete_record(State.t(), struct()) :: {:ok, struct()} | {:error, term()}
+      @spec delete_record(State.t(), struct() | nil) :: {:ok, struct()} | {:error, term()}
+      def delete_record(_state, nil), do: {:error, :not_found}
+
       def delete_record(state, record) do
         action = State.get_action(state, :destroy)
         tenant = if state.master_user?, do: nil, else: Map.get(state.current_user, :site_id)
@@ -146,8 +155,10 @@ defmodule MishkaGervaz.Table.Web.Events.RecordHandler do
       end
 
       @impl true
-      @spec destroy_record(State.t(), struct(), atom() | {atom(), atom()}) ::
+      @spec destroy_record(State.t(), struct() | nil, atom() | {atom(), atom()}) ::
               {:ok, struct()} | {:error, term()}
+      def destroy_record(_state, nil, _action_spec), do: {:error, :not_found}
+
       def destroy_record(state, record, action_spec) do
         action =
           case action_spec do
@@ -172,7 +183,9 @@ defmodule MishkaGervaz.Table.Web.Events.RecordHandler do
       end
 
       @impl true
-      @spec unarchive_record(State.t(), struct()) :: {:ok, struct()} | {:error, term()}
+      @spec unarchive_record(State.t(), struct() | nil) :: {:ok, struct()} | {:error, term()}
+      def unarchive_record(_state, nil), do: {:error, :not_found}
+
       def unarchive_record(state, record) do
         action =
           Info.archive_action_for(state.static.resource, :restore, state.master_user?) ||
@@ -191,7 +204,10 @@ defmodule MishkaGervaz.Table.Web.Events.RecordHandler do
       end
 
       @impl true
-      @spec permanent_destroy_record(State.t(), struct()) :: {:ok, struct()} | {:error, term()}
+      @spec permanent_destroy_record(State.t(), struct() | nil) ::
+              {:ok, struct()} | {:error, term()}
+      def permanent_destroy_record(_state, nil), do: {:error, :not_found}
+
       def permanent_destroy_record(state, record) do
         action =
           Info.archive_action_for(state.static.resource, :destroy, state.master_user?) ||
@@ -211,8 +227,10 @@ defmodule MishkaGervaz.Table.Web.Events.RecordHandler do
       end
 
       @impl true
-      @spec update_record(State.t(), struct(), atom() | {atom(), atom()}) ::
+      @spec update_record(State.t(), struct() | nil, atom() | {atom(), atom()}) ::
               {:ok, struct()} | {:error, term()}
+      def update_record(_state, nil, _action_spec), do: {:error, :not_found}
+
       def update_record(state, record, action_spec) do
         action =
           case action_spec do

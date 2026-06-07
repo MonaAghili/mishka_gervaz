@@ -788,7 +788,7 @@ defmodule MishkaGervaz.Table.Web.Events do
     socket =
       socket
       |> Phoenix.Component.assign(:table_state, state)
-      |> Phoenix.LiveView.stream_insert(state.static.stream_name, record)
+      |> safe_stream_reinsert(state, record)
 
     socket = apply_hook_result(state, :on_select, [state.selected_ids, socket], socket)
 
