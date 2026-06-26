@@ -44,7 +44,7 @@ defmodule MishkaGervaz.Table.Web.Renderer do
     |> assign(:static, state.static)
     |> assign(:state, state)
     |> assign(:stream, get_stream(assigns, state.static.stream_name))
-    |> assign(:empty?, is_empty?(assigns))
+    |> assign(:empty?, table_empty?(state))
     |> assign_new(:myself, fn -> nil end)
     |> template.render()
   end
@@ -64,21 +64,8 @@ defmodule MishkaGervaz.Table.Web.Renderer do
     end
   end
 
-  @spec is_empty?(map()) :: boolean()
-  defp is_empty?(assigns) do
-    case assigns[:streams] do
-      streams when is_map(streams) ->
-        Enum.all?(streams, fn {_name, stream} ->
-          case stream do
-            {_, _, []} -> true
-            {_, _, items} when is_list(items) -> items == []
-            [] -> true
-            _ -> false
-          end
-        end)
-
-      _ ->
-        true
-    end
+  @spec table_empty?(MishkaGervaz.Table.Web.State.t()) :: boolean()
+  defp table_empty?(state) do
+    state.loading == :loaded and state.total_count == 0
   end
 end

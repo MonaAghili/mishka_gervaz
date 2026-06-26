@@ -172,22 +172,6 @@ defmodule MishkaGervaz.Table.Templates.Table do
               features={@features}
               myself={@myself}
             />
-            <tbody :if={@state.total_count == 0} id={"#{@static.stream_name}-empty-state"}>
-              <tr>
-                <td colspan="100" class="px-4 py-12 text-center text-gray-500">
-                  <span
-                    :if={get_in(@static.config, [:empty_state, :icon])}
-                    class={[
-                      get_in(@static.config, [:empty_state, :icon]),
-                      "block mx-auto mb-4 h-12 w-12"
-                    ]}
-                  >
-                  </span>
-                  {get_in(@static.config, [:empty_state, :message]) ||
-                    dgettext("mishka_gervaz", "No records found")}
-                </td>
-              </tr>
-            </tbody>
             <.render_item
               :for={{id, record} <- @stream}
               id={id}

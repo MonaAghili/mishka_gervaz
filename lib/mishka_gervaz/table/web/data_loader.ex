@@ -236,13 +236,20 @@ defmodule MishkaGervaz.Table.Web.DataLoader do
         records =
           MishkaGervaz.Helpers.inject_preload_aliases(page_result.results, state.preload_aliases)
 
+        total_count =
+          cond do
+            is_integer(pagination_info[:total_count]) -> pagination_info[:total_count]
+            reset -> length(records)
+            true -> (state.total_count || 0) + length(records)
+          end
+
         state =
           State.update(state,
             loading: :loaded,
             has_initial_data?: true,
             page: page,
             has_more?: page_result.more?,
-            total_count: pagination_info[:total_count],
+            total_count: total_count,
             total_pages: pagination_info[:total_pages],
             records_result: AsyncResult.ok(state.records_result, %{page: page, data: page_result})
           )

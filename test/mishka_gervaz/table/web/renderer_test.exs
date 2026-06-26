@@ -138,55 +138,38 @@ defmodule MishkaGervaz.Table.Web.RendererTest do
     end
   end
 
-  describe "empty? detection" do
-    test "returns true when streams map is empty" do
-      state = create_state()
-      assigns = create_assigns(state, streams: %{})
+  # `@empty?` is driven by `state.total_count` (the row count the data loader maintains for both
+  # numbered and infinite pagination), not by stream introspection — a LiveView stream can't report
+  # its own emptiness, and the old stream-based check both false-positived and false-negatived.
+  describe "empty? detection (state.total_count)" do
+    test "true once loaded with zero rows" do
+      state = create_state(total_count: 0, has_initial_data?: true, loading: :loaded)
 
-      result = render_component(&Renderer.render/1, assigns)
-
-      assert result =~ ~s(data-empty="true")
+      assert render_component(&Renderer.render/1, create_assigns(state)) =~ ~s(data-empty="true")
     end
 
-    test "returns true when stream is empty list" do
-      state = create_state()
-      stream_name = state.static.stream_name
-      assigns = create_assigns(state, streams: %{stream_name => []})
+    test "false when rows are present (e.g. after a load-more that added nothing)" do
+      state = create_state(total_count: 23, has_initial_data?: true, loading: :loaded)
 
-      result = render_component(&Renderer.render/1, assigns)
-
-      assert result =~ ~s(data-empty="true")
+      assert render_component(&Renderer.render/1, create_assigns(state)) =~ ~s(data-empty="false")
     end
 
-    test "returns true when stream tuple has empty list" do
-      state = create_state()
-      stream_name = state.static.stream_name
-      # LiveView stream format: {ref, dom_id_fn, items}
-      assigns = create_assigns(state, streams: %{stream_name => {nil, nil, []}})
+    test "false before the first load completes" do
+      state = create_state(total_count: 0, loading: :initial)
 
-      result = render_component(&Renderer.render/1, assigns)
-
-      assert result =~ ~s(data-empty="true")
+      assert render_component(&Renderer.render/1, create_assigns(state)) =~ ~s(data-empty="false")
     end
 
-    test "returns false when stream has items" do
-      state = create_state()
-      stream_name = state.static.stream_name
-      mock_stream = [{"id-1", %{id: "1"}}]
-      assigns = create_assigns(state, streams: %{stream_name => mock_stream})
+    test "false during a reload" do
+      state = create_state(total_count: 0, loading: :loading)
 
-      result = render_component(&Renderer.render/1, assigns)
-
-      assert result =~ ~s(data-empty="false")
+      assert render_component(&Renderer.render/1, create_assigns(state)) =~ ~s(data-empty="false")
     end
 
-    test "returns true when streams is nil" do
-      state = create_state()
-      assigns = %{table_state: state, streams: nil, __changed__: %{}}
+    test "false after a FAILED load (stale count must not show empty)" do
+      state = create_state(total_count: 0, loading: :error)
 
-      result = render_component(&Renderer.render/1, assigns)
-
-      assert result =~ ~s(data-empty="true")
+      assert render_component(&Renderer.render/1, create_assigns(state)) =~ ~s(data-empty="false")
     end
   end
 
