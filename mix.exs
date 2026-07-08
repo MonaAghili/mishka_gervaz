@@ -36,18 +36,18 @@ defmodule MishkaGervaz.MixProject do
 
   defp deps do
     [
-      {:spark, "~> 2.6"},
-      {:ash, "~> 3.0"},
-      {:splode, "~> 0.3"},
+      {:spark, "~> 2.7"},
+      {:ash, "~> 3.29"},
+      {:splode, "~> 0.3.1"},
       {:gettext, "~> 1.0"},
-      {:phoenix_live_view, "~> 1.0", optional: true},
+      {:phoenix_live_view, "~> 1.2", optional: true},
       {:ash_phoenix, "~> 2.3"},
-      {:jason, "~> 1.0"},
-      {:html_sanitize_ex, "~> 1.4"},
-      {:ex_doc, "~> 0.31", only: [:dev, :test], runtime: false},
-      {:sourceror, "~> 1.10", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:igniter, "~> 0.8", only: [:dev, :test], runtime: false},
+      {:jason, "~> 1.4"},
+      {:html_sanitize_ex, "~> 1.5"},
+      {:ex_doc, "~> 0.40.3", only: [:dev, :test], runtime: false},
+      {:sourceror, "~> 1.12", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4.7", only: [:dev, :test], runtime: false},
+      {:igniter, "~> 0.8.2", only: [:dev, :test], runtime: false},
       # Test-only dependency for archive testing
       {:ash_archival, "~> 2.0", only: :test}
     ]

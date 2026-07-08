@@ -154,7 +154,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         />
       </div>
 
-      <form phx-change="filter" phx-target={@myself} class="space-y-3">
+      <form id={"#{@static.stream_name}-filter"} phx-change="filter" phx-target={@myself} class="space-y-3">
         <%!-- Ungrouped filters (always visible) --%>
         <div :if={@ungrouped_filters != []} class={["grid gap-4", grid_cols(@columns)]}>
           <.render_filter
@@ -326,6 +326,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
 
       <form
         :if={@filters != []}
+        id={"#{@static.stream_name}-filter"}
         phx-change="filter"
         phx-target={@myself}
         class={["grid gap-4", grid_cols(@columns)]}
@@ -362,7 +363,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           myself={@myself}
         />
 
-        <form :if={@filters != []} phx-change="filter" phx-target={@myself} class="space-y-4 mt-4">
+        <form :if={@filters != []} id={"#{@static.stream_name}-filter"} phx-change="filter" phx-target={@myself} class="space-y-4 mt-4">
           <.render_filter
             :for={filter <- @filters}
             filter={filter}
@@ -431,7 +432,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         myself={@myself}
       />
 
-      <form :if={@filters != []} phx-change="filter" phx-target={@myself} class="contents">
+      <form :if={@filters != []} id={"#{@static.stream_name}-filter"} phx-change="filter" phx-target={@myself} class="contents">
         <.render_filter
           :for={filter <- @filters}
           filter={filter}
@@ -1135,6 +1136,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   defp render_page_size_selector(assigns) do
     ~H"""
     <form
+      id="page-size-selector-form"
       phx-change="change_page_size"
       phx-target={@myself}
       class="flex items-center gap-2 text-sm text-gray-600"

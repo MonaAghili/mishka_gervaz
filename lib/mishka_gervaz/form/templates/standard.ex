@@ -1166,7 +1166,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
               {@remove_label}
             </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="grid md:grid-cols-2 gap-3">
             <%= for sub_field <- @nested_fields do %>
               <% sf = extract_sub_field_info(sub_field, @parent_readonly, @state) %>
               {render_nested_sub_field(assigns, nested_form, sf)}
@@ -1236,7 +1236,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
               {@remove_label}
             </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="grid md:grid-cols-2 gap-3">
             <%= for sub_field <- @nested_fields do %>
               <% sf = extract_sub_field_info(sub_field, @parent_readonly, @state) %>
               <% sf_errors = Map.get(entry_errors, sf.name, []) %>

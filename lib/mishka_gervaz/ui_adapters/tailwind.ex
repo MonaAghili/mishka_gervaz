@@ -1226,7 +1226,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       end)
 
     ~H"""
-    <form phx-change="archive_filter" phx-target={@myself} class="flex items-center gap-2">
+    <form id="archive-filter-form" phx-change="archive_filter" phx-target={@myself} class="flex items-center gap-2">
       <label class="text-sm font-medium text-gray-700">
         {@status_label}:
       </label>
