@@ -203,13 +203,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:debounce, fn -> 300 end)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:filter_name, fn -> assigns[:name] end)
+      |> assign_new(:table_id, fn -> nil end)
       |> assign_new(:myself, fn -> nil end)
       |> assign_new(:search_term, fn -> nil end)
 
     ~H"""
     <div
       class="relative"
-      id={"search-select-#{@filter_name}"}
+      id={"search-select-#{@table_id}-#{@filter_name}"}
       phx-click-away="relation_close_dropdown"
       phx-value-filter={@filter_name}
       phx-target={@myself}
@@ -336,12 +337,13 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:dropdown_open?, fn -> false end)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:filter_name, fn -> assigns[:name] end)
+      |> assign_new(:table_id, fn -> nil end)
       |> assign_new(:myself, fn -> nil end)
 
     ~H"""
     <div
       class="relative"
-      id={"load-more-select-#{@filter_name}"}
+      id={"load-more-select-#{@table_id}-#{@filter_name}"}
       phx-click-away="relation_close_dropdown"
       phx-value-filter={@filter_name}
       phx-target={@myself}
@@ -444,13 +446,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:debounce, fn -> 300 end)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:filter_name, fn -> assigns[:name] end)
+      |> assign_new(:table_id, fn -> nil end)
       |> assign_new(:myself, fn -> nil end)
       |> assign_new(:search_term, fn -> nil end)
 
     ~H"""
     <div
       class="relative"
-      id={"multi-select-#{@filter_name}"}
+      id={"multi-select-#{@table_id}-#{@filter_name}"}
       phx-click-away="relation_close_dropdown"
       phx-value-filter={@filter_name}
       phx-target={@myself}
@@ -1218,6 +1221,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def archive_toggle(assigns) do
     assigns =
       assigns
+      |> assign_new(:table_id, fn -> "archive" end)
       |> assign_new(:status_label, fn -> "Status" end)
       |> assign_new(:active_label, fn -> "Active" end)
       |> assign_new(:archived_label, fn -> "Archived" end)
@@ -1226,7 +1230,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       end)
 
     ~H"""
-    <form id="archive-filter-form" phx-change="archive_filter" phx-target={@myself} class="flex items-center gap-2">
+    <form
+      id={"#{@table_id}-archive-filter-form"}
+      phx-change="archive_filter"
+      phx-target={@myself}
+      class="flex items-center gap-2"
+    >
       <label class="text-sm font-medium text-gray-700">
         {@status_label}:
       </label>
@@ -1255,6 +1264,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def bulk_action_bar(assigns) do
     assigns =
       assigns
+      |> assign_new(:id, fn -> nil end)
       |> assign_new(:all_selected_label, fn -> "All selected" end)
       |> assign_new(:all_except_label, fn -> "All except %{count} selected" end)
       |> assign_new(:selected_label, fn -> "%{count} selected" end)
@@ -1280,7 +1290,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       </div>
       <button
         type="button"
-        phx-click={clear_selection_js(@myself)}
+        phx-click={clear_selection_js(@myself, @id)}
         class="ml-auto text-sm text-gray-500 hover:text-gray-700"
       >
         {@clear_label}
@@ -1988,6 +1998,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:remove_label, fn -> "Remove" end)
       |> assign_new(:placeholder, fn -> nil end)
       |> assign_new(:target, fn -> nil end)
+      |> assign_new(:table_id, fn -> nil end)
       |> assign_new(:class, fn -> "space-y-2" end)
       |> assign_new(:disabled, fn -> false end)
       |> assign_new(:input_class, fn ->
@@ -1996,12 +2007,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign(:items_with_index, Enum.with_index(assigns[:items] || []))
 
     ~H"""
-    <div id={"string-list-#{@field_name}"} class={@class}>
+    <div id={"string-list-#{@table_id}-#{@field_name}"} class={@class}>
       <%!-- Hidden input ensures field present in params when list is empty --%>
       <input type="hidden" name={"form[#{@field_name}][]"} value="" />
 
       <%= for {item, idx} <- @items_with_index do %>
-        <div class="flex items-center gap-2" id={"string-list-#{@field_name}-#{idx}"}>
+        <div class="flex items-center gap-2" id={"string-list-#{@table_id}-#{@field_name}-#{idx}"}>
           <input
             type="text"
             name={"form[#{@field_name}][]"}
@@ -2060,7 +2071,11 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       end)
       |> assign_new(:field_name, fn -> nil end)
       |> assign_new(:target, fn -> nil end)
-      |> assign(:dropdown_id, "combobox-dropdown-#{assigns[:field_name] || assigns[:name]}")
+      |> assign_new(:table_id, fn -> nil end)
+      |> assign(
+        :dropdown_id,
+        "combobox-dropdown-#{assigns[:table_id]}-#{assigns[:field_name] || assigns[:name]}"
+      )
 
     ~H"""
     <div class="relative" phx-click-away={JS.hide(to: "##{@dropdown_id}")}>
@@ -2294,9 +2309,9 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   defp cell_datetime_class(:relative), do: "text-gray-600"
   defp cell_datetime_class(_), do: nil
 
-  defp clear_selection_js(myself) do
+  defp clear_selection_js(myself, scope) do
     JS.push("clear_selection", target: myself)
-    |> Shared.uncheck_all()
+    |> Shared.uncheck_all(scope)
   end
 
   defp format_page_info(format, page, total_pages, total_count) do

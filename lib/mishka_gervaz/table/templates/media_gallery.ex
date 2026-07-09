@@ -105,7 +105,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       |> assign(:show_template_switcher, show_template_switcher)
 
     ~H"""
-    <div class="mishka-gervaz-media-gallery">
+    <div id={@static.id} class="mishka-gervaz-media-gallery">
       <.render_initial_loading
         :if={!@state.has_initial_data? and @state.loading in [:initial, :loading]}
         static={@static}
@@ -199,7 +199,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
   defp render_selection_toolbar(assigns) do
     checkbox_assigns =
       %{__changed__: %{}}
-      |> assign(:id, "gallery-select-all")
+      |> assign(:id, assigns.static.id <> "-gallery-select-all")
       |> assign(:name, "select_all_gallery")
       |> assign(:value, "all")
       |> assign(:checked, assigns.state.select_all?)
@@ -220,7 +220,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       <.dynamic_component
         module={@static.ui_adapter}
         function={:checkbox}
-        phx-click={toggle_all_js(@state.select_all?)}
+        phx-click={toggle_all_js(@state.select_all?, @static.id)}
         phx-target={@myself}
         {@checkbox_assigns}
       />
@@ -228,13 +228,13 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     """
   end
 
-  defp toggle_all_js(current_select_all) do
+  defp toggle_all_js(current_select_all, scope) do
     js = JS.push("toggle_select_all")
 
     if current_select_all do
-      Shared.uncheck_all(js)
+      Shared.uncheck_all(js, scope)
     else
-      Shared.check_all_gallery(js)
+      Shared.check_all_gallery(js, scope)
     end
   end
 

@@ -36,6 +36,11 @@ defmodule MishkaGervaz.Form.Web.DataLoader.RecordLoader do
   def keyword_put_if_set(opts, key, value), do: Keyword.put(opts, key, value)
 
   @doc false
+  @spec form_id(map()) :: String.t() | nil
+  def form_id(%{static: %{id: id}}) when is_binary(id), do: id <> "-form"
+  def form_id(_), do: nil
+
+  @doc false
   @spec resolve_tenant_from_record(module(), map()) :: any() | nil
   def resolve_tenant_from_record(resource, record) do
     case Ash.Resource.Info.multitenancy_attribute(resource) do
@@ -50,7 +55,7 @@ defmodule MishkaGervaz.Form.Web.DataLoader.RecordLoader do
       alias MishkaGervaz.Resource.Info.Form, as: Info
 
       import MishkaGervaz.Form.Web.DataLoader.RecordLoader,
-        only: [keyword_put_if_set: 3, resolve_tenant_from_record: 2]
+        only: [keyword_put_if_set: 3, form_id: 1, resolve_tenant_from_record: 2]
 
       @doc """
       Load a record by ID and build an AshPhoenix.Form for editing.
@@ -118,13 +123,14 @@ defmodule MishkaGervaz.Form.Web.DataLoader.RecordLoader do
       """
       @spec build_form(State.t(), module() | struct(), :create | :update, keyword()) ::
               {:ok, Phoenix.HTML.Form.t()} | {:error, term()}
-      def build_form(_state, resource_or_record, type, opts) do
+      def build_form(state, resource_or_record, type, opts) do
         action = Keyword.get(opts, :action)
         actor = Keyword.get(opts, :actor)
         tenant = Keyword.get(opts, :tenant)
 
         form_opts =
           [as: "form"]
+          |> keyword_put_if_set(:id, form_id(state))
           |> keyword_put_if_set(:actor, actor)
           |> keyword_put_if_set(:tenant, tenant)
 

@@ -370,7 +370,11 @@ defmodule MishkaGervaz.Table.Web.State do
         preload_aliases = Info.preload_aliases(resource, master_user?)
         columns = column_mod.build(config, resource)
         filters = filter_mod.build(config, resource, current_user)
-        stream_name = Info.stream_name(resource) || StateHelpers.generate_stream_name(resource)
+
+        base_stream_name =
+          Info.stream_name(resource) || StateHelpers.generate_stream_name(resource)
+
+        stream_name = :"#{id}_#{base_stream_name}"
         template = presentation_mod.resolve_template(config)
 
         static = %Static{

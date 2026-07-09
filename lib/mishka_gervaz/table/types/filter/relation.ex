@@ -87,6 +87,7 @@ defmodule MishkaGervaz.Table.Types.Filter.Relation do
       __changed__: %{},
       name: filter.name,
       filter_name: filter.name,
+      table_id: filter[:table_id],
       options: prepend_nil_option(filter[:options] || [], filter[:include_nil]),
       prompt: get_ui(filter, :prompt, "Select..."),
       placeholder: get_ui(filter, :placeholder),

@@ -111,7 +111,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
       |> assign_new(:before_table, fn -> nil end)
 
     ~H"""
-    <div class="mishka-gervaz-table">
+    <div id={@static.id} class="mishka-gervaz-table">
       {render_notices_at(assigns, :table_top)}
       {render_notices_at(assigns, :before_header)}
       {render_chrome_header(assigns)}
@@ -477,6 +477,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
       |> assign(:name, "select_all")
       |> assign(:value, "all")
       |> assign(:checked, assigns.state.select_all?)
+      |> assign(:class, "gervaz-select-all-checkbox")
 
     sortable_columns =
       if :sort in assigns.features, do: assigns.static.sortable_columns, else: []
@@ -503,8 +504,8 @@ defmodule MishkaGervaz.Table.Templates.Table do
           <.dynamic_component
             module={@static.ui_adapter}
             function={:checkbox}
-            id="select-all-checkbox"
-            phx-click={toggle_all_js(@state.select_all?)}
+            id={@static.id <> "-select-all-checkbox"}
+            phx-click={toggle_all_js(@state.select_all?, @static.id)}
             phx-target={@myself}
             {@checkbox_assigns}
           />
@@ -620,7 +621,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
       ]}>
         <.live_component
           module={@override_component}
-          id={"row-override-#{@record.id}"}
+          id={"#{@static.id}-row-override-#{@record.id}"}
           record={@record}
           columns={@static.columns}
           row_actions={@static.row_actions}
@@ -901,13 +902,13 @@ defmodule MishkaGervaz.Table.Templates.Table do
     end
   end
 
-  defp toggle_all_js(current_select_all) do
+  defp toggle_all_js(current_select_all, scope) do
     js = JS.push("toggle_select_all")
 
     if current_select_all do
-      Shared.uncheck_all(js)
+      Shared.uncheck_all(js, scope)
     else
-      Shared.check_all_table(js)
+      Shared.check_all_table(js, scope)
     end
   end
 end

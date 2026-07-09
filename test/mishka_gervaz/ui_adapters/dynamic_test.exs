@@ -52,8 +52,7 @@ defmodule MishkaGervaz.UIAdapters.DynamicTest do
       <span
         data-renderer={@component_name}
         data-site={@site}
-      >
-      </span>
+      ></span>
       """
     end
   end

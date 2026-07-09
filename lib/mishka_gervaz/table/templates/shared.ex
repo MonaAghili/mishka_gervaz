@@ -38,35 +38,43 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   @doc """
   Unchecks all selection checkboxes and removes selection highlighting.
   """
-  @spec uncheck_all(JS.t()) :: JS.t()
-  def uncheck_all(js \\ %JS{}) do
+  @spec uncheck_all(JS.t(), String.t() | nil) :: JS.t()
+  def uncheck_all(js \\ %JS{}, scope \\ nil) do
+    prefix = scope_prefix(scope)
+
     js
-    |> JS.remove_attribute("checked", to: ".gervaz-row-checkbox")
-    |> JS.remove_attribute("checked", to: ".gervaz-media-checkbox")
-    |> JS.remove_attribute("checked", to: ".gervaz-select-all-checkbox")
-    |> JS.remove_attribute("checked", to: "#select-all-checkbox")
-    |> JS.remove_class("bg-blue-50", to: ".gervaz-row")
+    |> JS.remove_attribute("checked", to: prefix <> ".gervaz-row-checkbox")
+    |> JS.remove_attribute("checked", to: prefix <> ".gervaz-media-checkbox")
+    |> JS.remove_attribute("checked", to: prefix <> ".gervaz-select-all-checkbox")
+    |> JS.remove_class("bg-blue-50", to: prefix <> ".gervaz-row")
   end
 
   @doc """
   Checks all table row checkboxes and adds selection highlighting.
   """
-  @spec check_all_table(JS.t()) :: JS.t()
-  def check_all_table(js \\ %JS{}) do
+  @spec check_all_table(JS.t(), String.t() | nil) :: JS.t()
+  def check_all_table(js \\ %JS{}, scope \\ nil) do
+    prefix = scope_prefix(scope)
+
     js
-    |> JS.set_attribute({"checked", "checked"}, to: ".gervaz-row-checkbox")
-    |> JS.add_class("bg-blue-50", to: ".gervaz-row")
+    |> JS.set_attribute({"checked", "checked"}, to: prefix <> ".gervaz-row-checkbox")
+    |> JS.add_class("bg-blue-50", to: prefix <> ".gervaz-row")
   end
 
   @doc """
   Checks all media gallery checkboxes.
   """
-  @spec check_all_gallery(JS.t()) :: JS.t()
-  def check_all_gallery(js \\ %JS{}) do
+  @spec check_all_gallery(JS.t(), String.t() | nil) :: JS.t()
+  def check_all_gallery(js \\ %JS{}, scope \\ nil) do
+    prefix = scope_prefix(scope)
+
     js
-    |> JS.set_attribute({"checked", "checked"}, to: ".gervaz-media-checkbox")
-    |> JS.set_attribute({"checked", "checked"}, to: ".gervaz-select-all-checkbox")
+    |> JS.set_attribute({"checked", "checked"}, to: prefix <> ".gervaz-media-checkbox")
+    |> JS.set_attribute({"checked", "checked"}, to: prefix <> ".gervaz-select-all-checkbox")
   end
+
+  defp scope_prefix(nil), do: ""
+  defp scope_prefix(scope), do: "##{scope} "
 
   def render_filters(assigns) do
     static = assigns.static
@@ -149,12 +157,18 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         <.dynamic_component
           module={@static.ui_adapter}
           function={:archive_toggle}
+          table_id={@static.id}
           archive_status={@state.archive_status}
           myself={@myself}
         />
       </div>
 
-      <form id={"#{@static.stream_name}-filter"} phx-change="filter" phx-target={@myself} class="space-y-3">
+      <form
+        id={"#{@static.stream_name}-filter"}
+        phx-change="filter"
+        phx-target={@myself}
+        class="space-y-3"
+      >
         <%!-- Ungrouped filters (always visible) --%>
         <div :if={@ungrouped_filters != []} class={["grid gap-4", grid_cols(@columns)]}>
           <.render_filter
@@ -201,7 +215,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     group_class =
       (group.ui && group.ui.class) || "p-4 bg-gray-50 rounded-lg border border-gray-200"
 
-    group_id = "filter-group-#{group.name}"
+    group_id = "#{assigns.static.id}-filter-group-#{group.name}"
 
     assigns =
       assigns
@@ -319,6 +333,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           :if={@state.supports_archive}
           module={@static.ui_adapter}
           function={:archive_toggle}
+          table_id={@static.id}
           archive_status={@state.archive_status}
           myself={@myself}
         />
@@ -359,11 +374,18 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           :if={@state.supports_archive}
           module={@static.ui_adapter}
           function={:archive_toggle}
+          table_id={@static.id}
           archive_status={@state.archive_status}
           myself={@myself}
         />
 
-        <form :if={@filters != []} id={"#{@static.stream_name}-filter"} phx-change="filter" phx-target={@myself} class="space-y-4 mt-4">
+        <form
+          :if={@filters != []}
+          id={"#{@static.stream_name}-filter"}
+          phx-change="filter"
+          phx-target={@myself}
+          class="space-y-4 mt-4"
+        >
           <.render_filter
             :for={filter <- @filters}
             filter={filter}
@@ -392,6 +414,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         :if={@state.supports_archive}
         module={@static.ui_adapter}
         function={:archive_toggle}
+        table_id={@static.id}
         archive_status={@state.archive_status}
         myself={@myself}
       />
@@ -428,11 +451,18 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         :if={@state.supports_archive}
         module={@static.ui_adapter}
         function={:archive_toggle}
+        table_id={@static.id}
         archive_status={@state.archive_status}
         myself={@myself}
       />
 
-      <form :if={@filters != []} id={"#{@static.stream_name}-filter"} phx-change="filter" phx-target={@myself} class="contents">
+      <form
+        :if={@filters != []}
+        id={"#{@static.stream_name}-filter"}
+        phx-change="filter"
+        phx-target={@myself}
+        class="contents"
+      >
         <.render_filter
           :for={filter <- @filters}
           filter={filter}
@@ -661,7 +691,12 @@ defmodule MishkaGervaz.Table.Templates.Shared do
 
       :relation ->
         base_map = if is_struct(filter), do: Map.from_struct(filter), else: filter
-        filter_map = Map.put(base_map, :myself, assigns.myself)
+
+        filter_map =
+          base_map
+          |> Map.put(:myself, assigns.myself)
+          |> Map.put(:table_id, assigns.static.id)
+
         label = resolve_ui_label(filter)
         assigns = assign(assigns, :filter_map, filter_map) |> assign(:resolved_label, label)
 
@@ -811,6 +846,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
       :if={@bulk_actions != [] and @has_selection and @visible_bulk_actions != []}
       module={@ui_adapter}
       function={:bulk_action_bar}
+      id={@static.id}
       select_all={@select_all}
       selected_count={@selected_count}
       excluded_count={@excluded_count}
@@ -902,6 +938,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
 
     assigns =
       assigns
+      |> assign(:static_id, static.id)
       |> assign(:page, state.page)
       |> assign(:has_more?, state.has_more?)
       |> assign(:total_pages, state.total_pages)
@@ -965,6 +1002,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     <%!-- Page size selector for load_more/infinite --%>
     <.render_page_size_selector
       :if={@pagination_type in [:infinite, :load_more] and @show_page_size_selector}
+      static_id={@static_id}
       page_size_options={@page_size_options}
       current_page_size={@current_page_size}
       myself={@myself}
@@ -973,6 +1011,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     <%!-- Numbered pagination --%>
     <.render_numbered_pagination
       :if={@pagination_type == :numbered and @total_pages}
+      static_id={@static_id}
       page={@page}
       total_pages={@total_pages}
       total_count={@total_count}
@@ -1053,6 +1092,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         />
         <.render_page_size_selector
           :if={@show_page_size_selector}
+          static_id={@static_id}
           page_size_options={@page_size_options}
           current_page_size={@current_page_size}
           myself={@myself}
@@ -1125,6 +1165,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
       </.dynamic_component>
       <.render_page_size_selector
         :if={@page_size_options != nil and @page_size_options != []}
+        static_id={@static_id}
         page_size_options={@page_size_options}
         current_page_size={@current_page_size}
         myself={@myself}
@@ -1136,7 +1177,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   defp render_page_size_selector(assigns) do
     ~H"""
     <form
-      id="page-size-selector-form"
+      id={@static_id <> "-page-size-selector-form"}
       phx-change="change_page_size"
       phx-target={@myself}
       class="flex items-center gap-2 text-sm text-gray-600"
@@ -1546,7 +1587,8 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         ~H"{@rendered}"
 
       column.type_module ->
-        column.type_module.render(formatted_value, column, record, ui)
+        column_with_id = Map.put(column, :__table_id__, static && static.id)
+        column.type_module.render(formatted_value, column_with_id, record, ui)
 
       true ->
         ~H"{@value}"

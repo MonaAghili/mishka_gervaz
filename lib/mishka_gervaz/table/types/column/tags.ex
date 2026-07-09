@@ -69,7 +69,10 @@ defmodule MishkaGervaz.Table.Types.Column.Tags do
   defp dom_id(column, record) do
     field = source_field(column)
     base = Map.get(record, :id) || :erlang.phash2({field, Map.get(record, field)})
-    "gz-tags-#{field}-#{base}"
+
+    ["gz-tags", Map.get(column, :__table_id__), field, base]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("-")
   end
 
   @spec source_field(map()) :: atom()

@@ -1037,6 +1037,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         |> assign(:function, :combobox)
         |> assign(:options, options)
         |> assign(:field_name, field.name)
+        |> assign(:table_id, assigns.static.id)
         |> assign(:target, assigns[:myself])
         |> dynamic_component()
 
@@ -1107,6 +1108,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     |> assign(:module, ui)
     |> assign(:function, :string_list_input)
     |> assign(:items, items)
+    |> assign(:table_id, assigns.static.id)
     |> assign(:field_name, to_string(field.name))
     |> assign(:disabled, evaluate_readonly(field, assigns.state))
     |> assign(:add_label, resolve_label(field.add_label) || "+ Add")
@@ -1264,7 +1266,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     field_name = assigns.nested_field.name
     form_name = assigns.form_name
     name = "#{form_name}[#{field_name}][#{idx}][#{sf.name}]"
-    id = "#{form_name}_#{field_name}_#{idx}_#{sf.name}"
+    id = "#{assigns.static.id}_#{form_name}_#{field_name}_#{idx}_#{sf.name}"
     value = get_entry_value(entry, sf.name)
 
     assigns =
