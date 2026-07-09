@@ -35,6 +35,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:disabled, fn -> false end)
       |> assign_new(:readonly, fn -> false end)
+      |> assign_new(:autocomplete, fn -> nil end)
       |> assign(:placeholder, placeholder)
 
     ~H"""
@@ -51,6 +52,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         placeholder={@placeholder}
         disabled={@disabled}
         readonly={@readonly}
+        autocomplete={@autocomplete}
         class={[@class, @icon && "pl-9", (@disabled || @readonly) && "bg-gray-100 cursor-not-allowed"]}
         phx-debounce={@phx_debounce}
       />

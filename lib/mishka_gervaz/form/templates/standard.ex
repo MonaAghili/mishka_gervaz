@@ -899,6 +899,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:id, form_field.id)
       |> assign(:value, Phoenix.HTML.Form.input_value(assigns.state.form, field.name))
       |> assign(:placeholder, resolve_label(get_in_map(field, [:ui, :placeholder])))
+      |> assign(:autocomplete, get_in_map(field, [:ui, :autocomplete]))
       |> assign(:disabled, is_readonly)
       |> assign(:module, ui)
       |> assign(:phx_debounce, debounce)
