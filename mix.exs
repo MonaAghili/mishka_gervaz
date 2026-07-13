@@ -1,7 +1,7 @@
 defmodule MishkaGervaz.MixProject do
   use Mix.Project
 
-  @version "0.0.1-alpha.4"
+  @version "0.0.1-alpha.5"
   @source_url "https://github.com/mishka-group/mishka_gervaz"
 
   def project do
@@ -44,11 +44,12 @@ defmodule MishkaGervaz.MixProject do
       {:ash_phoenix, "~> 2.3"},
       {:jason, "~> 1.4"},
       {:html_sanitize_ex, "~> 1.5"},
+
+      # Test&Dev-only dependencies
       {:ex_doc, "~> 0.40.3", only: [:dev, :test], runtime: false},
       {:sourceror, "~> 1.12", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4.7", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.8.2", only: [:dev, :test], runtime: false},
-      # Test-only dependency for archive testing
       {:ash_archival, "~> 2.0", only: :test}
     ]
   end
