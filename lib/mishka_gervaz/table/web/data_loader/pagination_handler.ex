@@ -67,18 +67,30 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
           {1, page_result, true, %{}}
         else
           pagination_type = get_pagination_type(state)
-          page_opts = build_page_opts(page, page_size, pagination_type)
+          count? = count_requested?(state, pagination_type)
+          page_opts = build_page_opts(page, page_size, pagination_type, count?)
 
           page_result =
             query
             |> Ash.Query.for_read(action, %{}, actor: state.current_user, tenant: tenant)
             |> Ash.read!(page: page_opts)
 
-          pagination_info = build_pagination_info(pagination_type, page_result, page_size)
+          pagination_info = build_pagination_info(pagination_type, page_result, page_size, count?)
 
-          {page, page_result, page == 1, pagination_info}
+          {page, page_result, reset_stream?(pagination_type, page), pagination_info}
         end
       end
+
+      @doc """
+      Whether this page replaces what is on screen or adds to it.
+
+      A numbered page always replaces: you asked for page 3, so pages 1 and 2 must go. Load-more and
+      infinite build a list as you go, so only their first page clears it — which is why this cannot
+      simply be `page == 1`.
+      """
+      @spec reset_stream?(atom(), pos_integer()) :: boolean()
+      def reset_stream?(:numbered, _page), do: true
+      def reset_stream?(_type, page), do: page == 1
 
       @doc """
       Get pagination type from state config.
@@ -89,30 +101,48 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
       end
 
       @doc """
+      Whether this read should ask the data layer for a total count.
+
+      `:numbered` always needs one to size its page list. Any other type needs one only if the table
+      asked to show a total (`pagination do ui do show_total true end end`) — counting is a second
+      query, and the read must be `countable`, so it stays opt-in.
+      """
+      @spec count_requested?(State.t(), atom()) :: boolean()
+      def count_requested?(_state, :numbered), do: true
+
+      def count_requested?(%{static: %{pagination_ui: %{show_total: true}}}, _type), do: true
+
+      def count_requested?(_state, _type), do: false
+
+      @doc """
       Build page options for Ash.read.
       """
       @spec build_page_opts(integer(), integer(), :numbered | :infinite) :: keyword()
-      def build_page_opts(page, page_size, pagination_type) do
+      def build_page_opts(page, page_size, pagination_type),
+        do: build_page_opts(page, page_size, pagination_type, pagination_type == :numbered)
+
+      @spec build_page_opts(integer(), integer(), atom(), boolean()) :: keyword()
+      def build_page_opts(page, page_size, _pagination_type, count?) do
         opts = [offset: (page - 1) * page_size, limit: page_size]
 
-        if pagination_type == :numbered do
-          Keyword.put(opts, :count, true)
-        else
-          opts
-        end
+        if count?, do: Keyword.put(opts, :count, true), else: opts
       end
 
       @doc """
       Build pagination info from result.
       """
       @spec build_pagination_info(:numbered | :infinite, Ash.Page.Offset.t(), integer()) :: map()
-      def build_pagination_info(:numbered, page_result, page_size) do
+      def build_pagination_info(pagination_type, page_result, page_size),
+        do: build_pagination_info(pagination_type, page_result, page_size, pagination_type == :numbered)
+
+      @spec build_pagination_info(atom(), Ash.Page.Offset.t(), integer(), boolean()) :: map()
+      def build_pagination_info(_pagination_type, page_result, page_size, true) do
         total_count = page_result.count || 0
         total_pages = calculate_total_pages(total_count, page_size)
         %{total_count: total_count, total_pages: total_pages}
       end
 
-      def build_pagination_info(_pagination_type, _page_result, _page_size), do: %{}
+      def build_pagination_info(_pagination_type, _page_result, _page_size, false), do: %{}
 
       @doc """
       Calculate total pages from count and page size.
@@ -126,8 +156,12 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
 
       defoverridable load_page: 5,
                      get_pagination_type: 1,
+                     count_requested?: 2,
+                     reset_stream?: 2,
                      build_page_opts: 3,
+                     build_page_opts: 4,
                      build_pagination_info: 3,
+                     build_pagination_info: 4,
                      calculate_total_pages: 2
     end
   end

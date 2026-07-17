@@ -552,7 +552,17 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   def inline_filter_class(%{type: :relation}), do: "min-w-[200px]"
   def inline_filter_class(_), do: "min-w-[160px]"
 
-  defp render_filter(assigns) do
+  @doc """
+  One filter's input, resolved from its type — text, select, boolean, relation, date range — including
+  the disabled state a `depends_on` filter wears until its parent has a value.
+
+  Public so a custom template can lay the filters out itself and still get every input type for free,
+  the same way `render_cell/1` and `render_row_actions/1` are (see
+  `MishkaDocumentWeb.Templates.DocumentCard`, which draws its own filter drawer).
+
+  Expects `:filter`, `:all_filters`, `:state`, `:static` and `:myself`.
+  """
+  def render_filter(assigns) do
     %{filter: filter, all_filters: all_filters, state: state, static: static} = assigns
 
     disabled = filter_disabled?(filter, all_filters, state)
