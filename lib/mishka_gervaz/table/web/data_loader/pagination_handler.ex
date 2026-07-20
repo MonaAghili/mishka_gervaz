@@ -133,7 +133,13 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
       """
       @spec build_pagination_info(:numbered | :infinite, Ash.Page.Offset.t(), integer()) :: map()
       def build_pagination_info(pagination_type, page_result, page_size),
-        do: build_pagination_info(pagination_type, page_result, page_size, pagination_type == :numbered)
+        do:
+          build_pagination_info(
+            pagination_type,
+            page_result,
+            page_size,
+            pagination_type == :numbered
+          )
 
       @spec build_pagination_info(atom(), Ash.Page.Offset.t(), integer(), boolean()) :: map()
       def build_pagination_info(_pagination_type, page_result, page_size, true) do

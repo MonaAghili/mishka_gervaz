@@ -190,6 +190,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       <Shared.render_template_switcher
         switchable_templates={@static.switchable_templates}
         current_template={@state.template}
+        ui_adapter={@static.ui_adapter}
         myself={@myself}
       />
     </div>
