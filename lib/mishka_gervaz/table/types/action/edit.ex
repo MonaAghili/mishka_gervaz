@@ -56,7 +56,7 @@ defmodule MishkaGervaz.Table.Types.Action.Edit do
       |> assign(:label, resolve_label(action[:ui][:label]) || humanize(action[:name]))
       |> assign(:click_js, click_js)
       |> assign(:confirm, action[:confirm])
-      |> maybe_assign(:icon, action[:ui][:icon])
+      |> assign(:icon, action[:ui][:icon] || "hero-pencil-square")
       |> maybe_assign(:class, action[:ui][:class])
 
     ~H"""

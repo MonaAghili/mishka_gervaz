@@ -33,7 +33,7 @@ defmodule MishkaGervaz.Table.Types.Action.Destroy do
       |> assign(:record_id, record.id)
       |> assign(:target, target)
       |> assign(:confirm, action[:confirm] || dgettext("mishka_gervaz", "Are you sure?"))
-      |> maybe_assign(:icon, action[:ui][:icon])
+      |> assign(:icon, action[:ui][:icon] || "hero-trash")
       |> maybe_assign(:class, action[:ui][:class])
 
     ~H"""

@@ -38,7 +38,7 @@ defmodule MishkaGervaz.Table.Types.Action.PermanentDestroy do
         action[:confirm] ||
           dgettext("mishka_gervaz", "Permanently delete this record? This cannot be undone.")
       )
-      |> maybe_assign(:icon, action[:ui][:icon])
+      |> assign(:icon, action[:ui][:icon] || "hero-x-circle")
       |> maybe_assign(:class, action[:ui][:class])
 
     ~H"""

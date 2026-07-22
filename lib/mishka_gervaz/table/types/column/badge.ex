@@ -1,19 +1,32 @@
 defmodule MishkaGervaz.Table.Types.Column.Badge do
   @moduledoc """
-  Badge/Status column type.
+  Badge/status column type — maps a cell value to a coloured badge via config, so a resource declares
+  the colour/label mapping instead of hand-rolling badge markup in a `render` function.
 
-  Renders values as colored badges.
+  ## Options (via `column.ui.extra`)
 
-  ## Options (via column.ui.extra)
+    * `:colors`  - map of value → colour class, e.g. `%{"active" => "bg-[#e6f6ee] text-[#177a53]"}`
+    * `:labels`  - map of value → display label (falls back to a humanized value)
+    * `:dots`    - map of value → dot colour class for the `:pill` variant, e.g. `%{"active" => "bg-[#1f9d6b]"}`
+    * `:variant` - `:tag` (default, square-ish, no dot) or `:pill` (rounded with a leading dot)
+    * `:default_color` - colour class when the value is not in `:colors`
 
-  - `:colors` - Map of value to color class
-    Example: %{draft: "bg-gray-100 text-gray-800", published: "bg-green-100 text-green-800"}
-  - `:default_color` - Default color if value not in map (default: "bg-gray-100 text-gray-800")
-  - `:labels` - Map of value to display label (default: humanizes the value)
+  Keys are matched by the value's string form first, then its existing-atom form, so either
+  `%{"hybrid" => ...}` or `%{hybrid: ...}` works. Example:
 
-  See `MishkaGervaz.Table.Types.Column` (registry),
-  `MishkaGervaz.Table.Behaviours.ColumnType`, and
-  `MishkaGervaz.Table.Entities.Column`.
+      column :mode do
+        ui do
+          type :badge
+          extra %{
+            colors: %{"hybrid" => "bg-[#f1edfb] text-[#7a5bd0]"},
+            labels: %{"hybrid" => "Hybrid"},
+            default_color: "bg-[#f2f1ec] text-[#8a877f]"
+          }
+        end
+      end
+
+  See `MishkaGervaz.Table.Types.Column` (registry), `MishkaGervaz.Table.Behaviours.ColumnType`, and
+  `MishkaGervaz.UIAdapters.Tailwind` (`badge/1`).
   """
 
   @behaviour MishkaGervaz.Table.Behaviours.ColumnType
@@ -25,20 +38,37 @@ defmodule MishkaGervaz.Table.Types.Column.Badge do
 
   def render(value, column, _record, ui) do
     extra = get_extra(column)
-    colors = extra[:colors] || %{}
-    labels = extra[:labels] || %{}
-    value_key = normalize_key(value)
+    key = to_string(value)
 
-    color = Map.get(colors, value_key, extra[:default_color])
-    label = Map.get(labels, value_key, humanize(value))
-
-    ui.badge(%{__changed__: %{}, label: label, class: color})
+    ui.badge(%{
+      __changed__: %{},
+      label: lookup(extra[:labels], key, humanize(value)),
+      class: lookup(extra[:colors], key, extra[:default_color]),
+      dot: lookup(extra[:dots], key, nil),
+      variant: extra[:variant] || :tag
+    })
   end
 
-  @spec normalize_key(term()) :: atom()
-  defp normalize_key(value) when is_atom(value), do: value
-  defp normalize_key(value) when is_binary(value), do: String.to_atom(value)
-  defp normalize_key(value), do: to_string(value) |> String.to_atom()
+  @spec lookup(map() | nil, String.t(), term()) :: term()
+  defp lookup(map, key, default) when is_map(map) do
+    with :error <- Map.fetch(map, key),
+         atom_key when not is_nil(atom_key) <- existing_atom(key),
+         {:ok, value} <- Map.fetch(map, atom_key) do
+      value
+    else
+      {:ok, value} -> value
+      _ -> default
+    end
+  end
+
+  defp lookup(_map, _key, default), do: default
+
+  @spec existing_atom(String.t()) :: atom() | nil
+  defp existing_atom(key) do
+    String.to_existing_atom(key)
+  rescue
+    ArgumentError -> nil
+  end
 
   @spec get_extra(map()) :: map()
   defp get_extra(%{ui: %{extra: extra}}) when is_map(extra), do: extra

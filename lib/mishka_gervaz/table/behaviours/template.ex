@@ -312,7 +312,7 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
 
     cond do
       is_nil(value) or value == "" -> default
-      is_list(value) -> Enum.join(value, separator || " ")
+      is_list(value) -> join_values(value, separator || " ")
       true -> value
     end
   end
@@ -320,6 +320,20 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
   def get_cell_value(record, source) when is_atom(source) do
     Map.get(record, source)
   end
+
+  # A column sourced from a `has_many` holds a list of structs, and `String.Chars` is not implemented
+  # for those — joining them raises rather than producing a display string. The types that read such
+  # a list want it whole anyway (`MishkaGervaz.Table.Types.Column.Avatars`), so an unjoinable list is
+  # handed on untouched instead of crashing the row.
+  @spec join_values(list(), String.t()) :: String.t() | list()
+  defp join_values(values, separator) do
+    if Enum.all?(values, &joinable?/1), do: Enum.join(values, separator), else: values
+  end
+
+  @spec joinable?(term()) :: boolean()
+  defp joinable?(value) when is_binary(value) or is_number(value) or is_atom(value), do: true
+  defp joinable?(%struct{}) when is_atom(struct), do: false
+  defp joinable?(value), do: String.Chars.impl_for(value) != nil
 
   @spec extract_value(map(), atom() | list() | {atom(), atom()}) :: any()
   defp extract_value(record, source) when is_atom(source) do

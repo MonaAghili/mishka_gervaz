@@ -34,7 +34,7 @@ defmodule MishkaGervaz.Table.Types.Action.Unarchive do
       |> assign(:record_id, record.id)
       |> assign(:target, target)
       |> assign(:confirm, action[:confirm] || dgettext("mishka_gervaz", "Restore this record?"))
-      |> maybe_assign(:icon, action[:ui][:icon])
+      |> assign(:icon, action[:ui][:icon] || "hero-arrow-uturn-left")
       |> maybe_assign(:class, action[:ui][:class])
 
     ~H"""

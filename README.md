@@ -30,9 +30,7 @@
   - [A form](#-a-form)
 - [Customization & overrides](#-customization--overrides)
 - [Architecture](#-architecture)
-- [Compatibility](#-compatibility)
 - [Documentation](#-documentation)
-- [Status & roadmap](#-status--roadmap)
 - [Contributing](#-contributing)
 - [Funding & sponsorship](#-funding--sponsorship)
 - [License](#-license)
@@ -588,41 +586,11 @@ end
 
 ---
 
-## 🔌 Compatibility
-
-| Dependency           | Required version    |
-|----------------------|---------------------|
-| Elixir               | `~> 1.17`           |
-| Ash                  | `~> 3.0`            |
-| AshPhoenix           | `~> 2.3`            |
-| Phoenix LiveView     | `~> 1.0` (optional) |
-| Spark                | `~> 2.6`            |
-| Gettext              | `~> 1.0`            |
-| Jason                | `~> 1.0`            |
-
----
-
 ## 📚 Documentation
 
 - 📖 **API docs** — [hexdocs.pm/mishka_gervaz](https://hexdocs.pm/mishka_gervaz) (published with each release).
 - 🧭 **Guides** — every public module ends its `@moduledoc` with a "See also" cross-link to its siblings, so navigation through the codebase stays close to the runtime call graph.
 - 🔬 **Reference resources** — the test fixtures under `test/support/resources/` show every DSL feature in working form.
-
----
-
-## 🛣️ Status & roadmap
-
-| Area                            | Status        |
-|---------------------------------|---------------|
-| Table DSL + LiveView            | 🟡 Alpha — feature-complete; API may change |
-| Form DSL + LiveView             | 🟡 Alpha — feature-complete; API may change |
-| Tailwind UI adapter             | 🟡 Alpha       |
-| Multi-tenancy & access gates    | 🟢 Stable in scope |
-| Test coverage                   | 🟢 3,600+ tests, growing |
-| GuardedStruct integration       | 🔵 Planned for the field-types layer |
-| Docs site                       | 🔵 Planned     |
-
-Breaking changes will be flagged in the [CHANGELOG](https://github.com/mishka-group/mishka_gervaz/blob/master/CHANGELOG.md).
 
 ---
 

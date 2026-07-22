@@ -33,6 +33,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
     only: [resolve_label: 1, dynamic_component: 1, get_visible_columns: 2, accessible?: 2]
 
   alias MishkaGervaz.Table.Templates.Shared
+  alias MishkaGervaz.Table.Types
   alias Phoenix.LiveView.JS
 
   @doc false
@@ -109,6 +110,8 @@ defmodule MishkaGervaz.Table.Templates.Table do
       |> assign(:infinite_scroll?, is_infinite_scroll?)
       |> assign(:viewport_event, viewport_event)
       |> assign_new(:before_table, fn -> nil end)
+      |> assign_new(:rail, fn -> nil end)
+      |> assign_new(:filter_actions, fn -> nil end)
 
     ~H"""
     <div id={@static.id} class="mishka-gervaz-table">
@@ -123,93 +126,118 @@ defmodule MishkaGervaz.Table.Templates.Table do
         state={@state}
       />
 
-      <div :if={@state.has_initial_data? or @state.loading == :loaded}>
-        {render_notices_at(assigns, :before_filters)}
-        <.render_filters :if={@show_filters} static={@static} state={@state} myself={@myself} />
-        {render_notices_at(assigns, :after_filters)}
-
-        {render_notices_at(assigns, :before_bulk_actions)}
-        <.render_bulk_actions
-          :if={@show_bulk_actions}
-          static={@static}
-          state={@state}
-          myself={@myself}
-        />
-        {render_notices_at(assigns, :after_bulk_actions)}
-
-        <Shared.render_template_switcher
-          :if={@show_template_switcher}
-          switchable_templates={@static.switchable_templates}
-          current_template={@state.template}
-          ui_adapter={@static.ui_adapter}
-          myself={@myself}
-        />
-
-        {render_notices_at(assigns, :before_table)}
-        <%= if @before_table do %>
-          {render_slot(@before_table)}
-        <% end %>
-
-        <div class="relative overflow-x-auto" style="isolation: isolate;">
-          <.render_loading_overlay
-            :if={
-              @state.has_initial_data? and @state.loading == :loading and
-                @state.loading_type == :reset
-            }
+      <div
+        :if={@state.has_initial_data? or @state.loading == :loaded}
+        class={Shared.rail_class(@rail, :grid)}
+      >
+        <div class={Shared.rail_class(@rail, :top)}>
+          {render_notices_at(assigns, :before_filters)}
+          <.render_filters
+            :if={@show_filters}
             static={@static}
             state={@state}
+            myself={@myself}
+            filter_actions={@filter_actions}
           />
-          <div class={container_classes(@static)}>
-            <.render_header
-              static={@static}
-              state={@state}
-              show_checkboxes={@show_checkboxes}
-              show_expand={@show_expand}
-              show_actions={@show_actions}
-              features={@features}
+          {render_notices_at(assigns, :after_filters)}
+        </div>
+
+        <%!-- The rail sits second in source order so that below 980px, where the grid collapses and
+              the explicit placement is dropped, it falls between the filter row and the first record
+              rather than under the whole list. --%>
+        <div :if={@rail not in [nil, []]} class={Shared.rail_class(@rail, :rail)}>
+          {render_slot(@rail)}
+        </div>
+
+        <div class={Shared.rail_class(@rail, :bottom)}>
+          {render_notices_at(assigns, :before_bulk_actions)}
+          <.render_bulk_actions
+            :if={@show_bulk_actions}
+            static={@static}
+            state={@state}
+            myself={@myself}
+          />
+          {render_notices_at(assigns, :after_bulk_actions)}
+
+          <div :if={@show_template_switcher} class="mb-[14px] flex justify-end">
+            <Shared.render_template_switcher
+              switchable_templates={@static.switchable_templates}
+              current_template={@state.template}
+              ui_adapter={@static.ui_adapter}
               myself={@myself}
             />
-            <div
-              id={"#{@static.stream_name}"}
-              phx-update="stream"
-              class={row_group_classes(@static)}
-            >
-              <.render_item
-                :for={{id, record} <- @stream}
-                id={id}
-                record={record}
+          </div>
+
+          {render_notices_at(assigns, :before_table)}
+          <%= if @before_table do %>
+            {render_slot(@before_table)}
+          <% end %>
+
+          <div
+            :if={not @empty?}
+            class="relative overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[16px] border border-[#ecebe6] bg-white shadow-[0_1px_2px_rgba(30,28,24,0.04)] max-[980px]:overflow-visible! max-[980px]:rounded-none! max-[980px]:border-0! max-[980px]:bg-transparent! max-[980px]:shadow-none!"
+            style="isolation: isolate;"
+          >
+            <.render_loading_overlay
+              :if={
+                @state.has_initial_data? and @state.loading == :loading and
+                  @state.loading_type == :reset
+              }
+              static={@static}
+              state={@state}
+            />
+            <div class={container_classes(@static)}>
+              <.render_header
                 static={@static}
                 state={@state}
                 show_checkboxes={@show_checkboxes}
                 show_expand={@show_expand}
                 show_actions={@show_actions}
+                features={@features}
                 myself={@myself}
               />
+              <div
+                id={"#{@static.stream_name}"}
+                phx-update="stream"
+                class={row_group_classes(@static)}
+              >
+                <.render_item
+                  :for={{id, record} <- @stream}
+                  id={id}
+                  record={record}
+                  static={@static}
+                  state={@state}
+                  show_checkboxes={@show_checkboxes}
+                  show_expand={@show_expand}
+                  show_actions={@show_actions}
+                  myself={@myself}
+                />
+              </div>
             </div>
           </div>
+
+          <div
+            :if={@infinite_scroll?}
+            id={@static.id <> "-infinite-trigger"}
+            phx-viewport-bottom={@viewport_event}
+            phx-target={@myself}
+            class="py-6 flex items-center justify-center gap-2 text-sm text-gray-400"
+          >
+            <span class="hero-arrow-down-circle w-4 h-4 animate-bounce"></span>
+            <span>{dgettext("mishka_gervaz", "Scroll for more")}</span>
+          </div>
+
+          {render_notices_at(assigns, :after_table)}
+
+          {render_notices_at(assigns, :empty_state)}
+          <.render_empty :if={@empty?} static={@static} state={@state} myself={@myself} />
+
+          {render_notices_at(assigns, :before_pagination)}
+          <.render_pagination :if={@show_pagination} static={@static} state={@state} myself={@myself} />
+          {render_notices_at(assigns, :after_pagination)}
+
+          {render_notices_at(assigns, :table_bottom)}
         </div>
-
-        <div
-          :if={@infinite_scroll?}
-          id={@static.id <> "-infinite-trigger"}
-          phx-viewport-bottom={@viewport_event}
-          phx-target={@myself}
-          class="py-6 flex items-center justify-center gap-2 text-sm text-gray-400"
-        >
-          <span class="hero-arrow-down-circle w-4 h-4 animate-bounce"></span>
-          <span>{dgettext("mishka_gervaz", "Scroll for more")}</span>
-        </div>
-
-        {render_notices_at(assigns, :after_table)}
-
-        {render_notices_at(assigns, :empty_state)}
-        <.render_empty :if={@empty?} static={@static} state={@state} myself={@myself} />
-
-        {render_notices_at(assigns, :before_pagination)}
-        <.render_pagination :if={@show_pagination} static={@static} state={@state} myself={@myself} />
-        {render_notices_at(assigns, :after_pagination)}
-
-        {render_notices_at(assigns, :table_bottom)}
       </div>
 
       {render_chrome_footer(assigns)}
@@ -493,7 +521,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
       grid_template_columns(
         assigns.show_expand,
         assigns.show_checkboxes,
-        length(visible_columns),
+        visible_columns,
         assigns.show_actions
       )
 
@@ -508,14 +536,14 @@ defmodule MishkaGervaz.Table.Templates.Table do
     ~H"""
     <div
       id={"#{@static.stream_name}-thead"}
-      class={
+      class={[
         (@static.theme && @static.theme[:header_class]) ||
-          "grid gap-4 p-4 border-b border-border bg-muted/30"
-      }
+          "grid py-[14px] border-b border-[#ecebe6] bg-[#faf9f6]",
+        "max-[980px]:hidden!"
+      ]}
       style={"grid-template-columns: #{@grid_template};"}
     >
-      <div :if={@show_expand}></div>
-      <div :if={@show_checkboxes}>
+      <div :if={@show_checkboxes} class="pl-[16px]">
         <.dynamic_component
           module={@static.ui_adapter}
           function={:checkbox}
@@ -525,6 +553,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
           {@checkbox_assigns}
         />
       </div>
+      <div :if={@show_expand}></div>
       <div
         :for={column <- @visible_columns}
         class={header_cell_classes(column, @sortable_columns)}
@@ -542,7 +571,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
           />
         </div>
       </div>
-      <div :if={@show_actions} class="text-right text-sm font-medium">
+      <div :if={@show_actions} class="px-[16px] text-right text-sm font-medium">
         {dgettext("mishka_gervaz", "Actions")}
       </div>
     </div>
@@ -648,13 +677,13 @@ defmodule MishkaGervaz.Table.Templates.Table do
 
   defp render_default_row(assigns) do
     is_expanded = assigns.show_expand && assigns.state.expanded_id == to_string(assigns.record.id)
-    filtered_row_actions = Enum.reject(assigns.static.row_actions, &(&1[:type] == :accordion))
+    filtered_row_actions = Shared.non_accordion_actions(assigns.static.row_actions)
 
     grid_template =
       grid_template_columns(
         assigns.show_expand,
         assigns.show_checkboxes,
-        length(assigns.visible_columns),
+        assigns.visible_columns,
         assigns.show_actions
       )
 
@@ -665,37 +694,18 @@ defmodule MishkaGervaz.Table.Templates.Table do
       |> assign(:grid_template, grid_template)
 
     ~H"""
-    <div id={@id} class="gervaz-row-group">
+    <div
+      id={@id}
+      class="gervaz-row-group max-[980px]:mb-3 max-[980px]:overflow-hidden max-[980px]:rounded-[14px] max-[980px]:border max-[980px]:border-[#ecebe6] max-[980px]:bg-white max-[980px]:shadow-[0_1px_3px_rgba(30,28,24,0.06)]"
+    >
       <div
         class={[
-          "gervaz-row grid gap-4 p-4 items-center transition-colors"
+          "gervaz-row grid py-[14px] items-center transition-colors max-[980px]:relative! max-[980px]:flex! max-[980px]:flex-col! max-[980px]:items-stretch! max-[980px]:gap-[12px] max-[980px]:p-4"
           | row_classes(@static, @state, @record, @is_checked)
         ]}
         style={"grid-template-columns: #{@grid_template};"}
       >
-        <div :if={@show_expand} class="flex items-center">
-          <button
-            phx-click="expand_row"
-            phx-value-id={@record.id}
-            phx-target={@myself}
-            class="text-muted-foreground hover:text-foreground transition-transform duration-200"
-            style={if @is_expanded, do: "transform: rotate(90deg)", else: ""}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              class="size-4"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.168 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
-        <div :if={@show_checkboxes} class="flex items-center">
+        <div :if={@show_checkboxes} class="flex items-center pl-[16px] max-[980px]:pl-0!">
           <.dynamic_component
             module={@static.ui_adapter}
             function={:checkbox}
@@ -705,10 +715,44 @@ defmodule MishkaGervaz.Table.Templates.Table do
             {@checkbox_assigns}
           />
         </div>
-        <div :for={column <- @visible_columns} class={cell_classes(column)}>
+        <div
+          :if={@show_expand}
+          class="flex items-center max-[980px]:absolute max-[980px]:top-[12px] max-[980px]:right-[12px]"
+        >
+          <button
+            phx-click="expand_row"
+            phx-value-id={@record.id}
+            phx-target={@myself}
+            class="grid size-[26px] place-items-center text-[#a8a5a0] transition-transform duration-200 hover:text-[#5c5a54] max-[980px]:size-[30px] max-[980px]:rounded-[8px] max-[980px]:border max-[980px]:border-[#ecebe6] max-[980px]:bg-[#faf9f6]"
+            style={if @is_expanded, do: "transform: rotate(90deg)", else: ""}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </button>
+        </div>
+        <div
+          :for={column <- @visible_columns}
+          class={[
+            cell_classes(column),
+            "overflow-hidden max-[980px]:flex! max-[980px]:flex-col! max-[980px]:items-start! max-[980px]:gap-1 max-[980px]:overflow-visible! max-[980px]:px-0!"
+          ]}
+        >
+          <span class="hidden text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground max-[980px]:block">
+            {resolve_label(column.label) || Phoenix.Naming.humanize(column.name)}
+          </span>
           <Shared.render_cell column={column} record={@record} static={@static} state={@state} />
         </div>
-        <div :if={@show_actions} class="flex items-center justify-end">
+        <div :if={@show_actions} class="flex items-center justify-end px-[16px] max-[980px]:px-0!">
           <Shared.render_row_actions
             row_actions={@filtered_row_actions}
             record={@record}
@@ -718,38 +762,65 @@ defmodule MishkaGervaz.Table.Templates.Table do
           />
         </div>
       </div>
-      <div :if={@is_expanded} class="bg-muted/30 border-b border-border px-6 py-4">
-        <div class="flex justify-between items-center mb-2">
-          <span class="font-semibold text-sm">
+      <div
+        :if={@is_expanded}
+        class="border-b border-[#f0efea] bg-[#fbfbfa] px-6 py-[22px] max-[980px]:border-b-0 max-[980px]:border-t max-[980px]:px-4 max-[980px]:py-[18px]"
+      >
+        <div class="mb-[18px] flex items-center justify-between">
+          <span class="text-[13.5px] font-bold text-[#1b1a18]">
             {dgettext("mishka_gervaz", "Record Details")}
           </span>
           <button
             phx-click="close_expanded"
             phx-target={@myself}
-            class="text-muted-foreground hover:text-foreground text-sm"
+            class="inline-flex items-center gap-[6px] text-[12px] font-semibold text-[#8a877f] transition-colors hover:text-[#1b1a18]"
           >
-            ✕ {dgettext("mishka_gervaz", "Close")}
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+            {dgettext("mishka_gervaz", "Close")}
           </button>
         </div>
         <%= cond do %>
           <% @state.expanded_data && @state.expanded_data.loading -> %>
-            <div class="flex items-center gap-2 text-gray-500">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+            <div class="flex items-center gap-2 text-[13px] font-medium text-[#8a877f]">
+              <div class="size-4 animate-spin rounded-full border-2 border-[#e0ded7] border-t-[#5b57d6]">
+              </div>
               {dgettext("mishka_gervaz", "Loading...")}
             </div>
           <% @state.expanded_data && @state.expanded_data.failed -> %>
-            <div class="text-red-500">
+            <div class="text-[13px] font-medium text-[#c0473d]">
               {dgettext("mishka_gervaz", "Failed to load data")}
             </div>
           <% @state.expanded_data && @state.expanded_data.ok? -> %>
-            {Phoenix.HTML.raw(@state.expanded_data.result)}
+            {expanded_content(@state.expanded_data.result)}
           <% true -> %>
-            <div class="text-gray-500">{dgettext("mishka_gervaz", "No data")}</div>
+            <div class="text-[13px] font-medium text-[#8a877f]">
+              {dgettext("mishka_gervaz", "No data")}
+            </div>
         <% end %>
       </div>
     </div>
     """
   end
+
+  # A page owns its expanded panel and may hand back either a rendered template — a `~H` result,
+  # which is already HTML-safe — or an HTML string it built itself. `Phoenix.HTML.raw/1` has clauses
+  # only for a binary, an iolist, `nil` and an existing `{:safe, _}`, so a `Rendered` struct has to
+  # pass through untouched instead: putting it through `raw/1` raises FunctionClauseError.
+  @spec expanded_content(term()) :: term()
+  defp expanded_content(%Phoenix.LiveView.Rendered{} = rendered), do: rendered
+  defp expanded_content({:safe, _} = safe), do: safe
+  defp expanded_content(content), do: Phoenix.HTML.raw(content)
 
   @impl true
   def render_empty(assigns) do
@@ -880,32 +951,60 @@ defmodule MishkaGervaz.Table.Templates.Table do
   end
 
   defp container_classes(_static) do
-    "bg-card rounded-xl border border-border overflow-hidden"
+    "min-[981px]:min-w-min"
   end
 
   defp row_group_classes(static) do
     options = static.template_options || default_options()
 
     [
-      "divide-y divide-border",
+      "divide-y divide-[#f4f3ee]",
       options[:striped] && "[&>div:nth-child(even)]:bg-muted/20"
     ]
     |> Enum.filter(& &1)
   end
 
-  defp grid_template_columns(show_expand, show_checkboxes, num_columns, show_actions) do
+  defp grid_template_columns(show_expand, show_checkboxes, visible_columns, show_actions) do
+    column_tracks =
+      visible_columns
+      |> Enum.with_index()
+      |> Enum.map(fn {column, index} -> column_track(column, index) end)
+
     [
-      show_expand && "32px",
-      show_checkboxes && "40px"
+      show_checkboxes && "44px",
+      show_expand && "34px"
     ]
     |> Enum.filter(& &1)
-    |> Kernel.++(List.duplicate("minmax(0,1fr)", num_columns))
+    |> Kernel.++(column_tracks)
     |> Kernel.++(if show_actions, do: ["120px"], else: [])
     |> Enum.join(" ")
   end
 
+  # A column's grid track comes from its own `ui do width end` when the author set one; otherwise the
+  # table derives it from the column's TYPE. A badge, a bar meter, a boolean tick or a number is an
+  # intrinsically small shape, and giving it the same `1fr` share as a description is what leaves a
+  # status pill floating in half a table. Only a text column — one whose content really can run long —
+  # takes an open share, and only a leading text column is treated as the row's headline.
+  #
+  # A column with its own `render` is opaque: the table cannot tell a 44px thumbnail from a paragraph,
+  # so those keep falling back to a share and are the honest case for setting `width` by hand.
+  defp column_track(%{ui: %{width: width}}, _index) when is_binary(width), do: width
+  defp column_track(column, index), do: type_track(Map.get(column, :type_module), index)
+
+  defp type_track(Types.Column.Badge, _index), do: "minmax(95px,0.8fr)"
+  defp type_track(Types.Column.Bars, _index), do: "minmax(105px,0.9fr)"
+  defp type_track(Types.Column.Boolean, _index), do: "minmax(90px,0.7fr)"
+  defp type_track(Types.Column.Number, _index), do: "minmax(90px,0.7fr)"
+  defp type_track(Types.Column.Date, _index), do: "minmax(120px,1fr)"
+  defp type_track(Types.Column.DateTime, _index), do: "minmax(150px,1.1fr)"
+  defp type_track(Types.Column.Tags, _index), do: "minmax(140px,1.2fr)"
+  defp type_track(Types.Column.Avatars, _index), do: "minmax(120px,1fr)"
+  defp type_track(Types.Column.Link, _index), do: "minmax(140px,1.2fr)"
+  defp type_track(_type_module, 0), do: "minmax(190px,1.7fr)"
+  defp type_track(_type_module, _index), do: "minmax(0,1fr)"
+
   defp header_cell_classes(column, sortable_columns) do
-    base = "text-left text-sm font-medium"
+    base = "px-[16px] text-left text-[11px] font-bold tracking-[0.03em] text-[#8a877f]"
 
     sortable_extra =
       if column.name in sortable_columns, do: " cursor-pointer", else: ""
@@ -939,7 +1038,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
   defp cell_classes(column) do
     case column.ui do
       %{class: class} when not is_nil(class) -> class
-      _ -> "flex items-center min-w-0 text-sm text-foreground"
+      _ -> "flex items-center min-w-0 px-[16px] text-sm text-foreground"
     end
   end
 

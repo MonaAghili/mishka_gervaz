@@ -97,13 +97,6 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       |> assign(:show_bulk_actions, show_bulk_actions)
       |> assign(:features, features)
 
-    show_template_switcher =
-      static.switchable_templates != nil and static.switchable_templates != []
-
-    assigns =
-      assigns
-      |> assign(:show_template_switcher, show_template_switcher)
-
     ~H"""
     <div id={@static.id} class="mishka-gervaz-media-gallery">
       <.render_initial_loading
@@ -113,12 +106,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       />
 
       <div :if={@state.has_initial_data? or @state.loading == :loaded}>
-        <.render_header
-          :if={@show_template_switcher}
-          static={@static}
-          state={@state}
-          myself={@myself}
-        />
+        <.render_header static={@static} state={@state} myself={@myself} />
 
         <.render_filters :if={@show_filters} static={@static} state={@state} myself={@myself} />
 
@@ -169,30 +157,32 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
 
   @impl true
   def render_header(assigns) do
-    total_count = assigns.state.total_count || 0
-
-    header_class =
-      (assigns.static.theme && assigns.static.theme[:header_class]) ||
-        "flex items-center justify-between mb-4"
-
-    assigns =
-      assigns
-      |> assign(:total_count, total_count)
-      |> assign(:header_class, header_class)
+    assigns = assign(assigns, :total_count, assigns.state.total_count || 0)
 
     ~H"""
-    <div class={@header_class}>
-      <div class="text-sm text-gray-500">
+    <div class="mb-[14px] flex flex-wrap items-center justify-between gap-4">
+      <span class="text-[12.5px] font-semibold text-[#8a877f]">
         {dngettext("mishka_gervaz", "%{count} file", "%{count} files", @total_count,
           count: @total_count
         )}
+      </span>
+      <div class="flex items-center gap-[10px]">
+        <.dynamic_component
+          :if={@state.supports_archive}
+          module={@static.ui_adapter}
+          function={:archive_toggle}
+          table_id={@static.id}
+          archive_status={@state.archive_status}
+          myself={@myself}
+        />
+        <Shared.render_template_switcher
+          :if={@static.switchable_templates not in [nil, []]}
+          switchable_templates={@static.switchable_templates}
+          current_template={@state.template}
+          ui_adapter={@static.ui_adapter}
+          myself={@myself}
+        />
       </div>
-      <Shared.render_template_switcher
-        switchable_templates={@static.switchable_templates}
-        current_template={@state.template}
-        ui_adapter={@static.ui_adapter}
-        myself={@myself}
-      />
     </div>
     """
   end
@@ -204,20 +194,16 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       |> assign(:name, "select_all_gallery")
       |> assign(:value, "all")
       |> assign(:checked, assigns.state.select_all?)
-      |> assign(:class, "gervaz-select-all-checkbox")
+      |> assign(
+        :class,
+        "gervaz-select-all-checkbox size-4 cursor-pointer rounded accent-[#5b57d6]"
+      )
       |> assign(:label, dgettext("mishka_gervaz", "Select all"))
 
-    toolbar_class =
-      (assigns.static.theme && assigns.static.theme[:selection_toolbar_class]) ||
-        "flex items-center gap-4 mb-4 py-2 px-3 bg-gray-50 rounded"
-
-    assigns =
-      assigns
-      |> assign(:checkbox_assigns, checkbox_assigns)
-      |> assign(:toolbar_class, toolbar_class)
+    assigns = assign(assigns, :checkbox_assigns, checkbox_assigns)
 
     ~H"""
-    <div class={@toolbar_class}>
+    <div class="mb-3.5 flex items-center gap-4 px-0.5 [&_label]:flex [&_label]:cursor-pointer [&_label]:items-center [&_label]:gap-[9px] [&_span]:text-[12.5px]! [&_span]:font-semibold [&_span]:text-[#5c5a54]">
       <.dynamic_component
         module={@static.ui_adapter}
         function={:checkbox}
@@ -245,13 +231,10 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     state = assigns.state
     record = assigns.record
 
-    visible_columns = get_visible_columns(static.columns, state)
-
-    {thumbnail_column, info_columns} =
-      case visible_columns do
-        [first | rest] -> {first, rest}
-        [] -> {nil, []}
-      end
+    thumbnail_column =
+      static.columns
+      |> get_visible_columns(state)
+      |> List.first()
 
     is_checked =
       if state.select_all? do
@@ -265,41 +248,88 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       |> assign(:name, "select_media")
       |> assign(:value, record.id)
       |> assign(:checked, is_checked)
-      |> assign(:class, "gervaz-media-checkbox bg-white rounded")
+      |> assign(:class, "gervaz-media-checkbox size-4 cursor-pointer rounded accent-[#5b57d6]")
 
     visible_row_actions =
-      Enum.filter(static.row_actions, fn action ->
-        Shared.action_visible?(action, record, state)
-      end)
+      static.row_actions
+      |> Shared.non_accordion_actions()
+      |> Enum.filter(&Shared.action_visible?(&1, record, state))
 
-    custom_card_class = get_custom_card_class(static, record)
+    image_url =
+      case thumbnail_column do
+        nil -> nil
+        column -> get_column_value(column, record, state) |> cache_bust_url(record)
+      end
 
     assigns =
       assigns
-      |> assign(:thumbnail_column, thumbnail_column)
-      |> assign(:info_columns, info_columns)
       |> assign(:is_checked, is_checked)
       |> assign(:checkbox_assigns, checkbox_assigns)
       |> assign(:visible_row_actions, visible_row_actions)
-      |> assign(:custom_card_class, custom_card_class)
+      |> assign(:custom_card_class, get_custom_card_class(static, record))
+      |> assign(:image_url, image_url)
+      |> assign(:is_image, is_image_url?(image_url))
+      |> assign(:tint, type_tint(record))
+      |> assign(:media_type, media_type(record))
+      |> assign(:ext, media_ext(record))
+      |> assign(:filename, media_name(record))
+      |> assign(:size_label, media_size(record))
+      |> assign(:category, media_category(record))
+      |> assign(:date_label, media_date(record))
+      |> assign(:featured?, media_featured?(record))
 
     ~H"""
-    <div id={@id} class={thumbnail_wrapper_classes(@static, @custom_card_class)}>
+    <div
+      id={@id}
+      class={[
+        "group overflow-hidden rounded-[14px] border bg-white shadow-[0_1px_2px_rgba(30,28,24,0.04)] transition-colors",
+        cond do
+          @is_checked -> "border-[#dcdbf5] ring-1 ring-[#5b57d6]"
+          @featured? -> "border-[#f0e2c4] ring-1 ring-[#e6b422]"
+          true -> "border-[#ecebe6] hover:border-[#dcdbf5]"
+        end,
+        @custom_card_class
+      ]}
+    >
       <div
-        class={thumbnail_classes(@static, @is_checked)}
+        class={["relative isolate aspect-square", @tint]}
         phx-click="expand"
         phx-value-id={@record.id}
         phx-target={@myself}
       >
-        <.render_thumbnail
-          :if={@thumbnail_column}
-          record={@record}
-          column={@thumbnail_column}
-          state={@state}
-          ui_adapter={@static.ui_adapter}
-        />
+        <%!-- The type-icon tile sits under the image so it is what shows when there is no image, or
+              when one is declared but its file has gone (the img hides itself on error). The glyph is
+              inline SVG, not a hero-icon: its name reaches the class through a variable, and the
+              runtime compiler only emits a mask for a name it can read literally in source. --%>
+        <span class="absolute inset-0 flex items-center justify-center">
+          <span class="grid size-[52px] place-items-center rounded-[14px] bg-white shadow-[0_2px_6px_rgba(30,28,24,0.06)]">
+            <.type_svg type={@media_type} />
+          </span>
+        </span>
 
-        <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
+        <%!-- The image sits on top of the tile with no background of its own: until it loads it is
+              transparent and the tile shows through, and if its file has gone it hides itself. The
+              `phx-update="ignore"` keeps that hide across the stream's patches — otherwise a select
+              or a filter re-renders the row and the broken image comes back over the tile. --%>
+        <div :if={@image_url && @is_image} id={"#{@id}-thumb"} phx-update="ignore" class="contents">
+          <img
+            src={@image_url}
+            alt=""
+            loading="lazy"
+            class="absolute inset-0 size-full object-cover"
+            onload="this.style.background='#fff';"
+            onerror="this.style.display='none';"
+          />
+        </div>
+
+        <span
+          :if={@ext}
+          class="absolute bottom-[10px] left-[10px] rounded-md bg-white/85 px-[7px] py-[3px] text-[9px] font-bold uppercase tracking-[0.05em] text-[#5c5a54] shadow-[0_1px_2px_rgba(30,28,24,0.08)]"
+        >
+          {@ext}
+        </span>
+
+        <div class="absolute inset-0 z-10 flex items-center justify-center bg-[#17161a]/0 opacity-0 transition-all group-hover:bg-[#17161a]/25 group-hover:opacity-100">
           <Shared.render_row_actions
             row_actions={@visible_row_actions}
             record={@record}
@@ -309,7 +339,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
           />
         </div>
 
-        <div :if={@show_checkboxes} class="absolute top-2 left-2">
+        <span :if={@show_checkboxes} class="absolute left-[10px] top-[10px] z-20">
           <.dynamic_component
             module={@static.ui_adapter}
             function={:checkbox}
@@ -318,95 +348,144 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
             phx-target={@myself}
             {@checkbox_assigns}
           />
+        </span>
+
+        <span
+          :if={@featured?}
+          title="Featured"
+          class="absolute right-2 top-2 z-20 grid size-7 place-items-center rounded-lg bg-white/85 text-[#e6b422] shadow-[0_1px_2px_rgba(30,28,24,0.08)]"
+        >
+          <.dynamic_component
+            module={@static.ui_adapter}
+            function={:icon}
+            name="hero-star-solid"
+            class="size-[15px]"
+          />
+        </span>
+      </div>
+
+      <div class="px-[13px] py-3">
+        <div class="truncate text-[12.5px] font-semibold text-[#1b1a18]" title={@filename}>
+          {@filename}
+        </div>
+
+        <div class="mt-[5px] flex items-center gap-2 text-[11px]">
+          <span class="flex-none font-['Space_Grotesk'] font-semibold text-[#8a877f]">
+            {@size_label}
+          </span>
+          <span :if={@category} class="size-[3px] flex-none rounded-full bg-[#c3c0b8]"></span>
+          <span :if={@category} class="min-w-0 truncate font-medium text-[#a8a5a0]">
+            {@category}
+          </span>
+        </div>
+
+        <div
+          :if={@date_label}
+          class="mt-1.5 font-['Space_Grotesk'] text-[10px] font-medium text-[#c3c0b8]"
+        >
+          {@date_label}
         </div>
       </div>
-
-      <div :if={@info_columns != []} class="mt-2 px-1 space-y-0.5">
-        <.render_info_column
-          :for={column <- @info_columns}
-          record={@record}
-          column={column}
-          state={@state}
-        />
-      </div>
     </div>
     """
   end
 
-  defp render_thumbnail(assigns) do
-    column = assigns.column
-    record = assigns.record
+  @tints %{
+    images: "bg-[#eef1fc] text-[#4f4bcc]",
+    videos: "bg-[#fbe9e7] text-[#b3433a]",
+    documents: "bg-[#eaf6ee] text-[#177a53]"
+  }
 
-    image_url = get_column_value(column, record, assigns.state) |> cache_bust_url(record)
-    is_image = is_image_url?(image_url)
+  defp type_tint(record), do: Map.get(@tints, media_type(record), "bg-[#f2f1ec] text-[#8a877f]")
 
-    assigns =
-      assigns
-      |> assign(:image_url, image_url)
-      |> assign(:is_image, is_image)
+  attr :type, :atom, default: nil
 
+  defp type_svg(%{type: :images} = assigns) do
     ~H"""
-    <%= if @image_url && @is_image do %>
-      <div class="w-full aspect-square relative bg-gray-400">
-        <span class="absolute inset-0 flex items-center justify-center text-white text-sm font-medium">
-          No Image
-        </span>
-        <img
-          src={@image_url}
-          alt=""
-          class="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-          onload="this.previousElementSibling.style.display='none';this.style.backgroundColor='white';"
-          onerror="this.remove();"
-        />
-      </div>
-    <% else %>
-      <div class="w-full aspect-square flex items-center justify-center bg-gray-100">
-        <.file_type_icon url={@image_url} ui_adapter={@ui_adapter} />
-      </div>
-    <% end %>
-    """
-  end
-
-  defp render_info_column(assigns) do
-    column = assigns.column
-    record = assigns.record
-    value = get_column_value(column, record, assigns.state)
-
-    formatted_value =
-      case column.format do
-        func when is_function(func, 1) -> func.(value)
-        _ -> value
-      end
-
-    is_rendered = is_struct(formatted_value, Phoenix.LiveView.Rendered)
-    column_class = if is_map(column.ui), do: column.ui[:class], else: nil
-
-    assigns =
-      assigns
-      |> assign(:value, formatted_value)
-      |> assign(:is_rendered, is_rendered)
-      |> assign(:label, column.label)
-      |> assign(:column_class, column_class)
-
-    ~H"""
-    <div :if={@is_rendered} class={info_column_classes(@column_class)}>
-      {@value}
-    </div>
-    <p
-      :if={!@is_rendered}
-      class={info_column_classes(@column_class, "truncate")}
-      title={to_string(@value)}
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="size-[26px]"
+      aria-hidden="true"
     >
-      {@value}
-    </p>
+      <rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9" r="1.6" /><path d="m3 16 5-4 4 3 4-4 5 4" />
+    </svg>
     """
   end
 
-  defp info_column_classes(custom_class, extra \\ nil) do
-    ["text-sm text-gray-700", extra, custom_class]
-    |> Enum.filter(& &1)
+  defp type_svg(%{type: :videos} = assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="size-[26px]"
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M10 9.5v5l4-2.5z" />
+    </svg>
+    """
   end
+
+  defp type_svg(assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="size-[26px]"
+      aria-hidden="true"
+    >
+      <path d="M8 3h6l4 4v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v5h4M9.5 13h5M9.5 16h4" />
+    </svg>
+    """
+  end
+
+  defp media_type(%{type: type}) when is_atom(type) and not is_nil(type), do: type
+  defp media_type(_record), do: nil
+
+  defp media_ext(%{format: format}) when is_binary(format) and format != "", do: format
+  defp media_ext(_record), do: nil
+
+  defp media_name(%{name: name, format: format})
+       when is_binary(name) and is_binary(format),
+       do: "#{name}.#{format}"
+
+  defp media_name(%{name: name}) when is_binary(name), do: name
+  defp media_name(_record), do: "Untitled"
+
+  defp media_size(%{size: size}) when is_integer(size),
+    do: MishkaGervaz.Helpers.format_filesize(size)
+
+  defp media_size(_record), do: "—"
+
+  # Only one of the two category relationships is preloaded — a tenant's own, or a master's
+  # tenancy-bypassing alias — so the other is a truthy `%Ash.NotLoaded{}`; find whichever is a record.
+  defp media_category(record) do
+    Enum.find_value([:media_category, :master_media_category], fn key ->
+      case Map.get(record, key) do
+        %{name: name} when is_binary(name) -> name
+        _absent -> nil
+      end
+    end)
+  end
+
+  defp media_date(%{inserted_at: %DateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
+  defp media_date(%{inserted_at: %NaiveDateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
+  defp media_date(_record), do: nil
+
+  defp media_featured?(%{featured: true}), do: true
+  defp media_featured?(_record), do: false
 
   defp get_column_value(column, record, state) do
     cond do
@@ -451,38 +530,6 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
 
   defp cache_bust_url(url, _record), do: url
 
-  defp file_type_icon(assigns) do
-    assigns = assign(assigns, :icon_name, get_file_icon_from_url(assigns.url))
-
-    ~H"""
-    <.dynamic_component
-      module={@ui_adapter}
-      function={:icon}
-      name={@icon_name}
-      class="h-12 w-12 text-gray-400"
-    />
-    """
-  end
-
-  defp get_file_icon_from_url(nil), do: "hero-document"
-
-  defp get_file_icon_from_url(url) when is_binary(url) do
-    ext = url |> String.downcase() |> Path.extname() |> String.trim_leading(".")
-
-    case ext do
-      f when f in ~w(jpg jpeg png gif webp svg bmp ico tiff) -> "hero-photo"
-      f when f in ~w(mp4 webm mov avi mkv) -> "hero-video-camera"
-      f when f in ~w(mp3 wav ogg flac aac m4a) -> "hero-musical-note"
-      "pdf" -> "hero-document-text"
-      f when f in ~w(xls xlsx csv) -> "hero-table-cells"
-      f when f in ~w(zip rar 7z tar gz) -> "hero-archive-box"
-      f when f in ~w(doc docx txt rtf odt) -> "hero-document"
-      _ -> "hero-document"
-    end
-  end
-
-  defp get_file_icon_from_url(_), do: "hero-document"
-
   @impl true
   def render_empty(assigns) do
     empty_state = Map.get(assigns.static.config, :empty_state, %{})
@@ -513,7 +560,50 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
 
   @impl true
   def render_filters(assigns) do
-    Shared.render_filters(assigns)
+    all_filters =
+      Shared.merge_relation_filter_state(
+        assigns.static.filters,
+        assigns.state.relation_filter_state || %{}
+      )
+
+    accessible = Enum.filter(all_filters, &accessible?(&1, assigns.state))
+
+    grid_filters =
+      Enum.filter(accessible, &(&1.name in [:search, :type, :site_id]))
+      |> Enum.sort_by(&Enum.find_index([:search, :type, :site_id], fn n -> n == &1.name end))
+
+    assigns =
+      assigns
+      |> assign(:all_filters, all_filters)
+      |> assign(:grid_filters, grid_filters)
+      |> assign(:featured_filter, Enum.find(accessible, &(&1.name == :featured)))
+
+    ~H"""
+    <form
+      :if={@grid_filters != [] or @featured_filter}
+      id={"#{@static.stream_name}-filter"}
+      phx-change="filter"
+      phx-target={@myself}
+      class="mb-[14px] flex flex-wrap items-end gap-[12px]"
+    >
+      <Shared.render_filter
+        :for={filter <- @grid_filters}
+        filter={filter}
+        all_filters={@all_filters}
+        state={@state}
+        static={@static}
+        myself={@myself}
+      />
+      <Shared.render_filter
+        :if={@featured_filter}
+        filter={@featured_filter}
+        all_filters={@all_filters}
+        state={@state}
+        static={@static}
+        myself={@myself}
+      />
+    </form>
+    """
   end
 
   @impl true
@@ -579,37 +669,22 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     """
   end
 
+  # The track never drops a card below its floor unless the viewport itself is narrower, so the count
+  # falls on its own — no breakpoint to miss. The `columns` option only sets that floor: a smaller
+  # column count means wider cards, so a wider minimum.
   defp gallery_classes(static) do
     options = static.template_options || default_options()
-    columns = Keyword.get(options, :columns, 6)
-    custom_class = Keyword.get(options, :class)
 
-    column_class =
-      case columns do
-        3 -> "sm:grid-cols-2 lg:grid-cols-3"
-        4 -> "sm:grid-cols-3 lg:grid-cols-4"
-        6 -> "sm:grid-cols-4 lg:grid-cols-6"
-        8 -> "sm:grid-cols-5 lg:grid-cols-8"
-        _ -> "sm:grid-cols-4 lg:grid-cols-6"
+    floor =
+      case Keyword.get(options, :columns, 4) do
+        n when n <= 3 -> "220px"
+        4 -> "190px"
+        _more -> "150px"
       end
 
-    ["grid", column_class, "gap-4", custom_class]
-    |> Enum.filter(& &1)
-  end
-
-  defp thumbnail_wrapper_classes(static, custom_class) do
-    theme_row_class = static.theme && static.theme[:row_class]
-
-    ["group", theme_row_class, custom_class]
-    |> Enum.filter(& &1)
-  end
-
-  defp thumbnail_classes(_static, is_checked) do
-    selected = if is_checked, do: "ring-2 ring-blue-500", else: ""
-
     [
-      "relative rounded-lg overflow-hidden cursor-pointer aspect-square",
-      selected
+      "grid items-start gap-4 grid-cols-[repeat(auto-fill,minmax(min(100%,#{floor}),1fr))]",
+      Keyword.get(options, :class)
     ]
     |> Enum.filter(& &1)
   end

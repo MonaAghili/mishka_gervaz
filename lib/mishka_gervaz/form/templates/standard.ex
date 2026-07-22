@@ -678,14 +678,14 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         />
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex items-center gap-[14px]">
         <.dynamic_component
           :if={@show_cancel}
           module={@ui}
           function={:button}
           label={@cancel_label}
-          variant={:secondary}
           type="button"
+          class="px-1.5 py-2 text-[13px] font-semibold text-[#8a877f] transition-colors hover:text-[#1b1a18]"
           disabled={@cancel_disabled}
           phx_click={@cancel_js}
           phx_target={@myself}
@@ -696,14 +696,26 @@ defmodule MishkaGervaz.Form.Templates.Standard do
           type="submit"
           disabled={@submit_disabled}
           class={[
-            "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white",
+            "inline-flex h-[42px] items-center gap-2 rounded-[11px] px-[18px] text-[12.5px] font-bold text-white transition-opacity",
             if(@submit_disabled,
-              do: "bg-gray-400 cursor-not-allowed",
+              do: "cursor-not-allowed bg-[#c3c0b8]",
               else:
-                "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                "bg-[linear-gradient(140deg,#6d69e6,#4f4bcc)] shadow-[0_5px_14px_rgba(79,75,204,0.28)] hover:opacity-95"
             )
           ]}
         >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
           {@submit_label}
         </button>
       </div>

@@ -21,11 +21,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       assigns[:placeholder] ||
         if assigns[:placeholder_label], do: "Search #{assigns[:placeholder_label]}..."
 
+    search? = assigns[:search] == true
+
     assigns =
       assigns
-      |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-      end)
+      |> assign(:search, search?)
+      |> assign_new(:class, fn -> input_class(search?) end)
       |> assign_new(:phx_debounce, fn ->
         case Map.fetch(assigns, :"phx-debounce") do
           {:ok, value} -> value
@@ -33,6 +34,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         end
       end)
       |> assign_new(:icon, fn -> nil end)
+      |> assign_new(:search, fn -> false end)
       |> assign_new(:disabled, fn -> false end)
       |> assign_new(:readonly, fn -> false end)
       |> assign_new(:autocomplete, fn -> nil end)
@@ -40,11 +42,19 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     ~H"""
     <div class="relative">
-      <.render_icon
-        :if={@icon}
-        name={@icon}
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-      />
+      <svg
+        :if={@search}
+        class="pointer-events-none absolute left-[13px] top-1/2 size-[15px] -translate-y-1/2 text-[#a8a5a0]"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.9"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.2-3.2" />
+      </svg>
       <input
         type="text"
         name={@name}
@@ -53,7 +63,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         disabled={@disabled}
         readonly={@readonly}
         autocomplete={@autocomplete}
-        class={[@class, @icon && "pl-9", (@disabled || @readonly) && "bg-gray-100 cursor-not-allowed"]}
+        class={[
+          @class,
+          "placeholder:text-[#a8a5a0]",
+          @search && "pl-[38px]!",
+          (@disabled || @readonly) && "cursor-not-allowed bg-[#f6f5f2]"
+        ]}
         phx-debounce={@phx_debounce}
       />
     </div>
@@ -65,7 +80,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
       end)
       |> assign_new(:phx_debounce, fn ->
         case Map.fetch(assigns, :"phx-debounce") do
@@ -93,6 +108,20 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
+  # A filter control sits on the page (white, 42px); a form field sits inside a field card
+  # (#faf9f6, 44px). Callers in the table filter bar pass `search: true` to get the page variant.
+  @doc false
+  def input_class(search?) do
+    base =
+      if search?,
+        do: "h-[42px] bg-white px-[13px] text-[12.5px] text-[#3a382f]",
+        else: "h-11 bg-[#faf9f6] px-[14px] text-[13px] text-[#1b1a18]"
+
+    "w-full rounded-[11px] border border-[#ecebe6] font-medium outline-none transition-shadow " <>
+      "focus:border-[#c3c1f0] focus:bg-white focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)] " <>
+      base
+  end
+
   @impl true
   def select(assigns) do
     normalized = normalize_grouped_options(assigns[:options] || [])
@@ -100,9 +129,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign(:options, normalized)
-      |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-      end)
+      |> assign_new(:class, fn -> input_class(assigns[:search] == true) end)
       |> assign_new(:prompt, fn -> "All" end)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:disabled, fn -> false end)
@@ -117,7 +144,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <select
         name={@name}
         disabled={@disabled}
-        class={[@class, @icon && "pl-9", @disabled && "bg-gray-100 cursor-not-allowed"]}
+        class={[
+          @class,
+          "cursor-pointer appearance-none pr-[32px]!",
+          @icon && "pl-9",
+          @disabled && "cursor-not-allowed bg-[#f6f5f2]"
+        ]}
       >
         <option :if={@prompt} value="">{@prompt}</option>
         <%= for entry <- @options do %>
@@ -137,6 +169,18 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           <% end %>
         <% end %>
       </select>
+      <svg
+        class="pointer-events-none absolute right-[11px] top-1/2 size-[13px] -translate-y-1/2 text-[#a8a5a0]"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m6 9 6 6 6-6" />
+      </svg>
     </div>
     """
   end
@@ -195,7 +239,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign(:disabled, disabled)
       |> assign(:display_label, display_label)
       |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
       end)
       |> assign_new(:placeholder, fn -> "Search..." end)
       |> assign_new(:has_more?, fn -> false end)
@@ -438,7 +482,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign(:selected, selected)
       |> assign(:selected_set, selected_set)
       |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
       end)
       |> assign_new(:placeholder, fn -> "Search..." end)
       |> assign_new(:has_more?, fn -> false end)
@@ -539,7 +583,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:id, fn -> nil end)
-      |> assign_new(:class, fn -> "rounded border-gray-300 text-blue-600 focus:ring-blue-500" end)
+      |> assign_new(:class, fn -> "size-4 cursor-pointer accent-[#5b57d6]" end)
       |> assign(:label, label)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:checked, fn -> false end)
@@ -550,7 +594,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:disabled, fn -> false end)
 
     ~H"""
-    <label class="flex items-center gap-2">
+    <label class="flex items-center gap-[9px]">
       <.render_icon :if={@icon} name={@icon} class="w-4 h-4 text-gray-400" />
       <input :if={@hidden_input} type="hidden" name={@name} value="false" />
       <input
@@ -565,7 +609,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         phx-target={@phx_target}
         phx-value-id={@phx_value_id}
       />
-      <span :if={@label} class="text-sm">{@label}</span>
+      <span :if={@label} class="text-[12.5px] font-semibold text-[#5c5a54]">{@label}</span>
     </label>
     """
   end
@@ -575,7 +619,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
       end)
       |> assign_new(:id, fn -> nil end)
       |> assign_new(:min, fn -> nil end)
@@ -611,7 +655,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
       end)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:disabled, fn -> false end)
@@ -643,7 +687,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
       end)
       |> assign_new(:step, fn -> "any" end)
       |> assign(:placeholder, placeholder)
@@ -690,16 +734,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def button(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn -> button_class(assigns[:variant]) end)
-      |> assign_new(:icon, fn -> button_icon(assigns[:variant]) end)
-
-    icon_class = if assigns[:label] in [nil, ""], do: "w-3.5 h-3.5", else: "w-4 h-4 inline-block mr-1"
-    assigns = assign(assigns, :icon_class, icon_class)
+      |> assign(:class, assigns[:class] || button_class(assigns[:variant]))
+      |> assign(:icon, assigns[:icon] || button_icon(assigns[:variant]))
+      |> assign_new(:label, fn -> nil end)
 
     ~H"""
-    <button type={@type} class={@class} {@rest}>
-      <.render_icon :if={@icon} name={@icon} class={@icon_class} />
-      {@label}
+    <button type={@type} class={@class} title={@label} {@rest}>
+      <.render_icon :if={@icon} name={@icon} class="size-4" />
+      <span :if={@label not in [nil, ""]} class="lbl">{@label}</span>
     </button>
     """
   end
@@ -724,13 +766,106 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def badge(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn ->
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-      end)
+      |> assign_new(:variant, fn -> :tag end)
+      |> assign_new(:dot, fn -> nil end)
+      |> assign(:class, assigns[:class] || "bg-[#f6f5f2] text-[#6d6a63]")
 
     ~H"""
-    <span class={@class}>{@label}</span>
+    <span class={[badge_shape(@variant), @class]}>
+      <span :if={@dot} class={["size-[6px] rounded-full", @dot]}></span>
+      {@label}
+    </span>
     """
+  end
+
+  defp badge_shape(:pill),
+    do:
+      "inline-flex items-center gap-[6px] rounded-[20px] px-[11px] py-[4px] text-[10.5px] font-bold whitespace-nowrap"
+
+  defp badge_shape(_),
+    do:
+      "inline-flex items-center rounded-[7px] px-[10px] py-[4px] text-[10.5px] font-bold whitespace-nowrap"
+
+  @doc """
+  Copy-to-clipboard button for a short value (e.g. an id). Requires the consuming app to register a
+  `CopyToClipboard` JS hook; reads the text from `data-copy`.
+
+  ## Assigns
+    * `:value` - text placed on the clipboard
+    * `:id` - DOM id (must be unique per row)
+    * `:label` - tooltip / a11y title (default "Copy")
+  """
+  @impl true
+  def copy_button(assigns) do
+    assigns = assign_new(assigns, :label, fn -> "Copy" end)
+
+    ~H"""
+    <button
+      type="button"
+      id={@id}
+      phx-hook="CopyToClipboard"
+      phx-update="ignore"
+      data-copy={@value}
+      title={@label}
+      class="grid place-items-center text-[#c3c0b8] transition-colors hover:text-[#8a877f] focus:outline-none"
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="9" y="9" width="12" height="12" rx="2" />
+        <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+      </svg>
+    </button>
+    """
+  end
+
+  @doc """
+  Bar-gauge cell: a numeric value drawn as `max` bars (the first `filled` in `color`, the rest muted)
+  followed by the number. Used by the `:bars` column type.
+
+  ## Assigns
+    * `:value`  - the number shown after the bars
+    * `:filled` - how many bars are lit
+    * `:max`    - total number of bars
+    * `:color`  - hex string (e.g. `"#1f9d6b"`) for the lit bars and the number
+  """
+  @impl true
+  def cell_bars(assigns) do
+    assigns = assign(assigns, :bars, bar_heights(assigns.max))
+
+    ~H"""
+    <div class="flex items-center gap-[9px]">
+      <span class="flex h-[14px] items-end gap-[2px]">
+        <span
+          :for={{i, hclass} <- @bars}
+          class={[
+            "w-[3px] rounded-[1px]",
+            hclass,
+            (i <= @filled && "bg-[#{@color}]") || "bg-[#e0ded7]"
+          ]}
+        ></span>
+      </span>
+      <span class={["font-['Space_Grotesk'] text-[12px] font-bold", "text-[#{@color}]"]}>
+        {@value}
+      </span>
+    </div>
+    """
+  end
+
+  defp bar_heights(max) when max <= 1, do: [{1, "h-[14px]"}]
+
+  defp bar_heights(max) do
+    for i <- 1..max do
+      px = round(5 + (14 - 5) * (i - 1) / (max - 1))
+      {i, "h-[#{px}px]"}
+    end
   end
 
   @impl true
@@ -753,17 +888,20 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:action_icon, fn -> nil end)
 
     ~H"""
-    <div class="py-12 text-center">
-      <div :if={@icon} class="mb-4">
-        <.render_icon name={@icon} class="w-12 h-12 mx-auto text-gray-400" />
-      </div>
-      <p class="text-gray-500 text-lg">{@message}</p>
+    <div class="flex flex-col items-center justify-center gap-3 rounded-[16px] border border-[#ecebe6] bg-white px-4 py-14 text-center">
+      <span
+        :if={@icon}
+        class="grid size-[52px] place-items-center rounded-[14px] bg-[#f2f1ec] text-[#a8a5a0]"
+      >
+        <.render_icon name={@icon} class="size-6" />
+      </span>
+      <div class="font-['Space_Grotesk'] text-[14px] font-bold text-[#17161a]">{@message}</div>
       <a
         :if={@action_path && @action_label}
         href={@action_path}
-        class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+        class="mt-1 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(140deg,#6d69e6,#4f4bcc)] px-[15px] py-[9px] text-[12.5px] font-bold text-white transition-opacity hover:opacity-95"
       >
-        <.render_icon :if={@action_icon} name={@action_icon} class="w-4 h-4" />
+        <.render_icon :if={@action_icon} name={@action_icon} class="size-4" />
         {@action_label}
       </a>
     </div>
@@ -832,23 +970,22 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     assigns =
       assigns
-      |> assign_new(:class, fn -> nav_link_class(variant) end)
-      |> assign_new(:icon, fn -> nav_link_icon(variant) end)
+      |> assign(:class, assigns[:class] || nav_link_class(variant))
+      |> assign(:icon, assigns[:icon] || nav_link_icon(variant))
       |> assign(:external, external)
 
     if external do
       ~H"""
-      <a href={@navigate} target="_blank" rel="noopener noreferrer" class={@class}>
-        <.render_icon :if={@icon} name={@icon} class="w-4 h-4 inline-block mr-1" />
-        {@label}
-        <.render_icon name="hero-arrow-top-right-on-square" class="w-3 h-3 inline ml-1" />
+      <a href={@navigate} target="_blank" rel="noopener noreferrer" class={@class} title={@label}>
+        <.render_icon :if={@icon} name={@icon} class="size-4" />
+        <span :if={@label not in [nil, ""]} class="lbl">{@label}</span>
       </a>
       """
     else
       ~H"""
-      <.link navigate={@navigate} class={@class}>
-        <.render_icon :if={@icon} name={@icon} class="w-4 h-4 inline-block mr-1" />
-        {@label}
+      <.link navigate={@navigate} class={@class} title={@label}>
+        <.render_icon :if={@icon} name={@icon} class="size-4" />
+        <span :if={@label not in [nil, ""]} class="lbl">{@label}</span>
       </.link>
       """
     end
@@ -932,7 +1069,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     <div class="relative inline-block text-left">
       <button
         type="button"
-        class="p-2 hover:bg-gray-100 rounded"
+        class="grid size-[30px] place-items-center rounded-[8px] text-[#8a877f] transition-colors hover:text-[#3a382f]"
         phx-click={
           JS.toggle(
             to: "##{@menu_id}",
@@ -941,11 +1078,11 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           )
         }
       >
-        <.render_icon name={@icon} class="w-5 h-5" />
+        <.render_icon name={@icon} class="size-4" />
       </button>
       <div
         id={@menu_id}
-        class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10 py-1"
+        class="absolute right-0 z-[60] mt-2 hidden w-[210px] overflow-hidden rounded-[14px] border border-[#ecebe6] bg-white p-1.5 shadow-[0_18px_44px_rgba(30,28,24,0.16)]"
         phx-click-away={
           JS.hide(
             to: "##{@menu_id}",
@@ -953,7 +1090,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           )
         }
       >
-        <div class="flex flex-col">
+        <div class="flex flex-col gap-0.5">
           {render_slot(@inner_block)}
         </div>
       </div>
@@ -1134,7 +1271,9 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     * `:badge_class` - Chip CSS class
     * `:empty` - Text shown when there are no chips (default `"—"`)
   """
-  @tags_default_badge "inline-flex items-center justify-center rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground w-fit whitespace-nowrap"
+  @tags_default_badge "inline-block max-w-full truncate align-middle rounded-[7px] border border-[#d6e3f5] bg-[#eaf1fb] px-2 py-[3px] font-['Space_Grotesk'] text-[10.5px] font-semibold text-[#3a6cb5]"
+
+  @tags_toggle_class "inline-flex cursor-pointer items-center rounded-[7px] border border-[#e4e2f7] bg-[#f2f1fc] px-[9px] py-[3px] text-[10.5px] font-bold text-[#5b57d6] transition-colors hover:bg-[#e9e7fb]"
 
   @impl true
   def cell_tags(assigns) do
@@ -1149,6 +1288,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign(:badge_class, assigns.badge_class || @tags_default_badge)
+      |> assign(:toggle_class, @tags_toggle_class)
       |> assign(:empty, assigns.empty || "—")
       |> assign(:any?, assigns.shown != [] or assigns.rest != [])
 
@@ -1156,24 +1296,24 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     <div
       :if={@any?}
       id={@id}
-      class="inline-flex flex-wrap items-center gap-1"
+      class="flex min-w-0 max-w-full flex-wrap items-center gap-[6px]"
       phx-click-away={@more > 0 && tags_collapse(@id)}
     >
       <span :for={item <- @shown} class={@badge_class}>{item}</span>
-      <span id={@id <> "-rest"} class="hidden">
-        <span :for={item <- @rest} class={[@badge_class, "mr-1"]}>{item}</span>
+      <span id={@id <> "-rest"} class="hidden [&:not(.hidden)]:contents">
+        <span :for={item <- @rest} class={@badge_class}>{item}</span>
       </span>
-      <button
-        :if={@more > 0}
-        type="button"
-        class={[@badge_class, "cursor-pointer text-muted-foreground hover:bg-accent focus:outline-none"]}
-        phx-click={tags_toggle(@id)}
-      >
+      <button :if={@more > 0} type="button" class={@toggle_class} phx-click={tags_toggle(@id)}>
         <span id={@id <> "-more"}>+{@more}</span>
-        <span id={@id <> "-less"} class="hidden">−</span>
+        <span id={@id <> "-less"} class="hidden">- less</span>
       </button>
     </div>
-    <span :if={not @any?} class="text-xs text-muted-foreground">{@empty}</span>
+    <span
+      :if={not @any?}
+      class="font-['Space_Grotesk'] text-[13px] font-semibold text-[#a8a5a0]"
+    >
+      {@empty}
+    </span>
     """
   end
 
@@ -1189,6 +1329,222 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     JS.add_class("hidden", to: "##{id}-rest")
     |> JS.add_class("hidden", to: "##{id}-less")
     |> JS.remove_class("hidden", to: "##{id}-more")
+  end
+
+  @doc """
+  Render an overlapping avatar stack with a `+N` inline expand/collapse toggle.
+
+  The people counterpart to `cell_tags/1`, and it behaves identically: `:shown` faces overlap, then a
+  `+N` disc stands for the `:rest`. Clicking `+N` reveals the rest in place (the disc swaps to a `−`
+  collapse handle); clicking `−`, or anywhere outside, collapses. The toggle is a pure
+  `Phoenix.LiveView.JS` class swap, so it survives the table's `overflow-x-auto` wrapper uncut.
+
+  Each entry is a map, so a caller can hand over whatever it has: `:image` draws a photo, and its
+  absence falls back to `:initial` on a tinted disc — `:tint` is the caller's, since the tint usually
+  belongs to the page's own palette. `:label` becomes the face's `title`.
+
+  ## Assigns
+    * `:id` - Stable, unique element id (namespaces the toggle targets)
+    * `:shown` - Entries always visible, `%{image:, initial:, label:, tint:}`
+    * `:rest` - Entries revealed on expand, same shape
+    * `:more` - Count for the `+N` disc (`0` hides the toggle)
+    * `:size` - Disc size class (default `"size-[26px]"`)
+    * `:empty` - Text shown when there are no entries (default `"—"`)
+  """
+  @avatars_face "flex-none rounded-full border-2 border-white bg-[#f4f3ef] object-cover"
+
+  @avatars_more "grid flex-none cursor-pointer place-items-center rounded-full border-2 " <>
+                  "border-white bg-[#f2f1ec] text-[10px] font-bold text-[#8a877f] transition-colors " <>
+                  "hover:bg-[#e9e7e1]"
+
+  @impl true
+  def cell_avatars(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:shown, fn -> [] end)
+      |> assign_new(:rest, fn -> [] end)
+      |> assign_new(:more, fn -> 0 end)
+      |> assign_new(:size, fn -> nil end)
+      |> assign_new(:empty, fn -> nil end)
+
+    # The column type always hands both keys over, nil included, so `assign_new` would never fire —
+    # the defaults have to be applied to the value, not to the key's absence.
+    assigns =
+      assigns
+      |> assign(:size, assigns.size || "size-[26px]")
+      |> assign(:empty, assigns.empty || "—")
+      |> assign(:face_class, @avatars_face)
+      |> assign(:more_class, @avatars_more)
+      |> assign(:any?, assigns.shown != [] or assigns.rest != [])
+
+    ~H"""
+    <div
+      :if={@any?}
+      id={@id}
+      class="flex min-w-0 max-w-full items-center -space-x-1.5"
+      phx-click-away={@more > 0 && tags_collapse(@id)}
+    >
+      <.avatar_face :for={entry <- @shown} entry={entry} size={@size} face_class={@face_class} />
+      <span id={@id <> "-rest"} class="hidden [&:not(.hidden)]:contents">
+        <.avatar_face :for={entry <- @rest} entry={entry} size={@size} face_class={@face_class} />
+      </span>
+      <button
+        :if={@more > 0}
+        type="button"
+        class={[@more_class, @size]}
+        phx-click={tags_toggle(@id)}
+      >
+        <span id={@id <> "-more"}>+{@more}</span>
+        <span id={@id <> "-less"} class="hidden">−</span>
+      </button>
+    </div>
+    <span :if={not @any?} class="text-[12px] font-medium text-[#a8a5a0]">{@empty}</span>
+    """
+  end
+
+  @doc """
+  A two-line cell: a primary line over a quieter secondary one.
+
+  The shape almost every admin row leads with — a name over its slug, a site over its date, a person
+  over their role. It was hand-written in a dozen resources before it lived here, each copy drifting a
+  little; a resource now hands over the two strings and this decides how they look.
+
+  `:title` is the row's headline — the thing you scan a column for — and `:meta` is a supporting pair
+  that should not compete with it. A leading `:icon` indents the secondary line under the text rather
+  than under the icon, so the two lines read as one block.
+
+  ## Assigns
+    * `:primary` - the top line
+    * `:secondary` - the line beneath it (omitted when nil or "")
+    * `:icon` - icon name shown before the primary line
+    * `:copy` - `%{id: , value: }` to trail the secondary line with a copy button
+    * `:variant` - `:title` (default) or `:meta`
+    * `:empty` - text when there is no primary line at all (default `"—"`)
+  """
+  @stacked_title "truncate text-[13.5px] font-semibold text-[#17161a]"
+  @stacked_title_secondary "truncate font-['Space_Grotesk'] text-[11px] font-medium text-[#a8a5a0]"
+  @stacked_meta "truncate text-[12.5px] font-medium text-[#3a382f]"
+  @stacked_meta_secondary "truncate text-[11px] font-medium text-[#a8a5a0]"
+
+  @impl true
+  def cell_stacked(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:secondary, fn -> nil end)
+      |> assign_new(:icon, fn -> nil end)
+      |> assign_new(:copy, fn -> nil end)
+      |> assign_new(:variant, fn -> :title end)
+      |> assign_new(:empty, fn -> nil end)
+
+    title? = assigns.variant != :meta
+
+    assigns =
+      assigns
+      |> assign(:empty, assigns.empty || "—")
+      |> assign(:primary_class, (title? && @stacked_title) || @stacked_meta)
+      |> assign(
+        :secondary_class,
+        (title? && @stacked_title_secondary) || @stacked_meta_secondary
+      )
+      |> assign(:blank?, assigns.primary in [nil, ""])
+      |> assign(:secondary?, assigns.secondary not in [nil, ""])
+
+    ~H"""
+    <div :if={!@blank?} class="min-w-0">
+      <div class="flex min-w-0 items-center gap-[7px]">
+        <.render_icon :if={@icon} name={@icon} class="size-[14px] shrink-0 text-[#a8a5a0]" />
+        <span class={@primary_class} title={@primary}>{@primary}</span>
+      </div>
+
+      <div
+        :if={@secondary?}
+        class={["mt-[2px] flex min-w-0 items-center gap-[5px]", @icon && "pl-[21px]"]}
+      >
+        <span class={@secondary_class}>{@secondary}</span>
+        <.copy_button :if={@copy} id={@copy.id} value={@copy.value} label={@copy[:label]} />
+      </div>
+    </div>
+    <span :if={@blank?} class="text-[12px] font-medium text-[#a8a5a0]">{@empty}</span>
+    """
+  end
+
+  @doc """
+  A wrapping row of icon+count markers, optionally followed by chips.
+
+  What a row's numbers collapse into once they stop deserving a column each — comments, versions,
+  contributors, words. The row wraps rather than overflowing, so a narrow column costs a second line
+  instead of a scrollbar.
+
+  An item may carry its own `:class` to colour a count that means something (drafts pending review),
+  and a chip is for the short labels that ride alongside the numbers, such as a language or a version.
+
+  ## Assigns
+    * `:items` - `[%{icon:, value:, label:, class:}]`; `:label` becomes the marker's `title`
+    * `:chips` - `[%{text:, class:}]` rendered after the counts
+    * `:empty` - text when there is nothing at all (default `"—"`)
+  """
+  @stats_row "flex flex-wrap items-center gap-x-[11px] gap-y-1.5 text-[11.5px] font-semibold text-[#8a877f]"
+  @stats_chip "rounded-[5px] bg-[#f4f3ee] px-[6px] py-[2px] text-[10px] font-bold uppercase tracking-[0.04em] text-[#6d6a63]"
+
+  @impl true
+  def cell_stats(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:items, fn -> [] end)
+      |> assign_new(:chips, fn -> [] end)
+      |> assign_new(:empty, fn -> nil end)
+
+    assigns =
+      assigns
+      |> assign(:empty, assigns.empty || "—")
+      |> assign(:row_class, @stats_row)
+      |> assign(:chip_class, @stats_chip)
+      |> assign(:any?, assigns.items != [] or assigns.chips != [])
+
+    ~H"""
+    <div :if={@any?} class={@row_class}>
+      <span
+        :for={item <- @items}
+        class={["inline-flex items-center gap-[5px]", item[:class]]}
+        title={item[:label]}
+      >
+        <.render_icon
+          :if={item[:icon]}
+          name={item.icon}
+          class={["size-[13px]", item[:class] || "text-[#c3c0b8]"]}
+        />
+        {item.value}
+      </span>
+
+      <span :for={chip <- @chips} class={[@chip_class, chip[:class]]} title={chip[:label]}>
+        {chip.text}
+      </span>
+    </div>
+    <span :if={!@any?} class="text-[12px] font-medium text-[#a8a5a0]">{@empty}</span>
+    """
+  end
+
+  attr :entry, :map, required: true
+  attr :size, :string, required: true
+  attr :face_class, :string, required: true
+
+  defp avatar_face(assigns) do
+    ~H"""
+    <img
+      :if={@entry[:image]}
+      src={@entry[:image]}
+      alt={@entry[:label]}
+      title={@entry[:label]}
+      class={[@face_class, @size, "overflow-hidden text-transparent"]}
+    />
+    <div
+      :if={is_nil(@entry[:image])}
+      title={@entry[:label]}
+      class={["grid place-items-center", @face_class, @size, @entry[:tint]]}
+    >
+      <span class="text-[10px] font-bold">{@entry[:initial]}</span>
+    </div>
+    """
   end
 
   @doc """
@@ -1227,32 +1583,27 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:table_id, fn -> "archive" end)
-      |> assign_new(:status_label, fn -> "Status" end)
       |> assign_new(:active_label, fn -> "Active" end)
       |> assign_new(:archived_label, fn -> "Archived" end)
-      |> assign_new(:class, fn ->
-        "rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
-      end)
 
     ~H"""
-    <form
-      id={"#{@table_id}-archive-filter-form"}
-      phx-change="archive_filter"
-      phx-target={@myself}
-      class="flex items-center gap-2"
-    >
-      <label class="text-sm font-medium text-gray-700">
-        {@status_label}:
-      </label>
-      <select name="status" class={@class}>
-        <option value="active" selected={@archive_status == :active}>
-          {@active_label}
-        </option>
-        <option value="archived" selected={@archive_status == :archived}>
-          {@archived_label}
-        </option>
-      </select>
-    </form>
+    <div class="flex rounded-[10px] border border-[#ecebe6] bg-[#f6f5f2] p-[3px]">
+      <button
+        :for={{label, value} <- [{@active_label, "active"}, {@archived_label, "archived"}]}
+        type="button"
+        phx-click="archive_filter"
+        phx-value-status={value}
+        phx-target={@myself}
+        class={[
+          "cursor-pointer rounded-[8px] px-[15px] py-[7px] text-[12px] font-semibold transition-colors",
+          (to_string(@archive_status) == value &&
+             "bg-white text-[#17161a] shadow-[0_1px_2px_rgba(30,28,24,0.06)]") ||
+            "text-[#8a877f] hover:text-[#3a382f]"
+        ]}
+      >
+        {label}
+      </button>
+    </div>
     """
   end
 
@@ -1275,12 +1626,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:selected_label, fn -> "%{count} selected" end)
       |> assign_new(:clear_label, fn -> "Clear selection" end)
       |> assign_new(:class, fn ->
-        "bg-blue-50 border border-blue-200 rounded p-3 mb-4 flex items-center gap-4"
+        "mb-[14px] flex flex-wrap items-center gap-[14px] rounded-[14px] border border-[#d9dcf5] bg-[#eef1fc] px-4 py-3"
       end)
 
     ~H"""
     <div class={@class}>
-      <span class="text-sm font-medium">
+      <span class="text-[12.5px] font-bold text-[#3a3f8f]">
         <%= cond do %>
           <% @select_all and @excluded_count == 0 -> %>
             {@all_selected_label}
@@ -1290,13 +1641,13 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
             {String.replace(@selected_label, "%{count}", to_string(@selected_count))}
         <% end %>
       </span>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         {render_slot(@inner_block)}
       </div>
       <button
         type="button"
         phx-click={clear_selection_js(@myself, @id)}
-        class="ml-auto text-sm text-gray-500 hover:text-gray-700"
+        class="ml-auto text-[12px] font-semibold text-[#6d6a99] transition-colors hover:text-[#3a3f8f]"
       >
         {@clear_label}
       </button>
@@ -1313,9 +1664,15 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   """
   @impl true
   def bulk_action_button(assigns) do
+    action = assigns.action
+    {variant, glyph} = bulk_variant(action)
+
     assigns =
       assigns
-      |> assign_new(:class, fn -> "px-3 py-1 text-sm bg-white border rounded hover:bg-gray-50" end)
+      |> assign(:glyph, glyph)
+      |> assign(:hero_icon, action.ui && action.ui.icon)
+      |> assign(:label, (action.ui && action.ui.label) || Phoenix.Naming.humanize(action.name))
+      |> assign(:btn_class, (action.ui && action.ui.class) || bulk_button_class(variant))
 
     ~H"""
     <button
@@ -1323,11 +1680,118 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       phx-click="bulk_action"
       phx-value-action={@action.name}
       phx-target={@myself}
-      class={@class}
+      class={@btn_class}
       data-confirm={@action.confirm}
     >
-      {(@action.ui && @action.ui.label) || Phoenix.Naming.humanize(@action.name)}
+      <.bulk_glyph :if={@glyph} glyph={@glyph} />
+      <.render_icon :if={is_nil(@glyph) and @hero_icon} name={@hero_icon} class="size-[14px]" />
+      {@label}
     </button>
+    """
+  end
+
+  # Colour + icon per bulk action, derived from its built-in type so a resource declares nothing
+  # extra (`handler: :destroy` etc.). A custom action (type nil) reads primary/indigo and honours its
+  # own `ui.icon`; any action may still fully override via `ui.class`.
+  @bulk_btn_base "inline-flex h-[34px] items-center gap-1.5 rounded-[9px] border px-[13px] text-[12px] font-semibold transition-colors [&_svg]:size-[14px]"
+
+  defp bulk_variant(action) do
+    case bulk_kind(action) do
+      :destroy -> {:neutral, :archive}
+      :unarchive -> {:success, :unarchive}
+      :permanent_destroy -> {:danger, :trash}
+      :activate -> {:success, :check}
+      _ -> {:primary, nil}
+    end
+  end
+
+  # The bulk-action kind, read from whichever field carries it: the `static` copy handed to the adapter
+  # is pre-transform (so `type` is nil and `handler` is the raw `:destroy` atom, a `{master, tenant}` /
+  # `{:type, kind}` tuple whose second element is the kind, or a scoped `:master_destroy` atom). The
+  # action name is the last fallback — `:archive` is the conventional name for a `:destroy` bulk action.
+  @bulk_kinds [:destroy, :unarchive, :permanent_destroy, :activate]
+  defp bulk_kind(%{type: t}) when t in @bulk_kinds, do: t
+  defp bulk_kind(%{handler: {_scope, kind}}) when kind in @bulk_kinds, do: kind
+  defp bulk_kind(%{handler: h}) when h in @bulk_kinds, do: h
+  defp bulk_kind(%{name: :archive}), do: :destroy
+  defp bulk_kind(%{name: n}) when n in @bulk_kinds, do: n
+  defp bulk_kind(_action), do: nil
+
+  defp bulk_button_class(:success),
+    do: @bulk_btn_base <> " border-[#cfe6d8] bg-white text-[#177a53] hover:bg-[#eefaf2]"
+
+  defp bulk_button_class(:primary),
+    do: @bulk_btn_base <> " border-[#dcdbf5] bg-white text-[#4f4bcc] hover:bg-[#f2f1fc]"
+
+  defp bulk_button_class(:danger),
+    do: @bulk_btn_base <> " border-[#f0dcd8] bg-[#fdf3f1] text-[#c0473d] hover:bg-[#fbe9e7]"
+
+  defp bulk_button_class(_neutral),
+    do: @bulk_btn_base <> " border-[#e6e4de] bg-white text-[#5c5a54] hover:bg-[#f7f6f3]"
+
+  attr :glyph, :atom, required: true
+
+  defp bulk_glyph(%{glyph: :archive} = assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="M10 12h4" />
+    </svg>
+    """
+  end
+
+  defp bulk_glyph(%{glyph: :unarchive} = assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5" />
+    </svg>
+    """
+  end
+
+  defp bulk_glyph(%{glyph: :trash} = assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
+    </svg>
+    """
+  end
+
+  defp bulk_glyph(%{glyph: :check} = assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
     """
   end
 
@@ -1342,6 +1806,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     * `:page_info_format` - Format string for page info
     * `:inner_block` - Slot for pagination buttons
   """
+  # The pagination the design draws: soft neutral chrome, the current page tinted indigo rather than
+  # filled, and a disabled step muted instead of merely translucent.
+  @pagination_nav "h-9 rounded-[9px] border border-[#ecebe6] bg-white px-3.5 text-[12px] " <>
+                    "font-semibold text-[#6d6a63] transition-colors hover:bg-[#f7f6f3] " <>
+                    "disabled:cursor-default disabled:bg-[#f6f5f2] disabled:text-[#c3c0b8]"
+
+  @pagination_page "h-9 min-w-9 rounded-[9px] border px-2.5 text-[12px] font-bold transition-colors"
+
   @impl true
   def pagination_container(assigns) do
     assigns =
@@ -1350,10 +1822,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:page_info_format, fn -> "Page {page} of {total}" end)
 
     ~H"""
-    <div class="mt-4 flex items-center justify-center gap-2">
+    <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
       {render_slot(@inner_block)}
     </div>
-    <div :if={@show_total} class="mt-2 text-center text-sm text-gray-600">
+    <div :if={@show_total} class="mt-2 text-center text-[12px] font-semibold text-[#a8a5a0]">
       {format_page_info(@page_info_format, @page, @total_pages, @total_count)}
     </div>
     """
@@ -1375,7 +1847,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       assigns
       |> assign_new(:disabled, fn -> false end)
       |> assign_new(:page, fn -> nil end)
-      |> assign_new(:class, fn -> "px-3 py-1 border rounded transition-colors" end)
+      |> assign_new(:class, fn -> @pagination_nav end)
 
     ~H"""
     <button
@@ -1384,11 +1856,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       phx-value-page={@page}
       phx-target={@myself}
       disabled={@disabled}
-      class={[
-        @class,
-        @disabled && "opacity-50 cursor-not-allowed",
-        !@disabled && "hover:bg-gray-50"
-      ]}
+      class={@class}
     >
       {@label}
     </button>
@@ -1410,9 +1878,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       assigns
       |> assign_new(:disabled, fn -> false end)
 
-    is_active = assigns.page_num == assigns.current_page
-
-    assigns = assign(assigns, :is_active, is_active)
+    assigns =
+      assigns
+      |> assign(:is_active, assigns.page_num == assigns.current_page)
+      |> assign(:page_class, @pagination_page)
 
     ~H"""
     <button
@@ -1422,9 +1891,9 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       phx-target={@myself}
       disabled={@disabled}
       class={[
-        "px-3 py-1 border rounded transition-colors",
-        @is_active && "bg-blue-500 text-white border-blue-500",
-        !@is_active && "hover:bg-gray-50"
+        @page_class,
+        (@is_active && "border-[#dcdbf5] bg-[#f2f1fc] text-[#4f4bcc]") ||
+          "border-[#ecebe6] bg-white text-[#6d6a63] hover:bg-[#f7f6f3]"
       ]}
     >
       {@page_num}
@@ -1490,7 +1959,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   end
 
   @doc """
-  Render template switcher container with buttons.
+  The list/grid switch — one recessed tray with the active view lifted onto a white tile. The single
+  switcher every admin page (and every `fallback: __MODULE__` adapter) uses.
+
+  The buttons are inlined rather than a child component: an unchanged child renders `data-phx-skip`
+  and an empty element, which lands in a tray the browser is rebuilding on view-switch, so the icon
+  vanishes — inlined here there is nothing to skip. The glyph goes through `switcher_icon_class/1` so
+  each name is a literal the runtime CSS compiler can emit a mask for (a name reaching a class only
+  through a variable is one it never sees, and the button collapses to an empty square).
 
   ## Assigns
     * `:switchable_templates` - List of template modules
@@ -1500,24 +1976,48 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   @impl true
   def template_switcher(assigns) do
     ~H"""
-    <div :if={length(@switchable_templates) > 1} class="flex gap-1 border rounded p-1">
-      <.template_switcher_button
+    <div
+      :if={length(@switchable_templates) > 1}
+      class="flex flex-none rounded-[11px] border border-[#ecebe6] bg-[#efeee9] p-[3px]"
+    >
+      <button
         :for={template <- @switchable_templates}
-        template={template}
-        current_template={@current_template}
-        myself={@myself}
-      />
+        type="button"
+        phx-click="switch_template"
+        phx-value-template={template.name()}
+        phx-target={@myself}
+        title={template.label()}
+        aria-pressed={to_string(@current_template.name() == template.name())}
+        class={[
+          "grid size-[34px] place-items-center rounded-[9px] transition-colors",
+          (@current_template.name() == template.name() &&
+             "bg-white text-[#4f4bcc] shadow-[0_1px_2px_rgba(30,28,24,0.06)]") ||
+            "text-[#8a877f] hover:text-[#3a382f]"
+        ]}
+      >
+        <span class={switcher_icon_class(template.icon())} />
+      </button>
     </div>
     """
   end
 
   @doc """
-  Render template switcher button.
+  The class that draws a switcher button's glyph, written literally per icon name so the runtime CSS
+  compiler emits its mask. Falls back to the raw name for any icon not named here (which the compiler
+  only sees if it appears literally elsewhere in the source).
+  """
+  @spec switcher_icon_class(String.t()) :: String.t()
+  def switcher_icon_class("hero-squares-2x2"), do: "hero-squares-2x2 size-4"
+  def switcher_icon_class("hero-table-cells"), do: "hero-table-cells size-4"
+  def switcher_icon_class("hero-queue-list"), do: "hero-queue-list size-4"
+  def switcher_icon_class("hero-bars-3"), do: "hero-bars-3 size-4"
+  def switcher_icon_class("hero-photo"), do: "hero-photo size-4"
+  def switcher_icon_class("hero-document-text"), do: "hero-document-text size-4"
+  def switcher_icon_class(name), do: "#{name} size-4"
 
-  ## Assigns
-    * `:template` - Template module
-    * `:current_template` - Currently active template module
-    * `:myself` - LiveComponent target
+  @doc """
+  A single switcher button. Kept for the behaviour's `template_switcher_button` callback; the switcher
+  itself inlines its buttons (see `template_switcher/1`) so nothing renders this as a child component.
   """
   @impl true
   def template_switcher_button(assigns) do
@@ -1531,13 +2031,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       phx-value-template={@template.name()}
       phx-target={@myself}
       class={[
-        "p-2 rounded transition-colors",
-        @is_active && "bg-gray-200",
-        !@is_active && "hover:bg-gray-100"
+        "grid size-[34px] place-items-center rounded-[9px] transition-colors",
+        (@is_active && "bg-white text-[#4f4bcc] shadow-[0_1px_2px_rgba(30,28,24,0.06)]") ||
+          "text-[#8a877f] hover:text-[#3a382f]"
       ]}
       title={@template.label()}
+      aria-pressed={to_string(@is_active)}
     >
-      <span class={@template.icon()}></span>
+      <span class={switcher_icon_class(@template.icon())} />
     </button>
     """
   end
@@ -1573,16 +2074,16 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:field_name, fn -> nil end)
       |> assign_new(:required, fn -> false end)
       |> assign_new(:errors, fn -> [] end)
-      |> assign_new(:class, fn -> "space-y-1" end)
+      |> assign_new(:class, fn -> "flex flex-col gap-[7px]" end)
 
     has_errors = assigns.errors != []
     assigns = assign(assigns, :has_errors, has_errors)
 
     ~H"""
     <div class={@class}>
-      <label :if={@label} class="block text-sm font-medium text-gray-700" for={@field_name}>
+      <label :if={@label} class="block text-[10.5px] font-bold text-[#8a877f]" for={@field_name}>
         {@label}
-        <span :if={@required} class="text-red-500 ml-0.5">*</span>
+        <span :if={@required} class="ml-0.5 text-[#e5484d]">*</span>
       </label>
       <div class={[@has_errors && "ring-1 ring-red-500 rounded-md"]}>
         {render_slot(@inner_block)}
@@ -1600,7 +2101,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:description, fn -> nil end)
       |> assign_new(:collapsible, fn -> false end)
       |> assign_new(:collapsed, fn -> false end)
-      |> assign_new(:class, fn -> "border border-gray-200 rounded-lg p-4" end)
+      |> assign_new(:class, fn -> "rounded-[16px] border border-[#ecebe6] p-5" end)
 
     ~H"""
     <fieldset class={@class}>
@@ -1744,19 +2245,32 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:accept, fn -> nil end)
       |> assign_new(:max_entries, fn -> 1 end)
       |> assign_new(:class, fn ->
-        "flex flex-col items-center justify-center w-full px-6 py-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors cursor-pointer bg-gray-50"
+        "flex w-full cursor-pointer flex-col items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-[#d9d7d0] bg-[#faf9f6] px-4 py-[34px] text-center transition-colors hover:border-[#5b57d6] hover:bg-[#f7f6fd]"
       end)
 
     ~H"""
     <label class={@class} phx-drop-target={@upload_ref}>
-      <.render_icon name="hero-cloud-arrow-up" class="w-10 h-10 text-gray-400 mb-3" />
-      <p class="text-sm text-gray-600">
-        <span class="font-semibold text-blue-600">Click to upload</span> or drag and drop
+      <span class="mb-3 grid size-[50px] place-items-center rounded-[14px] bg-[#f2f1fc] text-[#5b57d6]">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="size-6"
+        >
+          <path d="M12 16V4M8 8l4-4 4 4" />
+          <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+        </svg>
+      </span>
+      <p class="text-[13.5px] font-semibold text-[#3a382f]">
+        <span class="text-[#4f4bcc]">Click to upload</span> or drag and drop
       </p>
-      <p :if={@accept} class="mt-1 text-xs text-gray-500">
+      <p :if={@accept} class="mt-[5px] text-[11px] font-medium text-[#a8a5a0]">
         {format_accept(@accept)}
       </p>
-      <p :if={@max_entries > 1} class="mt-1 text-xs text-gray-500">
+      <p :if={@max_entries > 1} class="mt-1 text-[11px] font-medium text-[#a8a5a0]">
         Up to {@max_entries} files
       </p>
       {render_slot(@inner_block)}
@@ -1952,7 +2466,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         phx-click="add_nested"
         phx-target={@phx_target}
         phx-value-path={@field_path}
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+        class="inline-flex h-9 items-center gap-[7px] rounded-[10px] border border-[#dcdbf5] bg-[#f2f1fc] px-[13px] text-[12px] font-semibold text-[#4f4bcc] transition-colors hover:bg-[#e9e7fb]"
       >
         <.render_icon name="hero-plus" class="w-4 h-4" />
         {@add_label}
@@ -1984,7 +2498,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         phx-click="add_array_item"
         phx-target={@phx_target}
         phx-value-path={@field_path}
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+        class="inline-flex h-9 items-center gap-[7px] rounded-[10px] border border-[#dcdbf5] bg-[#f2f1fc] px-[13px] text-[12px] font-semibold text-[#4f4bcc] transition-colors hover:bg-[#e9e7fb]"
       >
         <.render_icon name="hero-plus" class="w-4 h-4" />
         {@add_label}
@@ -2006,9 +2520,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:table_id, fn -> nil end)
       |> assign_new(:class, fn -> "space-y-2" end)
       |> assign_new(:disabled, fn -> false end)
-      |> assign_new(:input_class, fn ->
-        "flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-      end)
+      |> assign_new(:input_class, fn -> "flex-1 " <> input_class(false) end)
       |> assign(:items_with_index, Enum.with_index(assigns[:items] || []))
 
     ~H"""
@@ -2047,7 +2559,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         phx-click="add_list_item"
         phx-value-field={@field_name}
         phx-target={@target}
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+        class="inline-flex h-9 items-center gap-[7px] rounded-[10px] border border-[#dcdbf5] bg-[#f2f1fc] px-[13px] text-[12px] font-semibold text-[#4f4bcc] transition-colors hover:bg-[#e9e7fb]"
       >
         <.render_icon name="hero-plus" class="w-4 h-4" />
         {@add_label}
@@ -2064,7 +2576,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       assigns
       |> assign(:options, normalized)
       |> assign_new(:class, fn ->
-        "rounded border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)] w-full"
       end)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:disabled, fn -> false end)
@@ -2278,26 +2790,33 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     selected ++ unselected
   end
 
+  @row_action_btn "grid size-[30px] place-items-center rounded-[8px] border border-[#ecebe6] bg-[#faf9f6] text-[#5c5a54] transition-colors hover:bg-[#f2f1fc] hover:text-[#4f4bcc] [&>span:not(.lbl)]:size-[15px]! [&_.lbl]:hidden"
+
+  @row_action_danger "grid size-[30px] place-items-center rounded-[8px] border border-[#f0dcd8] bg-[#fdf3f1] text-[#c0473d] transition-colors hover:bg-[#fbe9e7] [&>span:not(.lbl)]:size-[15px]! [&_.lbl]:hidden"
+
+  @row_action_success "grid size-[30px] place-items-center rounded-[8px] border border-[#cfe8dd] bg-[#eaf6ee] text-[#177a53] transition-colors hover:bg-[#dcefe4] [&>span:not(.lbl)]:size-[15px]! [&_.lbl]:hidden"
+
   defp button_class(:primary),
     do:
-      "px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+      "inline-flex h-[38px] items-center gap-2 rounded-xl bg-[linear-gradient(140deg,#6d69e6,#4f4bcc)] px-[15px] text-[12.5px] font-bold text-white shadow-[0_5px_14px_rgba(79,75,204,0.28)] transition-opacity hover:opacity-95"
 
-  defp button_class(:danger),
-    do:
-      "px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+  defp button_class(:danger), do: @row_action_danger
+  defp button_class(:destroy), do: @row_action_danger
+  defp button_class(:permanent_destroy), do: @row_action_danger
+  defp button_class(:unarchive), do: @row_action_success
 
   defp button_class(:secondary),
     do:
-      "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
+      "inline-flex h-[38px] items-center gap-1.5 rounded-[10px] border border-[#ecebe6] bg-white px-[13px] text-[12px] font-semibold text-[#5c5a54] transition-colors hover:bg-[#f7f6f3]"
 
-  defp button_class(_), do: "px-3 py-2 text-sm rounded hover:bg-gray-100 transition-colors"
+  defp button_class(_), do: @row_action_btn
 
   defp button_icon(_variant), do: nil
 
-  defp nav_link_class(:edit), do: "text-indigo-600 hover:text-indigo-800"
-  defp nav_link_class(:show), do: "text-blue-600 hover:text-blue-800"
-  defp nav_link_class(:external), do: "text-blue-600 hover:text-blue-800 hover:underline"
-  defp nav_link_class(_), do: "text-gray-600 hover:text-gray-800"
+  defp nav_link_class(:edit), do: @row_action_btn
+  defp nav_link_class(:show), do: @row_action_btn
+  defp nav_link_class(:external), do: @row_action_btn
+  defp nav_link_class(_), do: @row_action_btn
 
   defp nav_link_icon(:edit), do: "hero-pencil"
   defp nav_link_icon(:show), do: "hero-eye"
@@ -2307,9 +2826,9 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   defp icon_name(:boolean_false), do: "hero-x-mark"
   defp icon_name(_), do: nil
 
-  defp icon_class(:boolean_true), do: "w-5 h-5 text-green-600"
-  defp icon_class(:boolean_false), do: "w-5 h-5 text-red-600"
-  defp icon_class(_), do: "w-5 h-5"
+  defp icon_class(:boolean_true), do: "size-5 text-[#177a53]"
+  defp icon_class(:boolean_false), do: "size-5 text-[#c0473d]"
+  defp icon_class(_), do: "size-5"
 
   defp cell_datetime_class(:relative), do: "text-gray-600"
   defp cell_datetime_class(_), do: nil

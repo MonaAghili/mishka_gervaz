@@ -73,6 +73,10 @@ defmodule MishkaGervaz.Form.Types.Field.Relation do
       field: state_assigns[:form_field],
       id: "form-#{field.name}",
       options: option_list,
+      # Form relation fields read grey `#faf9f6` like the rest of a form (the adapter's white default is
+      # for the filter bar). `assign_new(:class, …)` in the select components lets this passed class win.
+      class:
+        "h-11 w-full rounded-[12px] border border-[#ecebe6] bg-[#faf9f6] px-[14px] text-[12.5px] font-semibold text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:bg-white focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]",
       placeholder: get_ui(field, :placeholder, "Select..."),
       icon: get_ui(field, :icon),
       has_more?: Map.get(rel_data, :has_more?, false),

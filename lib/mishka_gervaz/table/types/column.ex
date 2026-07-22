@@ -17,6 +17,8 @@ defmodule MishkaGervaz.Table.Types.Column do
   - `:uuid` - UUID with truncation
   - `:array` - Array/list values
   - `:badge` - Status badges with colors
+  - `:tags` - List values as chips, with a `+N` expand toggle
+  - `:avatars` - Related people as an overlapping avatar stack, with a `+N` expand toggle
   - `:link` - Clickable links
 
   ## Usage in DSL
@@ -45,7 +47,9 @@ defmodule MishkaGervaz.Table.Types.Column do
       uuid: {Column.UUID, [Ash.Type.UUID, Ash.Type.UUIDv7]},
       array: {Column.Array, [:__array__]},
       badge: {Column.Badge, []},
+      bars: {Column.Bars, []},
       tags: {Column.Tags, []},
+      avatars: {Column.Avatars, []},
       link: {Column.Link, []}
     },
     default: Column.Text

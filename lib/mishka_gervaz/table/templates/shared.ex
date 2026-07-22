@@ -94,6 +94,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
       |> assign(:filter_mode, filter_mode)
       |> assign(:groups, groups)
       |> assign(:has_groups, has_groups)
+      |> assign_new(:filter_actions, fn -> nil end)
 
     ~H"""
     <div :if={@filters != [] or @state.supports_archive} class="mb-4">
@@ -102,6 +103,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           filters={@filters}
           all_filters={@all_filters}
           has_active_filters={@has_active_filters}
+          filter_actions={@filter_actions}
           groups={@groups}
           columns={4}
           state={@state}
@@ -114,6 +116,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           filters={@filters}
           all_filters={@all_filters}
           has_active_filters={@has_active_filters}
+          filter_actions={@filter_actions}
           columns={4}
           collapsible={true}
           collapsed={false}
@@ -126,6 +129,19 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     </div>
     """
   end
+
+  @toolbar_field "h-[42px] w-full rounded-xl border border-[#ecebe6] bg-white pl-10 pr-3.5 " <>
+                   "text-[13px] font-medium text-[#1b1a18] outline-none transition-colors " <>
+                   "focus:border-[#c3c1f0]"
+
+  @toolbar_toggle "order-4 inline-flex h-[42px] flex-none items-center gap-[7px] rounded-xl " <>
+                    "border border-[#ecebe6] bg-white px-[15px] text-[12.5px] font-semibold " <>
+                    "text-[#5c5a54] transition-colors"
+
+  @toolbar_panel "order-6 hidden basis-full rounded-[14px] border border-[#e4e2f7] bg-white " <>
+                   "px-[18px] py-4 [&_label]:mb-[9px]! [&_label]:text-[10px]! " <>
+                   "[&_label]:font-bold! [&_label]:uppercase [&_label]:tracking-[0.07em] " <>
+                   "[&_label]:text-[#8a877f]"
 
   defp render_grouped_filters(assigns) do
     groups = assigns.groups
@@ -149,11 +165,20 @@ defmodule MishkaGervaz.Table.Templates.Shared do
       assigns
       |> assign(:visible_groups, visible_groups)
       |> assign(:ungrouped_filters, ungrouped_filters)
+      |> assign_new(:filter_actions, fn -> nil end)
 
     ~H"""
-    <div class="space-y-3">
-      <%!-- Archive Toggle --%>
-      <div :if={@state.supports_archive} class="flex items-center gap-4">
+    <div data-role="gz-toolbar" class="flex flex-wrap items-center gap-3">
+      <%!-- A page's own controls lead the row on a wide screen and follow the search on a narrow one,
+            so each child carries its own `order` rather than relying on source order. --%>
+      <div
+        :if={@filter_actions not in [nil, []]}
+        class="order-1 flex flex-none items-center gap-2 max-[860px]:order-2!"
+      >
+        {render_slot(@filter_actions)}
+      </div>
+
+      <div :if={@state.supports_archive} class="order-3">
         <.dynamic_component
           module={@static.ui_adapter}
           function={:archive_toggle}
@@ -163,16 +188,132 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         />
       </div>
 
+      <%!-- `display: contents` so this row lays the form's children out directly and each one's own
+            `order-*` puts it back in the design's sequence, whatever the source order. The archive
+            switch draws its own form and so has to stay a sibling: nested inside, the parser drops
+            it and its `status` radio serializes into `filter`, where it collides with a status
+            filter of the same name and narrows every search to nothing. --%>
       <form
         id={"#{@static.stream_name}-filter"}
         phx-change="filter"
         phx-target={@myself}
-        class="space-y-3"
+        class="contents"
       >
-        <%!-- Ungrouped filters (always visible) --%>
-        <div :if={@ungrouped_filters != []} class={["grid gap-4", grid_cols(@columns)]}>
+        <.render_toolbar_filter
+          :for={filter <- @ungrouped_filters}
+          filter={filter}
+          all_filters={@all_filters}
+          state={@state}
+          static={@static}
+          myself={@myself}
+        />
+
+        <.render_filter_group
+          :for={group <- @visible_groups}
+          group={group}
+          filters={@filters}
+          all_filters={@all_filters}
+          columns={@columns}
+          has_active_filters={@has_active_filters}
+          state={@state}
+          static={@static}
+          myself={@myself}
+        />
+      </form>
+    </div>
+    """
+  end
+
+  # A filter standing on its own in the toolbar row: the search box grows to fill it, anything else
+  # keeps its natural width. Only the text filter gets the magnifier and the flex-1.
+  defp render_toolbar_filter(%{filter: %{type: :text}} = assigns) do
+    assigns = assign(assigns, :field_class, @toolbar_field)
+
+    ~H"""
+    <div class="relative order-2 min-w-[210px] flex-1 max-[860px]:order-1! max-[860px]:basis-full!">
+      <.dynamic_component
+        module={@static.ui_adapter}
+        function={:icon}
+        name="hero-magnifying-glass"
+        class="pointer-events-none absolute left-[14px] top-1/2 size-4 -translate-y-1/2 text-[#a8a5a0]"
+      />
+      <input
+        type="text"
+        name={@filter.name}
+        value={Map.get(@state.filter_values, @filter.name) || ""}
+        placeholder={search_placeholder(@filter)}
+        phx-debounce="300"
+        class={@field_class}
+      />
+    </div>
+    """
+  end
+
+  defp render_toolbar_filter(assigns) do
+    ~H"""
+    <div class="order-2 min-w-0 flex-none [&_label]:sr-only">
+      <.render_filter
+        filter={@filter}
+        all_filters={@all_filters}
+        state={@state}
+        static={@static}
+        myself={@myself}
+      />
+    </div>
+    """
+  end
+
+  # A collapsible group is the design's "Advanced" drawer: a toggle in the toolbar row and a panel of
+  # its own on the line below (`basis-full` + `order-6`), which is what keeps the panel under the whole
+  # row instead of wedged beside the button. A non-collapsible group has no box or heading of its own —
+  # its filters just join the row, so `group :primary do filters [:search] end` reads as the search box
+  # the design draws. The panel opens client-side: asking the server to remember whether a drawer is
+  # open would cost a round trip per click.
+  defp render_filter_group(assigns) do
+    group = assigns.group
+    group_filters = Enum.filter(assigns.filters, fn f -> f.name in group.filters end)
+
+    assigns =
+      assigns
+      |> assign(:group_filters, group_filters)
+      |> assign(:group_columns, (group.ui && group.ui.columns) || 3)
+      |> assign(:group_label, resolve_ui_label(group) || Phoenix.Naming.humanize(group.name))
+      |> assign(:group_icon, (group.ui && group.ui.icon) || "hero-adjustments-horizontal")
+      |> assign(:group_id, "#{assigns.static.id}-filter-group-#{group.name}")
+      |> assign(:toggle_class, @toolbar_toggle)
+      |> assign(:panel_class, @toolbar_panel)
+
+    ~H"""
+    <%= if @group.collapsible do %>
+      <button
+        :if={@group_filters != []}
+        type="button"
+        id={"#{@group_id}-btn"}
+        phx-click={toggle_filter_group(@group_id)}
+        aria-controls={@group_id}
+        class={@toggle_class}
+      >
+        <.dynamic_component
+          module={@static.ui_adapter}
+          function={:icon}
+          name={@group_icon}
+          class="size-[15px]"
+        />
+        {@group_label}
+      </button>
+
+      <div
+        :if={@group_filters != []}
+        id={@group_id}
+        class={[@panel_class, !@group.collapsed && "block!"]}
+      >
+        <div class={[
+          "grid gap-3 [&>*]:min-w-0",
+          grid_cols(@group_columns),
+          "max-[860px]:grid-cols-2! max-[640px]:grid-cols-1!"
+        ]}>
           <.render_filter
-            :for={filter <- @ungrouped_filters}
+            :for={filter <- @group_filters}
             filter={filter}
             all_filters={@all_filters}
             state={@state}
@@ -181,115 +322,45 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           />
         </div>
 
-        <%!-- Grouped filters --%>
-        <.render_filter_group
-          :for={group <- @visible_groups}
-          group={group}
-          filters={@filters}
-          all_filters={@all_filters}
-          columns={@columns}
-          state={@state}
-          static={@static}
-          myself={@myself}
-        />
-
-        <.dynamic_component
+        <button
           :if={@has_active_filters}
-          module={@static.ui_adapter}
-          function={:filter_reset_button}
-          label={dgettext("mishka_gervaz", "Clear filters")}
-          class="text-sm text-gray-500 hover:text-gray-700 underline"
-        />
-      </form>
-    </div>
+          type="button"
+          phx-click="clear_filters"
+          phx-target={@myself}
+          class="mt-4 inline-flex h-[30px] items-center gap-1.5 rounded-lg border border-[#ecebe6] bg-white px-[11px] text-[11.5px] font-semibold text-[#5c5a54] transition-colors hover:bg-[#f7f6f3]"
+        >
+          <.dynamic_component
+            module={@static.ui_adapter}
+            function={:icon}
+            name="hero-x-mark"
+            class="size-[13px] text-[#a8a5a0]"
+          />
+          {dgettext("mishka_gervaz", "Clear filters")}
+        </button>
+      </div>
+    <% else %>
+      <.render_toolbar_filter
+        :for={filter <- @group_filters}
+        filter={filter}
+        all_filters={@all_filters}
+        state={@state}
+        static={@static}
+        myself={@myself}
+      />
+    <% end %>
     """
   end
 
-  defp render_filter_group(assigns) do
-    group = assigns.group
-    group_filters = Enum.filter(assigns.filters, fn f -> f.name in group.filters end)
-    group_columns = (group.ui && group.ui.columns) || assigns.columns
-    group_label = resolve_ui_label(group) || Phoenix.Naming.humanize(group.name)
-    group_icon = group.ui && group.ui.icon
+  # Both class sets are swapped rather than one layered over the other — they set the same properties,
+  # and which wins would otherwise be down to their order in the stylesheet.
+  defp toggle_filter_group(group_id) do
+    JS.toggle(to: "##{group_id}")
+    |> JS.toggle_class("border-[#ecebe6] bg-white text-[#5c5a54]", to: "##{group_id}-btn")
+    |> JS.toggle_class("border-[#dcdbf5] bg-[#f2f1fc] text-[#4f4bcc]", to: "##{group_id}-btn")
+  end
 
-    group_class =
-      (group.ui && group.ui.class) || "p-4 bg-gray-50 rounded-lg border border-gray-200"
-
-    group_id = "#{assigns.static.id}-filter-group-#{group.name}"
-
-    assigns =
-      assigns
-      |> assign(:group_filters, group_filters)
-      |> assign(:group_columns, group_columns)
-      |> assign(:group_label, group_label)
-      |> assign(:group_icon, group_icon)
-      |> assign(:group_class, group_class)
-      |> assign(:group_id, group_id)
-
-    ~H"""
-    <div :if={@group_filters != []}>
-      <%= if @group.collapsible do %>
-        <div>
-          <button
-            type="button"
-            phx-click={JS.toggle(to: "##{@group_id}")}
-            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <.dynamic_component
-              :if={@group_icon}
-              module={@static.ui_adapter}
-              function={:icon}
-              name={@group_icon}
-              class="w-4 h-4"
-            />
-            {@group_label}
-          </button>
-
-          <div
-            id={@group_id}
-            class={[@group_class, "mt-2", @group.collapsed && "hidden"]}
-          >
-            <div class={["grid gap-4", grid_cols(@group_columns)]}>
-              <.render_filter
-                :for={filter <- @group_filters}
-                filter={filter}
-                all_filters={@all_filters}
-                state={@state}
-                static={@static}
-                myself={@myself}
-              />
-            </div>
-          </div>
-        </div>
-      <% else %>
-        <div class={@group_class}>
-          <div
-            :if={@group_label}
-            class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2"
-          >
-            <.dynamic_component
-              :if={@group_icon}
-              module={@static.ui_adapter}
-              function={:icon}
-              name={@group_icon}
-              class="w-4 h-4"
-            />
-            {@group_label}
-          </div>
-          <div class={["grid gap-4", grid_cols(@group_columns)]}>
-            <.render_filter
-              :for={filter <- @group_filters}
-              filter={filter}
-              all_filters={@all_filters}
-              state={@state}
-              static={@static}
-              myself={@myself}
-            />
-          </div>
-        </div>
-      <% end %>
-    </div>
-    """
+  defp search_placeholder(filter) do
+    (filter.ui && filter.ui.placeholder) || dgettext("mishka_gervaz", "Search…")
   end
 
   @doc """
@@ -326,9 +397,50 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   end
 
   defp render_filters_by_mode(%{mode: :inline} = assigns) do
+    input_filters = Enum.reject(assigns.filters, &(&1.type == :boolean))
+    bool_filters = Enum.filter(assigns.filters, &(&1.type == :boolean))
+    total = assigns.state.total_count
+
+    range_label =
+      if is_integer(total),
+        do: dgettext("mishka_gervaz", "Showing %{count}", count: total)
+
+    assigns =
+      assigns
+      |> assign(:input_filters, input_filters)
+      |> assign(:bool_filters, bool_filters)
+      |> assign(:range_label, range_label)
+      |> assign_new(:filter_actions, fn -> nil end)
+
+    show_controls =
+      assigns.state.supports_archive or bool_filters != [] or assigns.has_active_filters or
+        range_label != nil or assigns[:filter_actions] not in [nil, []]
+
+    assigns = assign(assigns, :show_controls, show_controls)
+
     ~H"""
-    <div class={[@collapsible && "filter-collapsible"]}>
-      <div class="flex items-center gap-4 mb-4">
+    <form
+      :if={@filters != [] or @state.supports_archive}
+      id={"#{@static.stream_name}-filter"}
+      phx-change="filter"
+      phx-target={@myself}
+      class="space-y-[16px]"
+    >
+      <div
+        :if={@input_filters != []}
+        class="flex flex-wrap items-end gap-[14px]"
+      >
+        <.render_filter
+          :for={filter <- @input_filters}
+          filter={filter}
+          all_filters={@all_filters}
+          state={@state}
+          static={@static}
+          myself={@myself}
+        />
+      </div>
+
+      <div :if={@show_controls} class="flex flex-wrap items-center gap-[14px]">
         <.dynamic_component
           :if={@state.supports_archive}
           module={@static.ui_adapter}
@@ -337,32 +449,29 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           archive_status={@state.archive_status}
           myself={@myself}
         />
-      </div>
-
-      <form
-        :if={@filters != []}
-        id={"#{@static.stream_name}-filter"}
-        phx-change="filter"
-        phx-target={@myself}
-        class={["grid gap-4", grid_cols(@columns)]}
-      >
         <.render_filter
-          :for={filter <- @filters}
+          :for={filter <- @bool_filters}
           filter={filter}
           all_filters={@all_filters}
           state={@state}
           static={@static}
           myself={@myself}
         />
+        <span class="flex-1"></span>
+        <span :if={@range_label} class="text-[12px] font-medium text-[#a8a5a0]">
+          {@range_label}
+        </span>
         <.dynamic_component
           :if={@has_active_filters}
           module={@static.ui_adapter}
           function={:filter_reset_button}
           label={dgettext("mishka_gervaz", "Clear filters")}
-          class="text-sm text-gray-500 hover:text-gray-700 underline justify-self-start"
         />
-      </form>
-    </div>
+        <%= if @filter_actions not in [nil, []] do %>
+          {render_slot(@filter_actions)}
+        <% end %>
+      </div>
+    </form>
     """
   end
 
@@ -494,6 +603,36 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   def grid_cols(nil), do: "grid-cols-4"
   def grid_cols(_), do: "grid-cols-4"
 
+  @rail_grid "grid grid-cols-[minmax(0,1fr)_300px] grid-rows-[auto_1fr] items-start gap-x-[22px] " <>
+               "gap-y-4 max-[980px]:grid-cols-1! max-[980px]:grid-rows-none!"
+
+  @rail_top "col-start-1 row-start-1 min-w-0 max-[980px]:col-start-auto! max-[980px]:row-start-auto!"
+
+  @rail_side "col-start-2 row-start-1 row-span-2 flex flex-col gap-4 max-[980px]:col-start-auto! " <>
+               "max-[980px]:row-span-1! max-[980px]:row-start-auto! max-[980px]:grid! " <>
+               "max-[980px]:grid-cols-2! max-[560px]:grid-cols-1!"
+
+  @rail_bottom "col-start-1 row-start-2 min-w-0 max-[980px]:col-start-auto! max-[980px]:row-start-auto!"
+
+  @doc """
+  The four class strings that put a page's `:rail` slot beside its records rather than above them.
+
+  `row-span-2` is what keeps the rail alongside both the toolbar and the records on a wide screen;
+  dropping the explicit placement below 980px lets the same markup flow between them, where it stays
+  reachable instead of being pushed under the whole list. Every template that honours a rail wants
+  the identical four strings, so they live here rather than being retyped per template.
+
+  Returns `nil` for every region when the page passed no rail, and HEEx omits a `nil` attribute
+  entirely — so a template spreads these across its existing markup and still emits byte-identical
+  output on the pages that do not use one.
+  """
+  @spec rail_class(list() | nil, :grid | :top | :rail | :bottom) :: String.t() | nil
+  def rail_class(rail, _region) when rail in [nil, []], do: nil
+  def rail_class(_rail, :grid), do: @rail_grid
+  def rail_class(_rail, :top), do: @rail_top
+  def rail_class(_rail, :rail), do: @rail_side
+  def rail_class(_rail, :bottom), do: @rail_bottom
+
   @doc """
   Returns the icon name for a filter group, falling back to "hero-funnel".
   Useful for custom templates rendering their own filter group UI.
@@ -619,8 +758,11 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     assigns = assign(assigns, :resolved_label, label)
 
     ~H"""
-    <div>
-      <label :if={@resolved_label} class="block text-sm font-medium mb-1 text-gray-400">
+    <div class="min-w-[170px] flex-1">
+      <label
+        :if={@resolved_label}
+        class="mb-1.5 block text-[10.5px] font-bold text-[#8a877f] text-gray-400"
+      >
         {@resolved_label}
       </label>
       <div class="px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded text-gray-400 cursor-not-allowed">
@@ -639,7 +781,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           resolve_label(filter.ui && filter.ui.placeholder) ||
             dgettext("mishka_gervaz", "Search...")
 
-        resolved_label = resolve_ui_label(filter)
+        resolved_label = resolve_ui_label(filter) || Phoenix.Naming.humanize(filter.name)
 
         assigns =
           assigns
@@ -647,11 +789,12 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           |> assign(:value, assigns.value || "")
           |> assign(:placeholder, placeholder)
           |> assign(:icon, filter.ui && filter.ui.icon)
+          |> assign(:search, true)
           |> assign(:resolved_label, resolved_label)
 
         ~H"""
-        <div>
-          <label :if={@resolved_label} class="block text-sm font-medium mb-1">
+        <div class="min-w-[240px] flex-[2]">
+          <label :if={@resolved_label} class="mb-1.5 block text-[10.5px] font-bold text-[#8a877f]">
             {@resolved_label}
           </label>
           <.dynamic_component module={@ui_adapter} function={:text_input} {assigns} />
@@ -659,7 +802,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         """
 
       :select ->
-        resolved_label = resolve_ui_label(filter)
+        resolved_label = resolve_ui_label(filter) || Phoenix.Naming.humanize(filter.name)
 
         assigns =
           assigns
@@ -670,11 +813,12 @@ defmodule MishkaGervaz.Table.Templates.Shared do
             (filter.ui && filter.ui.prompt) || dgettext("mishka_gervaz", "Select...")
           )
           |> assign(:icon, filter.ui && filter.ui.icon)
+          |> assign(:search, true)
           |> assign(:resolved_label, resolved_label)
 
         ~H"""
-        <div>
-          <label :if={@resolved_label} class="block text-sm font-medium mb-1">
+        <div class="min-w-[170px] flex-1">
+          <label :if={@resolved_label} class="mb-1.5 block text-[10.5px] font-bold text-[#8a877f]">
             {@resolved_label}
           </label>
           <.dynamic_component module={@ui_adapter} function={:select} {assigns} />
@@ -711,8 +855,8 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         assigns = assign(assigns, :filter_map, filter_map) |> assign(:resolved_label, label)
 
         ~H"""
-        <div>
-          <label :if={@resolved_label} class="block text-sm font-medium mb-1">
+        <div class="min-w-[170px] flex-1">
+          <label :if={@resolved_label} class="mb-1.5 block text-[10.5px] font-bold text-[#8a877f]">
             {@resolved_label}
           </label>
           {MishkaGervaz.Table.Types.Filter.Relation.render_input(@filter_map, @value, @ui_adapter)}
@@ -720,16 +864,30 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         """
 
       :date_range ->
-        base_map = if is_struct(filter), do: Map.from_struct(filter), else: filter
-        label = resolve_ui_label(filter)
-        assigns = assign(assigns, :filter_map, base_map) |> assign(:resolved_label, label)
+        base_name = to_string(filter.name)
+        current = assigns.value
+
+        assigns =
+          assigns
+          |> assign(:from_name, base_name <> "_from")
+          |> assign(:to_name, base_name <> "_to")
+          |> assign(:from_val, (is_map(current) && Map.get(current, :from)) || "")
+          |> assign(:to_val, (is_map(current) && Map.get(current, :to)) || "")
+          |> assign(:from_label, dgettext("mishka_gervaz", "From"))
+          |> assign(:to_label, dgettext("mishka_gervaz", "To"))
+          |> assign(
+            :date_class,
+            "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
+          )
 
         ~H"""
-        <div>
-          <label :if={@resolved_label} class="block text-sm font-medium mb-1">
-            {@resolved_label}
-          </label>
-          {MishkaGervaz.Table.Types.Filter.DateRange.render_input(@filter_map, @value, @ui_adapter)}
+        <div class="min-w-0 flex-1">
+          <label class="mb-1.5 block text-[10.5px] font-bold text-[#8a877f]">{@from_label}</label>
+          <input type="date" name={@from_name} value={@from_val} class={@date_class} />
+        </div>
+        <div class="min-w-0 flex-1">
+          <label class="mb-1.5 block text-[10.5px] font-bold text-[#8a877f]">{@to_label}</label>
+          <input type="date" name={@to_name} value={@to_val} class={@date_class} />
         </div>
         """
 
@@ -985,22 +1143,6 @@ defmodule MishkaGervaz.Table.Templates.Shared do
       />
     </div>
 
-    <%!-- Load more button (for :load_more — manual click) --%>
-    <div
-      :if={@pagination_type == :load_more and @has_more? and @loading != :loading}
-      class="mt-4 text-center"
-    >
-      <.dynamic_component
-        module={@ui_adapter}
-        function={:pagination_nav_button}
-        label={@load_more_label}
-        event="load_more"
-        myself={@myself}
-        disabled={false}
-        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-      />
-    </div>
-
     <%!-- End-of-list marker for :infinite (the real load trigger is phx-viewport-bottom on tbody) --%>
     <div
       :if={@pagination_type == :infinite and not @has_more? and @loading != :loading and @page > 1}
@@ -1009,14 +1151,33 @@ defmodule MishkaGervaz.Table.Templates.Shared do
       {dgettext("mishka_gervaz", "End of results")}
     </div>
 
-    <%!-- Page size selector for load_more/infinite --%>
-    <.render_page_size_selector
-      :if={@pagination_type in [:infinite, :load_more] and @show_page_size_selector}
-      static_id={@static_id}
-      page_size_options={@page_size_options}
-      current_page_size={@current_page_size}
-      myself={@myself}
-    />
+    <%!-- Load-more / infinite pager: React 3-col grid (Show N per page · Load More · empty) --%>
+    <div
+      :if={@pagination_type in [:load_more, :infinite]}
+      class="mt-[22px] grid grid-cols-[1fr_auto_1fr] items-center gap-3"
+    >
+      <div class="flex items-center">
+        <.render_page_size_selector
+          :if={@show_page_size_selector}
+          static_id={@static_id}
+          page_size_options={@page_size_options}
+          current_page_size={@current_page_size}
+          myself={@myself}
+        />
+      </div>
+      <div class="flex items-center justify-center">
+        <button
+          :if={@pagination_type == :load_more and @has_more? and @loading != :loading}
+          type="button"
+          phx-click="load_more"
+          phx-target={@myself}
+          class="h-[42px] rounded-[12px] border border-[#dcdbf5] bg-[#f2f1fc] px-[22px] text-[12.5px] font-bold text-[#4f4bcc] transition-colors hover:bg-[#e9e7fb]"
+        >
+          {@load_more_label}
+        </button>
+      </div>
+      <span></span>
+    </div>
 
     <%!-- Numbered pagination --%>
     <.render_numbered_pagination
@@ -1075,31 +1236,9 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   end
 
   defp render_numbered_pagination(assigns) do
-    if assigns.ui_adapter && function_exported?(assigns.ui_adapter, :pagination, 1) do
-      assigns =
-        assigns
-        |> assign(:pagination_total, assigns.total_pages)
-        |> assign(:pagination_active, assigns.page)
-        |> assign(:pagination_siblings, 1)
-        |> assign(:pagination_boundaries, 1)
-        |> assign(:pagination_on_change, "go_to_page")
-        |> assign(:pagination_phx_target, assigns.myself)
-
-      ~H"""
-      <div class="mt-4 flex items-center justify-between">
-        <div :if={@show_total} class="text-sm text-gray-600">
-          {format_page_info(@page_info_format, @page, @total_pages, @total_count)}
-        </div>
-        <.dynamic_component
-          module={@ui_adapter}
-          function={:pagination}
-          total={@pagination_total}
-          active={@pagination_active}
-          siblings={@pagination_siblings}
-          boundaries={@pagination_boundaries}
-          on_page_change={@pagination_on_change}
-          phx_target={@pagination_phx_target}
-        />
+    ~H"""
+    <div class="mt-[22px] grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div class="flex items-center">
         <.render_page_size_selector
           :if={@show_page_size_selector}
           static_id={@static_id}
@@ -1108,80 +1247,42 @@ defmodule MishkaGervaz.Table.Templates.Shared do
           myself={@myself}
         />
       </div>
-      """
-    else
-      ~H"""
-      <.dynamic_component
-        module={@ui_adapter}
-        function={:pagination_container}
-        page={@page}
-        total_pages={@total_pages}
-        total_count={@total_count}
-        show_total={@show_total}
-        page_info_format={@page_info_format}
-      >
-        <%!-- First button --%>
-        <.dynamic_component
-          :if={@total_pages > 5 and @page > 2}
-          module={@ui_adapter}
-          function={:pagination_nav_button}
-          label={@first_label}
-          event="go_to_page"
-          page={1}
-          myself={@myself}
-          disabled={@loading == :loading}
-        />
+      <div class="flex items-center justify-center gap-1.5">
+        <%= if @total_pages && @total_pages > 1 do %>
+          <.dynamic_component
+            module={@ui_adapter}
+            function={:pagination_nav_button}
+            label={@prev_label}
+            event="prev_page"
+            myself={@myself}
+            disabled={@page <= 1 or @loading == :loading}
+          />
+          <.render_page_numbers
+            page={@page}
+            total_pages={@total_pages}
+            myself={@myself}
+            loading={@loading}
+            ui_adapter={@ui_adapter}
+          />
+          <.dynamic_component
+            module={@ui_adapter}
+            function={:pagination_nav_button}
+            label={@next_label}
+            event="next_page"
+            myself={@myself}
+            disabled={@page >= @total_pages or @loading == :loading}
+          />
+        <% end %>
+      </div>
 
-        <%!-- Previous button --%>
-        <.dynamic_component
-          module={@ui_adapter}
-          function={:pagination_nav_button}
-          label={@prev_label}
-          event="prev_page"
-          myself={@myself}
-          disabled={@page <= 1 or @loading == :loading}
-        />
-
-        <%!-- Page numbers --%>
-        <.render_page_numbers
-          page={@page}
-          total_pages={@total_pages}
-          myself={@myself}
-          loading={@loading}
-          ui_adapter={@ui_adapter}
-        />
-
-        <%!-- Next button --%>
-        <.dynamic_component
-          module={@ui_adapter}
-          function={:pagination_nav_button}
-          label={@next_label}
-          event="next_page"
-          myself={@myself}
-          disabled={@page >= @total_pages or @loading == :loading}
-        />
-
-        <%!-- Last button --%>
-        <.dynamic_component
-          :if={@total_pages > 5 and @page < @total_pages - 1}
-          module={@ui_adapter}
-          function={:pagination_nav_button}
-          label={@last_label}
-          event="go_to_page"
-          page={@total_pages}
-          myself={@myself}
-          disabled={@loading == :loading}
-        />
-      </.dynamic_component>
-      <.render_page_size_selector
-        :if={@page_size_options != nil and @page_size_options != []}
-        static_id={@static_id}
-        page_size_options={@page_size_options}
-        current_page_size={@current_page_size}
-        myself={@myself}
-      />
-      """
-    end
+      <%!-- The third grid cell was left empty; the design ends the row with where you are, which is
+            the only part of the pager that says anything when every page button fits on screen. --%>
+      <span :if={@show_total} class="text-right text-[12px] font-semibold text-[#a8a5a0]">
+        {format_page_info(@page_info_format, @page, @total_pages, @total_count)}
+      </span>
+      <span :if={!@show_total}></span>
+    </div>
+    """
   end
 
   defp render_page_size_selector(assigns) do
@@ -1190,22 +1291,35 @@ defmodule MishkaGervaz.Table.Templates.Shared do
       id={@static_id <> "-page-size-selector-form"}
       phx-change="change_page_size"
       phx-target={@myself}
-      class="flex items-center gap-2 text-sm text-gray-600"
+      class="flex items-center gap-[9px]"
     >
-      <span>Show</span>
-      <select
-        name="size"
-        class="rounded border-gray-300 text-sm py-1 px-2"
-      >
-        <option
-          :for={opt <- @page_size_options}
-          value={opt}
-          selected={opt == @current_page_size}
+      <span class="text-[12px] font-semibold text-[#8a877f]">{dgettext("mishka_gervaz", "Show")}</span>
+      <div class="relative">
+        <select
+          name="size"
+          class="h-[36px] cursor-pointer appearance-none rounded-[9px] border border-[#ecebe6] bg-white pl-[12px] pr-[30px] text-[12.5px] font-semibold text-[#3a382f] outline-none"
         >
-          {opt}
-        </option>
-      </select>
-      <span>per page</span>
+          <option :for={opt <- @page_size_options} value={opt} selected={opt == @current_page_size}>
+            {opt}
+          </option>
+        </select>
+        <svg
+          class="pointer-events-none absolute right-[10px] top-1/2 -translate-y-1/2"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#a8a5a0"
+          stroke-width="2.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </div>
+      <span class="text-[12px] font-semibold text-[#8a877f]">
+        {dgettext("mishka_gervaz", "per page")}
+      </span>
     </form>
     """
   end
@@ -1385,8 +1499,11 @@ defmodule MishkaGervaz.Table.Templates.Shared do
 
   defp render_dropdown_item(%{item: %{type: :separator}} = assigns) do
     ~H"""
-    <div class="border-t border-gray-100 my-1">
-      <div :if={@item[:label]} class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase">
+    <div class="my-1 border-t border-[#f0efea] pt-1">
+      <div
+        :if={@item[:label]}
+        class="px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#a8a5a0]"
+      >
         {@item[:label]}
       </div>
     </div>
@@ -1445,6 +1562,19 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   def action_visible?(%{visible: :archived}, _record, _state), do: false
   def action_visible?(%{visible: false}, _record, _state), do: false
   def action_visible?(_, _record, _state), do: true
+
+  @doc """
+  The row actions a template should draw as buttons — everything except an `:accordion`.
+
+  An `:accordion` action is a declaration that the row expands, not a button: a template renders the
+  caret itself, wherever its design puts it. `MishkaGervaz.Table.Templates.Table` drops it from its
+  action strip for exactly this reason, and a custom template that draws its own expand toggle wants
+  the same, or the action shows up a second time as a stray square beside it.
+  """
+  @spec non_accordion_actions([map()]) :: [map()]
+  def non_accordion_actions(row_actions) do
+    Enum.reject(row_actions, &(&1[:type] == :accordion))
+  end
 
   defp action_authorized?(%{restricted: true}, _record, %{master_user?: master?}), do: master?
 

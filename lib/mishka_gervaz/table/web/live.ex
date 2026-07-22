@@ -128,7 +128,7 @@ defmodule MishkaGervaz.Table.Web.Live do
     state = socket.assigns.table_state
 
     if state do
-      state = State.update(state, expanded_data: AsyncResult.ok(state.expanded_data, html))
+      state = State.update(state, expanded_data: expanded_result(state.expanded_data, html))
       {:ok, socket |> assign(:table_state, state) |> reinsert_expanded_record(state)}
     else
       {:ok, socket}
@@ -139,7 +139,7 @@ defmodule MishkaGervaz.Table.Web.Live do
     state = socket.assigns.table_state
 
     if state do
-      state = State.update(state, expanded_data: AsyncResult.failed(state.expanded_data, reason))
+      state = State.update(state, expanded_data: expanded_failure(state.expanded_data, reason))
       {:ok, socket |> assign(:table_state, state) |> reinsert_expanded_record(state)}
     else
       {:ok, socket}
@@ -216,6 +216,8 @@ defmodule MishkaGervaz.Table.Web.Live do
       |> assign(:resource, resource)
       |> assign(:id, id)
       |> assign(:before_table, Map.get(assigns, :before_table))
+      |> assign(:rail, Map.get(assigns, :rail))
+      |> assign(:filter_actions, Map.get(assigns, :filter_actions))
       |> then(fn s ->
         if url_sync_pending?, do: assign(s, :url_sync_pending, false), else: s
       end)
@@ -267,6 +269,19 @@ defmodule MishkaGervaz.Table.Web.Live do
 
     {:ok, socket}
   end
+
+  # Collapsing a row nulls `expanded_data`, but a page that loads its panel asynchronously can still
+  # push HTML afterwards — a note saved from a modal, a PubSub event. `AsyncResult.ok/2` has no clause
+  # for a nil first argument, so that arrival would take the whole LiveView down.
+  @spec expanded_result(AsyncResult.t() | nil, term()) :: AsyncResult.t()
+  defp expanded_result(%AsyncResult{} = current, html), do: AsyncResult.ok(current, html)
+  defp expanded_result(_collapsed, html), do: AsyncResult.ok(html)
+
+  @spec expanded_failure(AsyncResult.t() | nil, term()) :: AsyncResult.t()
+  defp expanded_failure(%AsyncResult{} = current, reason), do: AsyncResult.failed(current, reason)
+
+  defp expanded_failure(_collapsed, reason),
+    do: AsyncResult.failed(AsyncResult.loading(), reason)
 
   @impl true
   def handle_event(event, params, socket) do
