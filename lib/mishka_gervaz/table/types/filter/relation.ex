@@ -109,6 +109,7 @@ defmodule MishkaGervaz.Table.Types.Filter.Relation do
     else
       Map.merge(base, %{
         value: value || "",
+        selected_options: filter[:selected_options] || [],
         min_chars: filter[:min_chars] || 2,
         debounce: get_ui(filter, :debounce, 300)
       })

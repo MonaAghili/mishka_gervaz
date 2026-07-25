@@ -202,7 +202,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   @doc """
   Single-select dropdown with search support for relation filters.
 
-  EXACT COPY of multi_select adapted for single selection.
+  `multi_select` adapted for single selection, ordering included: whatever is currently selected is
+  merged in from `:selected_options` and sorted to the TOP of the list. That matters most when the
+  value arrived from the URL rather than from a click — the page opens already filtered, and without
+  the merge the dropdown would render a page of unrelated records with the active one nowhere in it.
   """
   @impl true
   def search_select(assigns) do
@@ -213,17 +216,19 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     display_options =
       if current_value != "" do
-        all_opts = options ++ selected_options
-        Enum.uniq_by(all_opts, fn {_, v} -> to_string(v) end)
+        (selected_options ++ options)
+        |> Enum.uniq_by(fn {_, v} -> to_string(v) end)
+        |> Enum.split_with(fn {_, v} -> to_string(v) == to_string(current_value) end)
+        |> then(fn {selected, rest} -> selected ++ rest end)
       else
         options
       end
 
     display_label =
-      if disabled and current_value != "" do
-        all_opts = options ++ selected_options
-
-        case Enum.find(all_opts, fn {_l, v} -> to_string(v) == to_string(current_value) end) do
+      if current_value != "" do
+        (selected_options ++ options)
+        |> Enum.find(fn {_l, v} -> to_string(v) == to_string(current_value) end)
+        |> case do
           {label, _} -> label
           nil -> current_value
         end
@@ -271,7 +276,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         <input
           type="text"
           name={"_search_#{@filter_name}"}
-          value={if(@disabled, do: @display_label || "", else: @search_term || "")}
+          value={if(@search_term not in [nil, ""], do: @search_term, else: @display_label || "")}
           placeholder={@placeholder}
           class={[
             @class,
@@ -350,8 +355,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     display_options =
       if current_value != "" do
-        all_opts = options ++ selected_options
-        Enum.uniq_by(all_opts, fn {_, v} -> to_string(v) end)
+        (selected_options ++ options)
+        |> Enum.uniq_by(fn {_, v} -> to_string(v) end)
+        |> Enum.split_with(fn {_, v} -> to_string(v) == to_string(current_value) end)
+        |> then(fn {selected, rest} -> selected ++ rest end)
       else
         options
       end
