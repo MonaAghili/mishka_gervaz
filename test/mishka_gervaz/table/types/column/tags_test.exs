@@ -56,8 +56,9 @@ defmodule MishkaGervaz.Types.Column.TagsTest do
     test "+N is a toggle: it carries a collapse handle and toggle_class JS, not a one-way reveal" do
       html = render(%{dependencies: ["a", "b", "c", "d"]})
 
-      # the chip swaps +N ⇄ − (the − collapse handle is rendered, hidden until expanded)
-      assert html =~ "−"
+      # the chip swaps +N ⇄ "- less" (the collapse handle is rendered, hidden until expanded)
+      assert html =~ "- less"
+      assert html =~ ~s(id="gz-tags-dependencies-77541892-less")
       # the click toggles classes (so a second click collapses), not a one-way add/remove
       assert html =~ "toggle_class"
     end

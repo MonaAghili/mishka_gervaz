@@ -25,7 +25,7 @@ defmodule MishkaGervaz.Table.Dsl.Layout do
 
             footer do
               content "Sorted by priority."
-              class "mt-2 text-xs text-gray-400"
+              class "mt-2 text-[11px] font-medium text-[#a8a5a0]"
             end
 
             notice :archived_warning do

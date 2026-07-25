@@ -1,16 +1,15 @@
 defmodule MishkaGervaz.Table.Templates.InfiniteScrollTest do
   @moduledoc """
-  Tests that the `:infinite` pagination type wires `phx-viewport-bottom`
-  on the streamed `<tbody>` so that scrolling triggers `load_more`,
-  per the Phoenix.LiveView bindings docs.
+  Tests that the `:infinite` pagination type wires `phx-viewport-bottom` so that scrolling triggers
+  `load_more`, per the Phoenix.LiveView bindings docs.
 
   Reference:
   https://hexdocs.pm/phoenix_live_view/bindings.html#scroll-events-and-infinite-pagination
 
-  The binding goes on the `phx-update="stream"` parent. A tall `pb-[calc(200vh)]`
-  padding is required so the page is scrollable — the `Phoenix.InfiniteScroll`
-  hook only fires when `scrolled > 0`, so without scroll room the event never
-  triggers.
+  The binding sits on a sentinel element below the records rather than on the `phx-update="stream"`
+  parent itself: the card-grid redesign made the table's scroller conditional on there being records,
+  and a sentinel still fires when the list is short enough that the stream parent never leaves the
+  viewport.
   """
   use ExUnit.Case, async: true
 
@@ -34,7 +33,7 @@ defmodule MishkaGervaz.Table.Templates.InfiniteScrollTest do
       state: state,
       stream: [],
       streams: %{stream_name => []},
-      empty?: true,
+      empty?: false,
       myself: nil,
       __changed__: %{}
     }

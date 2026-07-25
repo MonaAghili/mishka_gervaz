@@ -1259,7 +1259,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   Render a list of tags/chips with a `+N` inline expand/collapse toggle.
 
   Shows `:shown` chips, then a `+N` chip for the `:rest`. Clicking `+N` reveals the rest inline (the
-  `+N` swaps to a `−` collapse handle); clicking `−` again — or anywhere outside — collapses. The
+  `+N` swaps to a `- less` collapse handle); clicking it again — or anywhere outside — collapses. The
   toggle is a pure `Phoenix.LiveView.JS` class swap (no `:focus`, no absolute panel), so it works on
   click in every browser and is never clipped by the table's `overflow-x-auto` wrapper.
 
@@ -1317,7 +1317,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
-  # `+N` ⇄ `−`: toggle the hidden rest chips and swap the chip's own label. Click-away resets to the
+  # `+N` ⇄ `- less`: toggle the hidden rest chips and swap the chip's own label. Click-away resets to the
   # collapsed state regardless of where the toggle currently sits.
   defp tags_toggle(id) do
     JS.toggle_class("hidden", to: "##{id}-rest")
