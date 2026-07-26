@@ -208,7 +208,9 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
   @callback render(assigns()) :: rendered()
 
   @doc """
-  Render the header section (for tables: thead, for grids: toolbar, etc.)
+  Render the header section (for tables: thead, for grids: toolbar, etc.).
+
+  Optional - defaults to nothing, which is what a template whose page names itself wants.
   """
   @callback render_header(assigns()) :: rendered()
 
@@ -224,22 +226,22 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
   @callback render_item(assigns()) :: rendered()
 
   @doc """
-  Render the empty state when no records exist.
+  Render the empty state when no records exist. Optional - has default implementation.
   """
   @callback render_empty(assigns()) :: rendered()
 
   @doc """
-  Render the loading state.
+  Render the loading state. Optional - has default implementation.
   """
   @callback render_loading(assigns()) :: rendered()
 
   @doc """
-  Render the error state.
+  Render the error state. Optional - has default implementation.
   """
   @callback render_error(assigns()) :: rendered()
 
   @doc """
-  Render pagination controls.
+  Render pagination controls. Optional - has default implementation.
   """
   @callback render_pagination(assigns()) :: rendered()
 
@@ -262,7 +264,11 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
     render_filters: 1,
     render_bulk_actions: 1,
     render_template_switcher: 1,
-    render_loading: 1
+    render_loading: 1,
+    render_header: 1,
+    render_empty: 1,
+    render_error: 1,
+    render_pagination: 1
   ]
 
   @doc """
@@ -273,6 +279,11 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
 
         # Now you only need to implement required callbacks
       end
+
+  The defaults render the shared furniture from `MishkaGervaz.Table.Templates.Shared`, reading what
+  varies out of the resource's own `config` — `empty_state` and `error_state` are DSL entries, so a
+  template that only wants a different message or icon says so there rather than by overriding.
+  Override a callback when the *markup* differs, not the wording.
   """
   defmacro __using__(_opts) do
     quote do
@@ -291,10 +302,33 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
 
       def render_loading(assigns), do: MishkaGervaz.Table.Templates.Shared.render_loading(assigns)
 
+      def render_pagination(assigns),
+        do: MishkaGervaz.Table.Templates.Shared.render_pagination(assigns)
+
+      def render_header(assigns), do: MishkaGervaz.Table.Templates.Shared.render_header(assigns)
+
+      def render_empty(assigns) do
+        assigns =
+          assign(assigns, :empty_state, Map.get(assigns.static.config, :empty_state, %{}))
+
+        MishkaGervaz.Table.Templates.Shared.render_empty_state(assigns)
+      end
+
+      def render_error(assigns) do
+        assigns =
+          assign(assigns, :error_state, Map.get(assigns.static.config, :error_state, %{}))
+
+        MishkaGervaz.Table.Templates.Shared.render_error_state(assigns)
+      end
+
       defoverridable render_filters: 1,
                      render_bulk_actions: 1,
                      render_template_switcher: 1,
-                     render_loading: 1
+                     render_loading: 1,
+                     render_pagination: 1,
+                     render_header: 1,
+                     render_empty: 1,
+                     render_error: 1
     end
   end
 

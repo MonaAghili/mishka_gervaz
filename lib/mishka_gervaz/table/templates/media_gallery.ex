@@ -53,8 +53,14 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
   @impl true
   def label, do: "Gallery"
 
+  @doc """
+  The switcher draws this glyph for the gallery view.
+
+  A grid of squares rather than a photo, matching every other card view in the admin so the
+  Table/Cards switch reads the same wherever it appears. Only the switcher asks for this.
+  """
   @impl true
-  def icon, do: "hero-photo"
+  def icon, do: "hero-squares-2x2"
 
   @impl true
   def description, do: "Image and media gallery with thumbnails"
@@ -604,31 +610,6 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       />
     </form>
     """
-  end
-
-  @impl true
-  def render_bulk_actions(assigns) do
-    Shared.render_bulk_actions(assigns)
-  end
-
-  @impl true
-  def render_error(assigns) do
-    error_state = Map.get(assigns.static.config, :error_state, %{})
-    assigns = assign(assigns, :error_state, error_state)
-    Shared.render_error_state(assigns)
-  end
-
-  @impl true
-  def render_pagination(assigns) do
-    pagination_type = get_in(assigns.static.config, [:pagination, :type]) || :numbered
-
-    assigns =
-      assigns
-      |> assign(:pagination_type, pagination_type)
-      |> assign(:loading_text, assigns.static.pagination_ui.loading_text)
-      |> assign(:load_more_label, assigns.static.pagination_ui.load_more_label)
-
-    Shared.render_pagination(assigns)
   end
 
   defp render_initial_loading(assigns) do

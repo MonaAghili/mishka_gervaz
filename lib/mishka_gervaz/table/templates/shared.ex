@@ -1058,6 +1058,72 @@ defmodule MishkaGervaz.Table.Templates.Shared do
 
   def has_visible_bulk_actions?(_, _), do: false
 
+  @doc """
+  Whether this record's tick is on, under either selection mode.
+
+  Selection is stored one of two ways depending on the mode: normally `selected_ids` lists what is
+  ticked, but once "select all" is on it is `excluded_ids` that lists what has been *un*ticked — so
+  the same tick reads from a different set and with the opposite sense. Templates should not carry
+  that inversion themselves; the write side already lives in
+  `MishkaGervaz.Table.Web.Events.SelectionHandler`, and this is its read mirror.
+  """
+  @spec record_checked?(map(), term()) :: boolean()
+  def record_checked?(%{select_all?: true, excluded_ids: excluded}, record_id),
+    do: !MapSet.member?(excluded, record_id)
+
+  def record_checked?(%{selected_ids: selected}, record_id),
+    do: MapSet.member?(selected, record_id)
+
+  @doc """
+  The extra classes the resource asks this record's row to wear, if any.
+
+  `row do class do apply … end end` is where a resource says which records look different. The path
+  into the config is gervaz's own, so gervaz reads it rather than each template hand-walking it.
+  Callers compose the result — selection state usually has to win over it.
+  """
+  @spec custom_row_class(map(), map()) :: list() | String.t() | nil
+  def custom_row_class(%{config: config}, record) do
+    case get_in(config, [:row, :class, :apply]) do
+      apply_fn when is_function(apply_fn, 1) -> apply_fn.(record)
+      _absent -> nil
+    end
+  end
+
+  def custom_row_class(_static, _record), do: nil
+
+  @doc """
+  The five "is this part on?" flags a card template's `render/1` opens with.
+
+  Each is a feature flag crossed with whether there is anything to show — `:paginate` alone does not
+  mean a pager, it means a pager *if* the count is known and non-zero. Card templates all want the
+  same five answers, so they ask once here instead of restating the conditions.
+
+  Assigns `show_checkboxes`, `show_filters`, `show_pagination`, `show_bulk_actions` and
+  `show_switcher`. `MishkaGervaz.Table.Templates.Table` deliberately does not use this — its filter
+  row also appears for the archive switch, so its `show_filters` is a different question.
+  """
+  @spec assign_card_flags(map()) :: map()
+  def assign_card_flags(%{static: static, state: state} = assigns) do
+    features = static.features
+
+    show_checkboxes =
+      :select in features and static.bulk_actions != [] and
+        has_visible_bulk_actions?(static.bulk_actions, state.archive_status)
+
+    assigns
+    |> assign(:show_checkboxes, show_checkboxes)
+    |> assign(:show_filters, static.filters != [] and :filter in features)
+    |> assign(
+      :show_pagination,
+      :paginate in features and is_integer(state.total_count) and state.total_count > 0
+    )
+    |> assign(:show_bulk_actions, :bulk_actions in features and show_checkboxes)
+    |> assign(
+      :show_switcher,
+      static.switchable_templates != nil and static.switchable_templates != []
+    )
+  end
+
   defp bulk_action_visible_for_status?(%{visible: :active}, :active), do: true
   defp bulk_action_visible_for_status?(%{visible: :active}, _status), do: false
   defp bulk_action_visible_for_status?(%{visible: :archived}, :archived), do: true
@@ -1106,6 +1172,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
 
     assigns =
       assigns
+      |> assign_new(:pagination_type, fn -> pagination_type(static) end)
       |> assign(:static_id, static.id)
       |> assign(:page, state.page)
       |> assign(:has_more?, state.has_more?)
@@ -1679,6 +1746,24 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     />
     """
   end
+
+  @doc """
+  Which pager a resource asked for — numbered pages, a Load-more button, or infinite scroll.
+
+  `render_pagination/1` reads this itself when the caller has not already assigned it, so a template
+  only passes `pagination_type` when it wants to override what the resource declared.
+  """
+  @spec pagination_type(map()) :: atom()
+  def pagination_type(static), do: get_in(static.config, [:pagination, :type]) || :numbered
+
+  @doc """
+  No header at all — the default for a template whose page already names itself.
+
+  A table puts its column headings here and a gallery its toolbar, but a card list has neither: the
+  page heading and the filter row under it are the only furniture above the records.
+  """
+  @spec render_header(map()) :: Phoenix.LiveView.Rendered.t()
+  def render_header(assigns), do: ~H""
 
   @doc """
   Renders the loading state with spinner and configurable text.

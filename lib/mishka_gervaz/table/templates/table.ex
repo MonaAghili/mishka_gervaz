@@ -823,13 +823,6 @@ defmodule MishkaGervaz.Table.Templates.Table do
   defp expanded_content(content), do: Phoenix.HTML.raw(content)
 
   @impl true
-  def render_empty(assigns) do
-    empty_state = Map.get(assigns.static.config, :empty_state, %{})
-    assigns = assign(assigns, :empty_state, empty_state)
-    Shared.render_empty_state(assigns)
-  end
-
-  @impl true
   def render_loading(assigns) do
     loading_text =
       (assigns[:static] && assigns.static.pagination_ui.loading_text) ||
@@ -886,29 +879,6 @@ defmodule MishkaGervaz.Table.Templates.Table do
   @impl true
   def render_filters(assigns) do
     Shared.render_filters(assigns)
-  end
-
-  @impl true
-  def render_bulk_actions(assigns) do
-    Shared.render_bulk_actions(assigns)
-  end
-
-  @impl true
-  def render_error(assigns) do
-    error_state = Map.get(assigns.static.config, :error_state, %{})
-    assigns = assign(assigns, :error_state, error_state)
-    Shared.render_error_state(assigns)
-  end
-
-  @impl true
-  def render_pagination(assigns) do
-    assigns =
-      assigns
-      |> assign(:pagination_type, pagination_type(assigns.static))
-      |> assign(:loading_text, assigns.static.pagination_ui.loading_text)
-      |> assign(:load_more_label, assigns.static.pagination_ui.load_more_label)
-
-    Shared.render_pagination(assigns)
   end
 
   defp sort_indicator(assigns) do
