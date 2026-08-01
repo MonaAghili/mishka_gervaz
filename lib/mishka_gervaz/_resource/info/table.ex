@@ -109,7 +109,7 @@ defmodule MishkaGervaz.Resource.Info.Table do
     |> ensure_section(:realtime)
     |> merge_pagination(pagination_defaults)
     |> update_in([:realtime, :pubsub], &(&1 || realtime_defaults[:pubsub]))
-    |> update_in([:realtime, :enabled], &(&1 || realtime_defaults[:enabled]))
+    |> update_in([:realtime, :enabled], &default_when_nil(&1, realtime_defaults[:enabled]))
     |> update_in([:source, :actor_key], &(&1 || domain_defaults[:actor_key]))
     |> update_in([:source, :master_check], &(&1 || domain_defaults[:master_check]))
     |> merge_optional_section(:refresh, refresh_defaults)
@@ -145,6 +145,12 @@ defmodule MishkaGervaz.Resource.Info.Table do
       config
     end
   end
+
+  # `false` is an answer, not an absence: a resource that turns realtime off must outrank a domain
+  # that turns it on, which `||` cannot express.
+  @spec default_when_nil(term(), term()) :: term()
+  defp default_when_nil(nil, default), do: default
+  defp default_when_nil(value, _default), do: value
 
   @spec merge_optional_section(map(), atom(), map()) :: map()
   defp merge_optional_section(config, _key, defaults) when map_size(defaults) == 0, do: config

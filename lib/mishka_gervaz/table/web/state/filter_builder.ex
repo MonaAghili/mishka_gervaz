@@ -88,12 +88,14 @@ defmodule MishkaGervaz.Table.Web.State.FilterBuilder do
       """
       @spec build(map(), module(), map() | nil) :: list(map())
       def build(config, resource, current_user) when is_map(config) do
-        filters_config = Map.get(config, :filters, %{})
         attributes = get_resource_attributes(resource)
         calculations = get_resource_calculations(resource)
         relationships = get_resource_relationships(resource)
 
-        Enum.map(Map.get(filters_config, :list, []), fn filter ->
+        config
+        |> get_in([:filters, :list])
+        |> List.wrap()
+        |> Enum.map(fn filter ->
           filter
           |> maybe_resolve_type()
           |> maybe_resolve_options()

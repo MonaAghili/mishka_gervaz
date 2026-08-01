@@ -169,14 +169,13 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     if visible_fields == [] do
       ~H""
     else
-      group_ui = Map.get(group, :ui) || %{}
-      group_class = Map.get(group_ui, :class)
+      group_class = get_in(group, [:ui, :class])
 
       assigns =
         assigns
         |> assign(:group_label, Map.get(group, :resolved_label))
         |> assign(:group_fields, group_fields)
-        |> assign(:group_columns, Map.get(group_ui, :columns))
+        |> assign(:group_columns, get_in(group, [:ui, :columns]))
         |> assign(:ui, assigns.static.ui_adapter)
         |> assign(:collapsible, Map.get(group, :collapsible, false))
         |> assign(:has_group_class, not is_nil(group_class))

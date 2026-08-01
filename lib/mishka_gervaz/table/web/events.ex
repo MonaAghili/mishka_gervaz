@@ -1064,6 +1064,31 @@ defmodule MishkaGervaz.Table.Web.Events do
   end
 
   @doc false
+  # A deleted row leaves the stream but the header keeps counting it: "3 items" over two rows, until
+  # something else triggers a read. The count is part of what the table just changed, so it is
+  # changed here rather than left for the next query to correct.
+  #
+  # `nil` means counting is switched off for this read (`show_total` is opt-in, because a count is a
+  # second query) — there is no number to decrement, and inventing one would be worse than none.
+  @spec drop_from_total(State.t()) :: State.t()
+  defp drop_from_total(%{total_count: nil} = state), do: state
+
+  defp drop_from_total(%{total_count: total} = state) when is_integer(total) and total > 0 do
+    total = total - 1
+    page_size = state.current_page_size || state.static.page_size
+
+    %{state | total_count: total}
+    |> maybe_put_total_pages(total, page_size)
+  end
+
+  defp drop_from_total(state), do: state
+
+  defp maybe_put_total_pages(%{total_pages: _pages} = state, total, page_size)
+       when is_integer(page_size) and page_size > 0,
+       do: %{state | total_pages: max(1, ceil(total / page_size))}
+
+  defp maybe_put_total_pages(state, _total, _page_size), do: state
+
   @spec do_delete(State.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def do_delete(state, record, socket) do
@@ -1088,7 +1113,11 @@ defmodule MishkaGervaz.Table.Web.Events do
           |> Phoenix.LiveView.stream_delete(state.static.stream_name, deleted)
           |> hide_row(state, record.id)
 
-        socket = MishkaGervaz.Table.Web.AutoState.after_row_action(socket, state, :delete)
+        socket =
+          socket
+          |> Phoenix.Component.assign(:table_state, drop_from_total(state))
+          |> MishkaGervaz.Table.Web.AutoState.after_row_action(state, :delete)
+
         {:noreply, socket}
 
       {:error, reason} ->

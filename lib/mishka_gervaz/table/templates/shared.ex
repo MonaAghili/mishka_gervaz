@@ -1686,7 +1686,6 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   @spec render_empty_state(map()) :: Phoenix.LiveView.Rendered.t()
   def render_empty_state(assigns) do
     empty_state = assigns[:empty_state] || %{}
-    action = Map.get(empty_state, :action) || %{}
     ui_adapter = assigns[:ui_adapter] || MishkaGervaz.UIAdapters.Tailwind
 
     assigns =
@@ -1696,9 +1695,9 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         Map.get(empty_state, :message, dgettext("mishka_gervaz", "No records found"))
       )
       |> assign(:icon, Map.get(empty_state, :icon, "hero-inbox"))
-      |> assign(:action_label, Map.get(action, :label))
-      |> assign(:action_path, Map.get(action, :path))
-      |> assign(:action_icon, Map.get(action, :icon))
+      |> assign(:action_label, get_in(empty_state, [:action, :label]))
+      |> assign(:action_path, get_in(empty_state, [:action, :path]))
+      |> assign(:action_icon, get_in(empty_state, [:action, :icon]))
       |> assign(:ui_adapter, ui_adapter)
 
     ~H"""

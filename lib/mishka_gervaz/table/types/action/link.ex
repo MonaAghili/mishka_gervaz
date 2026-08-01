@@ -115,7 +115,7 @@ defmodule MishkaGervaz.Table.Types.Action.Link do
         assigns[:path_params]
 
       is_map(assigns[:state]) and is_map(Map.get(assigns[:state], :path_params)) ->
-        Map.get(assigns[:state], :path_params) || %{}
+        Map.get(assigns[:state], :path_params)
 
       true ->
         %{}

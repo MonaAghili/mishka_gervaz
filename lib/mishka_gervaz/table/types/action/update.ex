@@ -19,7 +19,13 @@ defmodule MishkaGervaz.Table.Types.Action.Update do
   use Phoenix.Component
 
   import MishkaGervaz.Helpers,
-    only: [humanize: 1, dynamic_component: 1, maybe_assign: 3, resolve_label: 1]
+    only: [
+      humanize: 1,
+      dynamic_component: 1,
+      maybe_assign: 3,
+      resolve_label: 1,
+      resolve_confirm: 2
+    ]
 
   @impl true
   def render(_assigns, action, record, ui, target) do
@@ -34,7 +40,7 @@ defmodule MishkaGervaz.Table.Types.Action.Update do
       |> assign(:record_id, record.id)
       |> assign(:event, event)
       |> assign(:target, target)
-      |> assign(:confirm, action[:confirm])
+      |> assign(:confirm, resolve_confirm(action[:confirm], record))
       |> maybe_assign(:icon, action[:ui][:icon])
       |> maybe_assign(:class, action[:ui][:class])
 

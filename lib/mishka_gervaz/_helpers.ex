@@ -82,6 +82,30 @@ defmodule MishkaGervaz.Helpers do
   def resolve_label(nil), do: nil
 
   @doc """
+  Resolves an action's `confirm` — the sibling of `resolve_label/1` for a message that needs the
+  record.
+
+  `confirm` is declared as `String.t() | (map() -> String.t()) | nil`, and the function form exists so
+  a prompt can name what it is about to act on ("Delete the draft “Autosave”?"). Only the string half
+  was ever honoured: a function reached `data-confirm` untouched, where `Phoenix.HTML.Safe` raises
+  because it has no implementation for a function.
+
+  ## Examples
+
+      iex> MishkaGervaz.Helpers.resolve_confirm("Sure?", %{id: 1})
+      "Sure?"
+
+      iex> MishkaGervaz.Helpers.resolve_confirm(fn r -> "Delete \#{r.name}?" end, %{name: "Cat"})
+      "Delete Cat?"
+
+      iex> MishkaGervaz.Helpers.resolve_confirm(nil, %{id: 1})
+      nil
+  """
+  @spec resolve_confirm(String.t() | (map() -> String.t()) | nil, map()) :: String.t() | nil
+  def resolve_confirm(confirm, record) when is_function(confirm, 1), do: confirm.(record)
+  def resolve_confirm(confirm, _record), do: confirm
+
+  @doc """
   Resolves a display value from a record using either an atom field or a function.
 
   Supports:
