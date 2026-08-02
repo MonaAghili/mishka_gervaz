@@ -137,7 +137,8 @@ defmodule MishkaGervaz.Table.Web.State do
       :max_page_size,
       :header,
       :footer,
-      :notices
+      :notices,
+      :keep_loaded_records
     ]
 
     @type t :: %__MODULE__{
@@ -164,6 +165,7 @@ defmodule MishkaGervaz.Table.Web.State do
             sort_field_map: %{atom() => [atom()]},
             hooks: map(),
             url_sync_config: map() | nil,
+            keep_loaded_records: boolean(),
             page_size: pos_integer() | nil,
             page_size_options: [pos_integer()] | nil,
             max_page_size: pos_integer() | nil,
@@ -203,7 +205,8 @@ defmodule MishkaGervaz.Table.Web.State do
     :saved_active_state,
     :saved_archived_state,
     :current_page_size,
-    :dismissed_notices
+    :dismissed_notices,
+    :loaded_records
   ]
 
   @type loading_status :: :initial | :loading | :loaded | :error
@@ -240,7 +243,8 @@ defmodule MishkaGervaz.Table.Web.State do
           saved_active_state: map() | nil,
           saved_archived_state: map() | nil,
           current_page_size: pos_integer() | nil,
-          dismissed_notices: MapSet.t()
+          dismissed_notices: MapSet.t(),
+          loaded_records: list()
         }
 
   @spec init(String.t(), module(), map() | nil) :: t()
@@ -406,7 +410,8 @@ defmodule MishkaGervaz.Table.Web.State do
           max_page_size: StateHelpers.get_max_page_size(config),
           header: StateHelpers.get_layout_header(config),
           footer: StateHelpers.get_layout_footer(config),
-          notices: StateHelpers.get_layout_notices(config)
+          notices: StateHelpers.get_layout_notices(config),
+          keep_loaded_records: get_in(config, [:presentation, :keep_loaded_records]) == true
         }
 
         %State{
@@ -439,7 +444,8 @@ defmodule MishkaGervaz.Table.Web.State do
           saved_active_state: nil,
           saved_archived_state: nil,
           current_page_size: nil,
-          dismissed_notices: MapSet.new()
+          dismissed_notices: MapSet.new(),
+          loaded_records: []
         }
       end
 

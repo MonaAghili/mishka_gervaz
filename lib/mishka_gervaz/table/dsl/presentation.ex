@@ -102,6 +102,25 @@ defmodule MishkaGervaz.Table.Dsl.Presentation do
       - MediaGallery: [:thumbnail_size, :aspect_ratio, :columns]
       """
     ],
+    keep_loaded_records: [
+      type: :boolean,
+      default: false,
+      doc: """
+      Keep every record loaded so far in `state.loaded_records`, for templates that cannot render
+      from the stream.
+
+      A LiveView stream is one flat container that appends, which is exactly right for a list of
+      rows and wrong for a list the template GROUPS — section headings, date buckets, category
+      bands. Such a template cannot use `@streams`, so with `:load_more` or `:infinite` it would
+      only ever see the newest page in `records_result` and every earlier page would vanish.
+
+      With this on, each page is appended to `state.loaded_records` (and a reset replaces it), so
+      the template renders the full loaded set and load-more works as it does for every other table.
+
+      Off by default: it holds the loaded rows in the LiveView's memory, which is the cost streams
+      exist to avoid. Turn it on only for a grouped template, and prefer `@streams` otherwise.
+      """
+    ],
     features: [
       type:
         {:or,

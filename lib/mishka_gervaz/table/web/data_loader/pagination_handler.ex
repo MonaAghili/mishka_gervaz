@@ -68,7 +68,8 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
         else
           pagination_type = get_pagination_type(state)
           count? = count_requested?(state, pagination_type)
-          page_opts = build_page_opts(page, page_size, pagination_type, count?)
+          keep? = state.static.keep_loaded_records == true
+          page_opts = build_page_opts(page, page_size, pagination_type, count?, keep?)
 
           page_result =
             query
@@ -77,7 +78,7 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
 
           pagination_info = build_pagination_info(pagination_type, page_result, page_size, count?)
 
-          {page, page_result, reset_stream?(pagination_type, page), pagination_info}
+          {page, page_result, keep? or reset_stream?(pagination_type, page), pagination_info}
         end
       end
 
@@ -122,8 +123,26 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandler do
         do: build_page_opts(page, page_size, pagination_type, pagination_type == :numbered)
 
       @spec build_page_opts(integer(), integer(), atom(), boolean()) :: keyword()
-      def build_page_opts(page, page_size, _pagination_type, count?) do
-        opts = [offset: (page - 1) * page_size, limit: page_size]
+      def build_page_opts(page, page_size, pagination_type, count?),
+        do: build_page_opts(page, page_size, pagination_type, count?, false)
+
+      @doc """
+      Page options for one read.
+
+      Normally page N is the Nth slice — `offset: (N-1) * size`. For a table that declared
+      `keep_loaded_records true` it is the FIRST N slices instead, read in one query from offset 0.
+
+      Those tables render the whole loaded list from state rather than appending to a stream, so a
+      reload has to return everything the reader had. Reading only the newest slice would either
+      shrink the list to 30 rows or, if the reload appended, duplicate what was already there — the
+      first is what happened when editing a design token collapsed a 92-row list back to 30.
+      """
+      @spec build_page_opts(integer(), integer(), atom(), boolean(), boolean()) :: keyword()
+      def build_page_opts(page, page_size, _pagination_type, count?, keep_loaded_records?) do
+        opts =
+          if keep_loaded_records?,
+            do: [offset: 0, limit: page * page_size],
+            else: [offset: (page - 1) * page_size, limit: page_size]
 
         if count?, do: Keyword.put(opts, :count, true), else: opts
       end

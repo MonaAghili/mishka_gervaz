@@ -910,6 +910,36 @@ defmodule MishkaGervaz.Table.UrlSyncTest do
       assert UrlSync.matches_state?(url_state, state) == false
     end
 
+    test "ignores a key the caller did not specify" do
+      # A host LiveView that tracks only `path_params` hands over only `path_params`. Treating the
+      # absent keys as mismatches would report the table stale on every parent re-render, reload it,
+      # and reset the filters and depth the reader had built — forever.
+      url_state = %{path_params: %{site_id: "abc"}}
+
+      state = %{
+        filter_values: %{status: "active"},
+        sort_fields: [{:name, :asc}],
+        page: 4,
+        current_page_size: 60,
+        path_params: %{site_id: "abc"}
+      }
+
+      assert UrlSync.matches_state?(url_state, state) == true
+      assert UrlSync.matches_state?(%{path_params: %{site_id: "other"}}, state) == false
+    end
+
+    test "a nil value is unspecified, but an empty map is a real instruction to clear" do
+      state = %{
+        filter_values: %{status: "active"},
+        sort_fields: [],
+        page: 1,
+        current_page_size: nil
+      }
+
+      assert UrlSync.matches_state?(%{filters: nil, sort: [], page: 1}, state) == true
+      assert UrlSync.matches_state?(%{filters: %{}, sort: [], page: 1}, state) == false
+    end
+
     test "returns false when filters don't match" do
       url_state = %{
         filters: %{status: "active"},

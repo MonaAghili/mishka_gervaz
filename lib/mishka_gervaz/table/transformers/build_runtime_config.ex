@@ -667,6 +667,7 @@ defmodule MishkaGervaz.Table.Transformers.BuildRuntimeConfig do
       template: get_opt(dsl_state, path, :template, MishkaGervaz.Table.Templates.Table),
       switchable_templates: get_opt(dsl_state, path, :switchable_templates, []),
       template_options: get_opt(dsl_state, path, :template_options, []),
+      keep_loaded_records: get_opt(dsl_state, path, :keep_loaded_records, false),
       features: get_opt(dsl_state, path, :features),
       ui_adapter: ui_adapter,
       ui_adapter_opts: ui_adapter_opts,
