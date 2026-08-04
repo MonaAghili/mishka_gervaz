@@ -842,6 +842,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     * `:filled` - how many bars are lit
     * `:max`    - total number of bars
     * `:color`  - hex string (e.g. `"#1f9d6b"`) for the lit bars and the number
+
+  The colour rides an inline `style`, not a Tailwind class. It comes from the column's `:scale`
+  option — a page author's own hex values, chosen per row from the cell's value — so there is no
+  literal for Tailwind's build-time scanner to find. Written as `bg-[\#{@color}]` it produced no rule
+  at all: the lit bars drew with no background and the number with no colour, on every table using
+  this column type. An inline style is what a genuinely runtime value is for.
   """
   @impl true
   def cell_bars(assigns) do
@@ -852,14 +858,11 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <span class="flex h-[14px] items-end gap-[2px]">
         <span
           :for={{i, hclass} <- @bars}
-          class={[
-            "w-[3px] rounded-[1px]",
-            hclass,
-            (i <= @filled && "bg-[#{@color}]") || "bg-[#e0ded7]"
-          ]}
+          class={["w-[3px] rounded-[1px]", hclass, i > @filled && "bg-[#e0ded7]"]}
+          style={i <= @filled && "background:#{@color}"}
         ></span>
       </span>
-      <span class={["font-['Space_Grotesk'] text-[12px] font-bold", "text-[#{@color}]"]}>
+      <span class="font-['Space_Grotesk'] text-[12px] font-bold" style={"color:#{@color}"}>
         {@value}
       </span>
     </div>
@@ -3113,24 +3116,25 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
+  # THE NAME IS PASSED THROUGH WHOLE, never taken apart and rebuilt. A heroicon is a class with a CSS
+  # mask and no glyph in the markup, and the mask rule is emitted by the heroicons Tailwind plugin
+  # only for icon classes it finds while scanning source. This stripped the `hero-` prefix and
+  # re-attached it as `"hero-\#{@name}"`, which is a string with a hole in it — so any icon whose name
+  # reaches here from a column config rather than a literal at the call site got no rule and rendered
+  # as blank space the size of the icon.
+  #
+  # Handing `@name` through untouched means the literal at the call site (`icon: "hero-users"`) is
+  # what the scanner sees, which is the only place it can see one.
   defp render_icon(assigns) do
     name = assigns[:name] || ""
-    class = assigns[:class] || "w-5 h-5"
 
-    if String.starts_with?(name, "hero-") do
-      icon_name = String.replace_prefix(name, "hero-", "")
+    assigns = %{
+      icon: String.starts_with?(name, "hero-") && name,
+      class: assigns[:class] || "w-5 h-5"
+    }
 
-      assigns = %{name: icon_name, class: class}
-
-      ~H"""
-      <span class={["hero-#{@name}", @class]}></span>
-      """
-    else
-      assigns = %{class: class}
-
-      ~H"""
-      <span class={@class}></span>
-      """
-    end
+    ~H"""
+    <span class={[@icon, @class]}></span>
+    """
   end
 end

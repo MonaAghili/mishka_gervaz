@@ -656,19 +656,28 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
   defp gallery_classes(static) do
     options = static.template_options || default_options()
 
-    floor =
-      case Keyword.get(options, :columns, 4) do
-        n when n <= 3 -> "220px"
-        4 -> "190px"
-        _more -> "150px"
-      end
-
     [
-      "grid items-start gap-4 grid-cols-[repeat(auto-fill,minmax(min(100%,#{floor}),1fr))]",
+      "grid items-start gap-4",
+      track_class(Keyword.get(options, :columns, 4)),
       Keyword.get(options, :class)
     ]
     |> Enum.filter(& &1)
   end
+
+  # WHOLE CLASS NAMES, one clause per floor, because Tailwind's scanner reads SOURCE TEXT. Written
+  # with the floor interpolated in, the scanner took the surrounding text literally and emitted a
+  # rule for a selector containing `#{floor` — so the gallery got dead CSS and no working track, and
+  # every card stretched across the full row instead of tiling.
+  #
+  # It looked right only while the admin was styled by the in-browser Tailwind JIT, which reads
+  # classes off the rendered DOM and never cared how they were assembled. The admin is served a
+  # compiled `admin.css` now (`mix admin_css`); a class that exists only after interpolation has
+  # nothing to find.
+  defp track_class(columns) when columns <= 3,
+    do: "grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))]"
+
+  defp track_class(4), do: "grid-cols-[repeat(auto-fill,minmax(min(100%,190px),1fr))]"
+  defp track_class(_more), do: "grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))]"
 
   defp get_custom_card_class(static, record) do
     case get_in(static.config, [:row, :class, :apply]) do

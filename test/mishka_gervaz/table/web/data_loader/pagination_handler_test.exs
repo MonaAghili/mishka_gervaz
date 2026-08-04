@@ -56,7 +56,11 @@ defmodule MishkaGervaz.Table.Web.DataLoader.PaginationHandlerTest do
     end
 
     test "a count is still requested when the table asked for one" do
-      assert Handler.build_page_opts(2, 30, :numbered, true) == [count: true, offset: 30, limit: 30]
+      assert Handler.build_page_opts(2, 30, :numbered, true) == [
+               count: true,
+               offset: 30,
+               limit: 30
+             ]
 
       assert Handler.build_page_opts(2, 30, :load_more, true, true) == [
                count: true,
