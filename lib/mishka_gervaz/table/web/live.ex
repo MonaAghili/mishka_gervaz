@@ -190,17 +190,22 @@ defmodule MishkaGervaz.Table.Web.Live do
           {state, true}
 
         url_sync_pending? or UrlSync.matches_state?(url_state, existing_state) ->
+          path_params = url_state[:path_params] || %{}
+
           state =
             existing_state
             |> then(fn s ->
               if url_state[:path], do: %{s | base_path: url_state[:path]}, else: s
             end)
             |> then(fn s ->
-              path_params = url_state[:path_params] || %{}
               if map_size(path_params) > 0, do: %{s | path_params: path_params}, else: s
             end)
 
-          {state, false}
+          # A PATH PARAM THAT NAMES AN ATTRIBUTE IS A FILTER, so changing one has to re-read. A
+          # caller that swaps `%{category_id: a}` for `%{category_id: b}` — or drops the key to mean
+          # "all" — was left looking at the rows the old value selected, which is a filter that
+          # appears not to work.
+          {state, path_params != existing_state.path_params}
 
         true ->
           state =
