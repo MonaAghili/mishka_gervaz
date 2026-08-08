@@ -183,6 +183,7 @@ defmodule MishkaGervaz.Table.Web.Live do
           state =
             id
             |> State.init(resource, current_user)
+            |> State.apply_presentation(assigns)
             |> State.apply_url_state(url_state)
             |> State.hydrate_relation_filter_labels()
 

@@ -267,6 +267,11 @@ defmodule MishkaGervaz.Table.Web.State do
   defdelegate bidirectional_url_sync?(state), to: __MODULE__.Default
 
   @spec switch_template(t(), atom()) :: {:ok, t()} | {:error, :template_not_allowed}
+  @doc """
+  Applies a mount's own presentation choices over the resource's — see the `__using__` version.
+  """
+  defdelegate apply_presentation(state, assigns), to: __MODULE__.Default
+
   defdelegate switch_template(state, template), to: __MODULE__.Default
 
   @spec template_switching_enabled?(t()) :: boolean()
@@ -501,6 +506,67 @@ defmodule MishkaGervaz.Table.Web.State do
         StateHelpers.resolve_url_sync(resource, url_sync()).bidirectional?(state)
       end
 
+      @doc """
+      Applies a MOUNT'S OWN presentation choices over the ones the resource declared.
+
+      A resource has one `table` section, so one template and one switchable list — but the same
+      resource is mounted in more than one place, and those places are not the same surface. The
+      Media library is a page with room for a full card; the builder's Assets sheet is 420px of
+      overlay beside a canvas. Before this, giving the sheet its own look meant either changing the
+      library's template as well or forking the resource.
+
+      Two keys, both optional, both ignored when absent — a mount that passes neither behaves exactly
+      as it did:
+
+        * `:template` — the template THIS mount starts with. A module, or the `name/0` of one the
+          resource already knows.
+        * `:switchable_templates` — what the switcher offers HERE. An empty list, or one entry,
+          turns the switcher off for this mount (`template_switching_enabled?/1` asks for more than
+          one); the resource's own list is untouched everywhere else.
+
+      Applied at init only. The reader may switch templates afterwards, and re-applying on every
+      parent update would drag them back.
+      """
+      @spec apply_presentation(State.t(), map()) :: State.t()
+      def apply_presentation(state, assigns) when is_map(assigns) do
+        state
+        |> override_switchables(Map.get(assigns, :switchable_templates))
+        |> override_template(Map.get(assigns, :template))
+      end
+
+      def apply_presentation(state, _assigns), do: state
+
+      defp override_switchables(state, nil), do: state
+
+      defp override_switchables(state, templates) when is_list(templates),
+        do: %{state | static: %{state.static | switchable_templates: templates}}
+
+      defp override_switchables(state, _other), do: state
+
+      defp override_template(state, nil), do: state
+
+      defp override_template(state, template) when is_atom(template) do
+        cond do
+          # A MODULE, which is the common case: the caller names the template it wrote.
+          # `Code.ensure_loaded?/1` FIRST: `function_exported?/3` answers false for a module that is
+          # merely not loaded yet, which under lazy loading is most of them.
+          template_module?(template) -> %{state | template: template}
+          # …or the `name/0` of one the resource already knows, so a caller can say `:media_card`
+          # without reaching for the module.
+          found = by_name(state, template) -> %{state | template: found}
+          true -> state
+        end
+      end
+
+      defp override_template(state, _other), do: state
+
+      defp template_module?(module),
+        do: Code.ensure_loaded?(module) and function_exported?(module, :render, 1)
+
+      defp by_name(%State{static: %{switchable_templates: templates}}, name) do
+        Enum.find(templates, &(&1.name() == name))
+      end
+
       @spec switch_template(State.t(), atom()) ::
               {:ok, State.t()} | {:error, :template_not_allowed}
       def switch_template(%State{static: %{switchable_templates: []}} = _state, _template) do
@@ -582,6 +648,7 @@ defmodule MishkaGervaz.Table.Web.State do
                      apply_url_state: 2,
                      hydrate_relation_filter_labels: 1,
                      bidirectional_url_sync?: 1,
+                     apply_presentation: 2,
                      switch_template: 2,
                      template_switching_enabled?: 1,
                      can_modify_record?: 2,

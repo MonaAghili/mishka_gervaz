@@ -4,6 +4,7 @@ defmodule MishkaGervaz.Table.Web.StateTest do
   """
   use ExUnit.Case, async: true
 
+  alias MishkaGervaz.Table.Templates
   alias MishkaGervaz.Table.Web.State
   alias MishkaGervaz.Test.Resources.{User, Post, MultiTenantResource}
   alias Phoenix.LiveView.AsyncResult
@@ -309,6 +310,120 @@ defmodule MishkaGervaz.Table.Web.StateTest do
       assert result.sort_fields == [{:name, :asc}]
       assert result.page == 3
       assert result.base_path == "/admin/users"
+    end
+  end
+
+  # A RESOURCE HAS ONE `table` SECTION and is mounted in more than one place. The Media library is a
+  # page with room for a full card; a builder's asset sheet is 420px of overlay. These two keys let
+  # the CALLER say which template it wants and what its switcher offers, without the resource — or
+  # anybody else mounting it — changing at all.
+  describe "apply_presentation/2" do
+    test "without either key nothing moves" do
+      state = %State{
+        static: %State.Static{switchable_templates: [Templates.Table], resource: User},
+        template: Templates.Table
+      }
+
+      assert State.apply_presentation(state, %{}) == state
+      assert State.apply_presentation(state, %{id: "t", resource: User}) == state
+    end
+
+    test "a module names the template this mount starts with" do
+      state = %State{
+        static: %State.Static{switchable_templates: [], resource: User},
+        template: Templates.Table
+      }
+
+      assert %{template: Templates.MediaGallery} =
+               State.apply_presentation(state, %{template: Templates.MediaGallery})
+    end
+
+    # …or the `name/0` of one the resource already knows, so a caller can say `:media_gallery`.
+    test "a name resolves against the switchable list" do
+      state = %State{
+        static: %State.Static{
+          switchable_templates: [Templates.Table, Templates.MediaGallery],
+          resource: User
+        },
+        template: Templates.Table
+      }
+
+      assert %{template: Templates.MediaGallery} =
+               State.apply_presentation(state, %{template: Templates.MediaGallery.name()})
+    end
+
+    # A NAME NOBODY ANSWERS TO IS NOT A REASON TO CRASH A TABLE. It keeps what the resource said.
+    test "an unknown name is ignored" do
+      state = %State{
+        static: %State.Static{switchable_templates: [Templates.Table], resource: User},
+        template: Templates.Table
+      }
+
+      assert %{template: Templates.Table} =
+               State.apply_presentation(state, %{template: :no_such_template})
+    end
+
+    test "the switcher's list is this mount's own" do
+      state = %State{
+        static: %State.Static{
+          switchable_templates: [Templates.Table, Templates.MediaGallery],
+          resource: User
+        },
+        template: Templates.Table
+      }
+
+      switched = State.apply_presentation(state, %{switchable_templates: [Templates.Table]})
+
+      assert switched.static.switchable_templates == [Templates.Table]
+      refute State.template_switching_enabled?(switched)
+      assert State.template_switching_enabled?(state), "and the resource's own list is untouched"
+    end
+
+    # An empty list is how a mount says "no switcher here" — the page that shares this resource
+    # keeps its own.
+    test "an empty list turns the switcher off for this mount" do
+      state = %State{
+        static: %State.Static{
+          switchable_templates: [Templates.Table, Templates.MediaGallery],
+          resource: User
+        },
+        template: Templates.Table
+      }
+
+      off = State.apply_presentation(state, %{switchable_templates: []})
+
+      refute State.template_switching_enabled?(off)
+      assert {:error, :template_not_allowed} = State.switch_template(off, Templates.MediaGallery)
+    end
+
+    # Both at once is the real call: "start on the card, and offer these two".
+    test "both keys together" do
+      state = %State{
+        static: %State.Static{switchable_templates: [], resource: User},
+        template: Templates.Table
+      }
+
+      applied =
+        State.apply_presentation(state, %{
+          template: Templates.MediaGallery,
+          switchable_templates: [Templates.Table, Templates.MediaGallery]
+        })
+
+      assert applied.template == Templates.MediaGallery
+      assert State.template_switching_enabled?(applied)
+      assert {:ok, %{template: Templates.Table}} = State.switch_template(applied, Templates.Table)
+    end
+
+    test "rubbish is ignored rather than believed" do
+      state = %State{
+        static: %State.Static{switchable_templates: [Templates.Table], resource: User},
+        template: Templates.Table
+      }
+
+      assert %{template: Templates.Table} = State.apply_presentation(state, %{template: "grid"})
+
+      assert %{static: %{switchable_templates: [Templates.Table]}} =
+               State.apply_presentation(state, %{switchable_templates: "all"})
     end
   end
 
