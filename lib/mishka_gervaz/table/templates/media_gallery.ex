@@ -303,20 +303,12 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
         phx-value-id={@record.id}
         phx-target={@myself}
       >
-        <%!-- The type-icon tile sits under the image so it is what shows when there is no image, or
-              when one is declared but its file has gone (the img hides itself on error). The glyph is
-              inline SVG, not a hero-icon: its name reaches the class through a variable, and the
-              runtime compiler only emits a mask for a name it can read literally in source. --%>
         <span class="absolute inset-0 flex items-center justify-center">
           <span class="grid size-[52px] place-items-center rounded-[14px] bg-white shadow-[0_2px_6px_rgba(30,28,24,0.06)]">
             <.type_svg type={@media_type} />
           </span>
         </span>
 
-        <%!-- The image sits on top of the tile with no background of its own: until it loads it is
-              transparent and the tile shows through, and if its file has gone it hides itself. The
-              `phx-update="ignore"` keeps that hide across the stream's patches — otherwise a select
-              or a filter re-renders the row and the broken image comes back over the tile. --%>
         <div :if={@image_url && @is_image} id={"#{@id}-thumb"} phx-update="ignore" class="contents">
           <img
             src={@image_url}
@@ -330,20 +322,10 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
 
         <span
           :if={@ext}
-          class="absolute bottom-[10px] left-[10px] rounded-md bg-white/85 px-[7px] py-[3px] text-[9px] font-bold uppercase tracking-[0.05em] text-[#5c5a54] shadow-[0_1px_2px_rgba(30,28,24,0.08)]"
+          class="absolute right-[10px] top-[10px] rounded-md bg-white/85 px-[7px] py-[3px] text-[9px] font-bold uppercase tracking-[0.05em] text-[#5c5a54] shadow-[0_1px_2px_rgba(30,28,24,0.08)]"
         >
           {@ext}
         </span>
-
-        <div class="absolute inset-0 z-10 flex items-center justify-center bg-[#17161a]/0 opacity-0 transition-all group-hover:bg-[#17161a]/25 group-hover:opacity-100">
-          <Shared.render_row_actions
-            row_actions={@visible_row_actions}
-            record={@record}
-            static={@static}
-            state={@state}
-            myself={@myself}
-          />
-        </div>
 
         <span :if={@show_checkboxes} class="absolute left-[10px] top-[10px] z-20">
           <.dynamic_component
@@ -359,7 +341,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
         <span
           :if={@featured?}
           title="Featured"
-          class="absolute right-2 top-2 z-20 grid size-7 place-items-center rounded-lg bg-white/85 text-[#e6b422] shadow-[0_1px_2px_rgba(30,28,24,0.08)]"
+          class="absolute bottom-2 right-2 z-20 grid size-7 place-items-center rounded-lg bg-white/85 text-[#e6b422] shadow-[0_1px_2px_rgba(30,28,24,0.08)]"
         >
           <.dynamic_component
             module={@static.ui_adapter}
@@ -390,6 +372,16 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
           class="mt-1.5 font-['Space_Grotesk'] text-[10px] font-medium text-[#c3c0b8]"
         >
           {@date_label}
+        </div>
+
+        <div :if={@visible_row_actions != []} class="mt-2.5 flex items-center gap-1.5">
+          <Shared.render_row_actions
+            row_actions={@visible_row_actions}
+            record={@record}
+            static={@static}
+            state={@state}
+            myself={@myself}
+          />
         </div>
       </div>
     </div>
