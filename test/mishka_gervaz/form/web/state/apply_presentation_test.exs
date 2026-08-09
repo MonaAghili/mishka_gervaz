@@ -149,9 +149,9 @@ defmodule MishkaGervaz.Form.Web.State.ApplyPresentationTest do
       source = File.read!("lib/mishka_gervaz/form/templates/standard.ex")
 
       assert source =~
-               "defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create})"
+               "defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create}, false)"
 
-      assert source =~ "defp alternatives_for(_static, _state), do: []"
+      assert source =~ "defp alternatives_for(_static, _state, _submit_disabled), do: []"
     end
 
     # THE MENU CLOSES ITSELF, both ways. It is shown by a JS command, so its open state is a sticky
@@ -163,6 +163,19 @@ defmodule MishkaGervaz.Form.Web.State.ApplyPresentationTest do
       assert source =~ ~s|phx-click-away={JS.hide(to: "#" <> @alt_menu_id)}|
       assert source =~ ~s|phx-window-keydown={JS.hide(to: "#" <> @alt_menu_id)}|
       assert source =~ ~s(phx-key="escape")
+    end
+
+    # A SUBMIT THAT WOULD BE REFUSED IS NOT AN ALTERNATIVE. `Events.do_handle("save", …)` asks the
+    # submit config before it acts, so while the button is disabled an item that submits this form
+    # does nothing at all — while one that LEAVES is exactly what a reader who cannot save wants.
+    test "a disabled submit keeps the links and drops the submitting items" do
+      source = File.read!("lib/mishka_gervaz/form/templates/standard.ex")
+
+      assert source =~
+               "defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create}, true)"
+
+      assert source =~ "do: Enum.filter(alternatives, &Map.has_key?(&1, :navigate))"
+      assert source =~ "alternatives_for(assigns.static, state, submit_disabled)"
     end
 
     # A LINK LEAVES, A BUTTON SUBMITS — the difference is `:navigate`, and it decides which of the

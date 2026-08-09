@@ -700,7 +700,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:submit_disabled, submit_disabled)
       |> assign(:cancel_disabled, cancel_disabled)
       |> assign(:show_step_nav, layout_mode in [:wizard, :tabs])
-      |> assign(:alternatives, alternatives_for(assigns.static, state))
+      |> assign(:alternatives, alternatives_for(assigns.static, state, submit_disabled))
       |> assign(:alt_menu_id, assigns.static.id <> "-submit-alternatives")
       |> assign(:ui, assigns.static.ui_adapter)
       |> assign(:cancel_js, cancel_js)
@@ -802,11 +802,19 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   end
 
   # ONLY WHILE CREATING, and only what the mount declared — see `State.apply_presentation/2`.
-  defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create})
+  defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create}, false)
        when is_list(alternatives),
        do: alternatives
 
-  defp alternatives_for(_static, _state), do: []
+  # A SUBMIT THAT WOULD BE REFUSED IS NOT AN ALTERNATIVE. `Events.do_handle("save", …)` asks the
+  # submit config before it does anything, so while the button is disabled an item that submits this
+  # form is a control that silently does nothing. One that LEAVES still means what it says — and it
+  # is the more useful of the two here, since being unable to save is a reason to want the other way.
+  defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create}, true)
+       when is_list(alternatives),
+       do: Enum.filter(alternatives, &Map.has_key?(&1, :navigate))
+
+  defp alternatives_for(_static, _state, _submit_disabled), do: []
 
   attr :alt, :map, required: true
 
