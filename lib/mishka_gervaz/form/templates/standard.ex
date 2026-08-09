@@ -700,6 +700,8 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:submit_disabled, submit_disabled)
       |> assign(:cancel_disabled, cancel_disabled)
       |> assign(:show_step_nav, layout_mode in [:wizard, :tabs])
+      |> assign(:alternatives, alternatives_for(assigns.static, state))
+      |> assign(:alt_menu_id, assigns.static.id <> "-submit-alternatives")
       |> assign(:ui, assigns.static.ui_adapter)
       |> assign(:cancel_js, cancel_js)
 
@@ -730,37 +732,128 @@ defmodule MishkaGervaz.Form.Templates.Standard do
           phx_target={@myself}
         />
 
-        <button
-          :if={@show_submit and (not @show_step_nav or last_step?(assigns))}
-          type="submit"
-          disabled={@submit_disabled}
-          phx-disable-with={@submit_busy_label}
-          class={[
-            "inline-flex h-[42px] items-center gap-2 rounded-[11px] px-[18px] text-[12.5px] font-bold text-white transition-opacity",
-            "disabled:cursor-wait disabled:opacity-70",
-            if(@submit_disabled,
-              do: "cursor-not-allowed bg-[#c3c0b8]",
-              else:
-                "bg-[linear-gradient(140deg,#6d69e6,#4f4bcc)] shadow-[0_5px_14px_rgba(79,75,204,0.28)] hover:opacity-95"
-            )
-          ]}
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+        <span :if={@show_submit and (not @show_step_nav or last_step?(assigns))} class="relative flex">
+          <button
+            type="submit"
+            disabled={@submit_disabled}
+            phx-disable-with={@submit_busy_label}
+            class={[
+              "inline-flex h-[42px] items-center gap-2 px-[18px] text-[12.5px] font-bold text-white transition-opacity",
+              (@alternatives == [] && "rounded-[11px]") || "rounded-l-[11px]",
+              "disabled:cursor-wait disabled:opacity-70",
+              if(@submit_disabled,
+                do: "cursor-not-allowed bg-[#c3c0b8]",
+                else:
+                  "bg-[linear-gradient(140deg,#6d69e6,#4f4bcc)] shadow-[0_5px_14px_rgba(79,75,204,0.28)] hover:opacity-95"
+              )
+            ]}
           >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-          {@submit_label}
-        </button>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            {@submit_label}
+          </button>
+
+          <button
+            :if={@alternatives != []}
+            type="button"
+            id={@alt_menu_id <> "-toggle"}
+            phx-click={JS.toggle(to: "#" <> @alt_menu_id)}
+            title="Other ways to create this"
+            class="grid h-[42px] w-8 flex-none place-items-center rounded-r-[11px] border-l border-white/25 bg-[linear-gradient(140deg,#6d69e6,#4f4bcc)] text-white hover:opacity-95"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+
+          <div
+            :if={@alternatives != []}
+            id={@alt_menu_id}
+            phx-click-away={JS.hide(to: "#" <> @alt_menu_id)}
+            phx-window-keydown={JS.hide(to: "#" <> @alt_menu_id)}
+            phx-key="escape"
+            class="absolute bottom-[50px] right-0 z-50 hidden w-[268px] rounded-[13px] border border-[#ecebe6] bg-white p-1.5 shadow-[0_18px_46px_rgba(20,18,26,.22)]"
+          >
+            <.alternative :for={alt <- @alternatives} alt={alt} />
+          </div>
+        </span>
       </div>
     </div>
+    """
+  end
+
+  # ONLY WHILE CREATING, and only what the mount declared — see `State.apply_presentation/2`.
+  defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create})
+       when is_list(alternatives),
+       do: alternatives
+
+  defp alternatives_for(_static, _state), do: []
+
+  attr :alt, :map, required: true
+
+  # A LINK LEAVES, A BUTTON SUBMITS. An alternative that collects its own details elsewhere must not
+  # drag this form's validation with it — that is the whole difference between "create it here
+  # differently" and "create it somewhere else".
+  defp alternative(%{alt: %{navigate: path}} = assigns) do
+    assigns = assign(assigns, :path, path)
+
+    ~H"""
+    <.link
+      id={@alt.id}
+      navigate={@path}
+      class="flex w-full items-start gap-2.5 rounded-[9px] p-[9px] text-left hover:bg-[#f6f5f2]"
+    >
+      <.alternative_text alt={@alt} />
+    </.link>
+    """
+  end
+
+  defp alternative(assigns) do
+    ~H"""
+    <button
+      type="submit"
+      id={@alt.id}
+      name={@alt.name}
+      value={@alt.value}
+      class="flex w-full items-start gap-2.5 rounded-[9px] p-[9px] text-left hover:bg-[#f6f5f2]"
+    >
+      <.alternative_text alt={@alt} />
+    </button>
+    """
+  end
+
+  attr :alt, :map, required: true
+
+  defp alternative_text(assigns) do
+    ~H"""
+    <span class="min-w-0 flex-1">
+      <span class="block text-[12px] font-semibold text-[#1b1a18]">{@alt.label}</span>
+      <span
+        :if={@alt[:description]}
+        class="mt-0.5 block text-[10.5px] font-medium leading-[1.45] text-[#6d6a63]"
+      >
+        {@alt.description}
+      </span>
+    </span>
     """
   end
 

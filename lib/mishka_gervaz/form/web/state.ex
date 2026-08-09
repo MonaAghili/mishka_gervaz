@@ -126,7 +126,8 @@ defmodule MishkaGervaz.Form.Web.State do
       :header,
       :footer,
       :notices,
-      submit_visible?: true
+      submit_visible?: true,
+      submit_alternatives: []
     ]
 
     @type t :: %__MODULE__{
@@ -155,7 +156,8 @@ defmodule MishkaGervaz.Form.Web.State do
             header: map() | nil,
             footer: map() | nil,
             notices: list(map()),
-            submit_visible?: boolean()
+            submit_visible?: boolean(),
+            submit_alternatives: list(map())
           }
   end
 
@@ -676,6 +678,18 @@ defmodule MishkaGervaz.Form.Web.State do
           with no button of its own is submitted by something else: a dropzone that fires on drop, a
           keystroke, a control the parent draws. Refusing the event here would make the form
           unsubmittable rather than merely quiet.
+        * `:submit_alternatives` — OTHER WAYS TO CREATE this record, offered from a caret beside the
+          submit button instead of as a second button somewhere else on the page. Each is a map with
+          `:id`, `:label` and an optional `:description`, and then either
+
+            * `:navigate` — a path. The item is a link, so it LEAVES without submitting: no
+              validation, no record. That is the point when the other way collects its own details
+              elsewhere.
+            * `:name` and `:value` — the item is a submit button of this same form, so the browser
+              sends the pair with every field and the alternative reaches `before_save` as an
+              ordinary param, with the page needing to know none of the form's fields.
+
+          Only while CREATING. "Another way to create" says nothing over a loaded record.
 
       Applied at init only, like its table-side counterpart — a value the reader has since changed
       must not be dragged back by an unrelated parent render.
@@ -685,6 +699,7 @@ defmodule MishkaGervaz.Form.Web.State do
         state
         |> hide_fields(Map.get(assigns, :hidden_fields))
         |> hide_submit(Map.get(assigns, :submit))
+        |> offer_alternatives(Map.get(assigns, :submit_alternatives))
       end
 
       def apply_presentation(state, _assigns), do: state
@@ -717,6 +732,12 @@ defmodule MishkaGervaz.Form.Web.State do
         do: %{state | static: %{state.static | submit_visible?: false}}
 
       defp hide_submit(state, _other), do: state
+
+      defp offer_alternatives(state, alternatives)
+           when is_list(alternatives) and alternatives != [],
+           do: %{state | static: %{state.static | submit_alternatives: alternatives}}
+
+      defp offer_alternatives(state, _none), do: state
 
       @spec get_action(State.t(), atom()) :: atom()
       def get_action(

@@ -122,6 +122,60 @@ defmodule MishkaGervaz.Form.Web.State.ApplyPresentationTest do
     end
   end
 
+  describe "submit_alternatives" do
+    @alt %{id: "empty", label: "Create empty & open editor", navigate: "/builder/page"}
+
+    test "a form offers none unless the mount names them" do
+      assert state([]).static.submit_alternatives == []
+      assert State.apply_presentation(state([]), %{}).static.submit_alternatives == []
+    end
+
+    test "the mount's list is what the submit row offers" do
+      result = State.apply_presentation(state([]), %{submit_alternatives: [@alt]})
+
+      assert result.static.submit_alternatives == [@alt]
+    end
+
+    test "an empty list is the same as saying nothing" do
+      original = state([])
+
+      assert State.apply_presentation(original, %{submit_alternatives: []}) == original
+      assert State.apply_presentation(original, %{submit_alternatives: nil}) == original
+    end
+
+    # AN ALTERNATIVE IS ANOTHER WAY TO CREATE, so a form that is editing must not offer one — the
+    # menu would read as "and here is a second thing to do to this record".
+    test "the standard template offers them while creating only" do
+      source = File.read!("lib/mishka_gervaz/form/templates/standard.ex")
+
+      assert source =~
+               "defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create})"
+
+      assert source =~ "defp alternatives_for(_static, _state), do: []"
+    end
+
+    # THE MENU CLOSES ITSELF, both ways. It is shown by a JS command, so its open state is a sticky
+    # inline style no server render can clear — and a modal dismissed with escape would otherwise
+    # come back with the menu already hanging open over the form.
+    test "the menu closes on a click away and on escape" do
+      source = File.read!("lib/mishka_gervaz/form/templates/standard.ex")
+
+      assert source =~ ~s|phx-click-away={JS.hide(to: "#" <> @alt_menu_id)}|
+      assert source =~ ~s|phx-window-keydown={JS.hide(to: "#" <> @alt_menu_id)}|
+      assert source =~ ~s(phx-key="escape")
+    end
+
+    # A LINK LEAVES, A BUTTON SUBMITS — the difference is `:navigate`, and it decides which of the
+    # two clauses draws the item.
+    test "an item with a path is a link, and one without is a submit of this form" do
+      source = File.read!("lib/mishka_gervaz/form/templates/standard.ex")
+
+      assert source =~ "defp alternative(%{alt: %{navigate: path}} = assigns)"
+      assert source =~ ~s(navigate={@path})
+      assert source =~ ~s(type="submit")
+    end
+  end
+
   test "both at once" do
     result =
       [field(:site_id), field(:featured)]
