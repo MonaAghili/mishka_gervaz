@@ -63,9 +63,11 @@ defmodule MishkaGervaz.Form.Web.State.ApplyPresentationTest do
                result.static.groups
     end
 
-    # A THREE-COLUMN ROW WITH TWO FIELDS LEFT is not a three-column row. Hiding Site from the Media
-    # upload row left Category holding a third of the width and an empty cell beside Featured.
-    test "the group narrows to the fields it still draws" do
+    # THE COLUMN COUNT IS NOT TOUCHED HERE. A group's width is decided when it is drawn, by the
+    # fields it is about to draw — `render_group_fields/3` in the standard template — because
+    # `hidden_fields` is only one of three reasons a declared field goes unrendered; `show_on` and
+    # `restricted` are the others, and neither is known at init.
+    test "the declared columns survive hiding, for the template to narrow" do
       groups = [
         %{
           name: :upload_fields,
@@ -80,23 +82,8 @@ defmodule MishkaGervaz.Form.Web.State.ApplyPresentationTest do
         |> state(groups)
         |> State.apply_presentation(%{hidden_fields: [:site_id]})
 
-      assert [%{ui: %{columns: 2}}] = result.static.groups
-    end
-
-    test "a group with room to spare keeps its own number" do
-      groups = [%{name: :g, fields: [:a, :b, :c, :d], resolved_fields: [], ui: %{columns: 2}}]
-
-      result = State.apply_presentation(state([], groups), %{hidden_fields: [:a]})
-
-      assert [%{ui: %{columns: 2}}] = result.static.groups
-    end
-
-    test "a group that never asked for columns is left alone" do
-      groups = [%{name: :g, fields: [:a, :b], resolved_fields: []}]
-
-      result = State.apply_presentation(state([], groups), %{hidden_fields: [:a]})
-
-      assert [%{name: :g, fields: [:b], resolved_fields: []}] = result.static.groups
+      assert [%{fields: [:media_category_id, :featured], ui: %{columns: 3}}] =
+               result.static.groups
     end
 
     test "hiding nothing changes nothing" do

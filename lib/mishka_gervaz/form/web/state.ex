@@ -699,7 +699,6 @@ defmodule MishkaGervaz.Form.Web.State do
             group
             |> Map.update(:fields, [], fn fields -> Enum.filter(fields, keep_name) end)
             |> Map.update(:resolved_fields, [], fn fields -> Enum.filter(fields, keep_field) end)
-            |> close_the_gap()
           end)
 
         %{
@@ -713,20 +712,6 @@ defmodule MishkaGervaz.Form.Web.State do
       end
 
       defp hide_fields(state, _names), do: state
-
-      # A GROUP MUST NOT KEEP A COLUMN FOR A FIELD IT NO LONGER DRAWS. The Media upload row is
-      # three columns wide — Site, Category, Featured. Hide Site and the grid still cuts the row in
-      # three: Category keeps a third of the width it does not need to share, and the last column
-      # is empty. Narrowing to what is left is the only reading of `columns` that survives hiding.
-      defp close_the_gap(group) do
-        case {Map.get(group, :ui), length(Map.get(group, :fields, []))} do
-          {%{columns: columns}, visible} when is_integer(columns) and visible in 1..8 ->
-            put_in(group, [:ui, :columns], min(columns, visible))
-
-          _no_columns_declared ->
-            group
-        end
-      end
 
       defp hide_submit(state, false),
         do: %{state | static: %{state.static | submit_visible?: false}}

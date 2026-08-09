@@ -572,9 +572,14 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         accessible?(field, assigns.state) and show_on_mode?(field, mode)
       end)
 
+    # A GROUP IS AS WIDE AS WHAT IT DRAWS. `columns 3` is what the resource asked for with all three
+    # fields in hand; it is not a promise to leave a third of the row empty when one of them is not
+    # drawn — because it is `show_on :update`, because `restricted true` hides it from a tenant, or
+    # because this mount passed `hidden_fields`. All three used to leave a hole and squeeze the
+    # fields that remained into columns sized for company they no longer have.
     col_class =
       if group_columns do
-        group_col_class(group_columns)
+        group_col_class(min(group_columns, max(length(visible_fields), 1)))
       else
         global_col_class(columns)
       end
