@@ -99,7 +99,11 @@ defmodule MishkaGervaz.Table.Dsl.Presentation do
       Options passed to the template.
       Common options vary by template:
       - Table: [:striped, :bordered, :compact, :hoverable]
-      - MediaGallery: [:thumbnail_size, :aspect_ratio, :columns]
+      - MediaGallery: [:thumbnail_size, :aspect_ratio, :columns, :overlay_action, :primary_action]
+
+      `:overlay_action` and `:primary_action` name the row actions a media card draws as the star
+      over its thumbnail and as its one wide labelled button — see
+      `MishkaGervaz.Table.Templates.MediaGallery.split_actions/3`.
       """
     ],
     keep_loaded_records: [
