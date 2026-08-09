@@ -248,17 +248,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     record = assigns.record
     assigns = assign(assigns, :static, static)
 
-    thumbnail_column =
-      static.columns
-      |> get_visible_columns(state)
-      |> List.first()
-
-    is_checked =
-      if state.select_all? do
-        not MapSet.member?(state.excluded_ids, record.id)
-      else
-        MapSet.member?(state.selected_ids, record.id)
-      end
+    is_checked = selected?(state, record)
 
     checkbox_assigns =
       %{__changed__: %{}}
@@ -271,13 +261,9 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       static.row_actions
       |> Shared.non_accordion_actions()
       |> Enum.filter(&Shared.action_visible?(&1, record, state))
-      |> split_actions(static, media_featured?(record))
+      |> split_actions(static, featured?(record))
 
-    image_url =
-      case thumbnail_column do
-        nil -> nil
-        column -> get_column_value(column, record, state) |> cache_bust_url(record)
-      end
+    image_url = thumbnail_url(static, state, record)
 
     assigns =
       assigns
@@ -288,14 +274,14 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       |> assign(:custom_card_class, get_custom_card_class(static, record))
       |> assign(:image_url, image_url)
       |> assign(:is_image, is_image_url?(image_url))
-      |> assign(:tint, type_tint(record))
+      |> assign(:tint, tint(record))
       |> assign(:media_type, media_type(record))
       |> assign(:ext, media_ext(record))
       |> assign(:filename, media_name(record))
       |> assign(:size_label, media_size(record))
       |> assign(:category, media_category(record))
       |> assign(:date_label, media_date(record))
-      |> assign(:featured?, media_featured?(record))
+      |> assign(:featured?, featured?(record))
       |> assign(:star_actions, groups.overlay)
 
     ~H"""
@@ -314,7 +300,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       <div class={["relative isolate aspect-square", @tint]}>
         <span class="absolute inset-0 flex items-center justify-center">
           <span class="grid size-[52px] place-items-center rounded-[14px] bg-white shadow-[0_2px_6px_rgba(30,28,24,0.06)]">
-            <.type_svg type={@media_type} />
+            <.type_glyph type={@media_type} class="size-[26px]" />
           </span>
         </span>
 
@@ -487,17 +473,60 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     end)
   end
 
+  @doc """
+  Whether this record is selected, under either selection mode.
+
+  `select_all?` inverts the meaning of the set: everything is chosen except what is in
+  `excluded_ids`. Getting that backwards ticks every box the reader has just cleared.
+  """
+  @spec selected?(map(), map()) :: boolean()
+  def selected?(%{select_all?: true, excluded_ids: excluded}, record),
+    do: not MapSet.member?(excluded, record.id)
+
+  def selected?(%{selected_ids: selected}, record), do: MapSet.member?(selected, record.id)
+
+  @doc """
+  The URL of a record's thumbnail, or nil when it has none to show.
+
+  THE CARD IS THIS TEMPLATE'S, WHEREVER IT IS DRAWN. A resource gates its gallery columns with
+  `visible fn state -> state.template.name() == :media_gallery end`, which is the right thing to
+  write — but a template that BORROWS the card, by delegating `render_item/1` or by calling this,
+  has a different name in `state`, so the first visible column is no longer the thumbnail and every
+  file falls back to its type glyph. The page builder's Assets sheet showed a JPEG as a document
+  icon for exactly this reason. Borrowing the card borrows its column contract, so the question is
+  asked as this template.
+  """
+  @spec thumbnail_url(map(), map(), map()) :: String.t() | nil
+  def thumbnail_url(static, state, record) do
+    static.columns
+    |> get_visible_columns(%{state | template: __MODULE__})
+    |> List.first()
+    |> case do
+      nil -> nil
+      column -> column |> get_column_value(record, state) |> cache_bust_url(record)
+    end
+  end
+
   @tints %{
     images: "bg-[#eef1fc] text-[#4f4bcc]",
     videos: "bg-[#fbe9e7] text-[#b3433a]",
     documents: "bg-[#eaf6ee] text-[#177a53]"
   }
 
-  defp type_tint(record), do: Map.get(@tints, media_type(record), "bg-[#f2f1ec] text-[#8a877f]")
+  @doc "The background wash a file's type gets. See `media_type/1`."
+  @spec tint(map()) :: String.t()
+  def tint(record), do: Map.get(@tints, media_type(record), "bg-[#f2f1ec] text-[#8a877f]")
 
   attr :type, :atom, default: nil
+  attr :class, :string, default: "size-[26px]"
 
-  defp type_svg(%{type: :images} = assigns) do
+  @doc """
+  The glyph a file wears when there is no thumbnail to show instead.
+
+  Public because the sheet's list draws the same file smaller — see
+  `MishkaCmsCoreWeb.Templates.AssetsList` in the CMS.
+  """
+  def type_glyph(%{type: :images} = assigns) do
     ~H"""
     <svg
       viewBox="0 0 24 24"
@@ -506,7 +535,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       stroke-width="1.7"
       stroke-linecap="round"
       stroke-linejoin="round"
-      class="size-[26px]"
+      class={@class}
       aria-hidden="true"
     >
       <rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9" r="1.6" /><path d="m3 16 5-4 4 3 4-4 5 4" />
@@ -514,7 +543,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     """
   end
 
-  defp type_svg(%{type: :videos} = assigns) do
+  def type_glyph(%{type: :videos} = assigns) do
     ~H"""
     <svg
       viewBox="0 0 24 24"
@@ -523,7 +552,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       stroke-width="1.7"
       stroke-linecap="round"
       stroke-linejoin="round"
-      class="size-[26px]"
+      class={@class}
       aria-hidden="true"
     >
       <rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M10 9.5v5l4-2.5z" />
@@ -531,7 +560,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     """
   end
 
-  defp type_svg(assigns) do
+  def type_glyph(assigns) do
     ~H"""
     <svg
       viewBox="0 0 24 24"
@@ -540,7 +569,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       stroke-width="1.7"
       stroke-linecap="round"
       stroke-linejoin="round"
-      class="size-[26px]"
+      class={@class}
       aria-hidden="true"
     >
       <path d="M8 3h6l4 4v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v5h4M9.5 13h5M9.5 16h4" />
@@ -548,27 +577,29 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     """
   end
 
-  defp media_type(%{type: type}) when is_atom(type) and not is_nil(type), do: type
-  defp media_type(_record), do: nil
+  @doc "A record's media type — `:images`, `:videos`, `:documents`, or nil."
+  @spec media_type(map()) :: atom() | nil
+  def media_type(%{type: type}) when is_atom(type) and not is_nil(type), do: type
+  def media_type(_record), do: nil
 
-  defp media_ext(%{format: format}) when is_binary(format) and format != "", do: format
-  defp media_ext(_record), do: nil
+  def media_ext(%{format: format}) when is_binary(format) and format != "", do: format
+  def media_ext(_record), do: nil
 
-  defp media_name(%{name: name, format: format})
-       when is_binary(name) and is_binary(format),
-       do: "#{name}.#{format}"
+  def media_name(%{name: name, format: format})
+      when is_binary(name) and is_binary(format),
+      do: "#{name}.#{format}"
 
-  defp media_name(%{name: name}) when is_binary(name), do: name
-  defp media_name(_record), do: "Untitled"
+  def media_name(%{name: name}) when is_binary(name), do: name
+  def media_name(_record), do: "Untitled"
 
-  defp media_size(%{size: size}) when is_integer(size),
+  def media_size(%{size: size}) when is_integer(size),
     do: MishkaGervaz.Helpers.format_filesize(size)
 
-  defp media_size(_record), do: "—"
+  def media_size(_record), do: "—"
 
   # Only one of the two category relationships is preloaded — a tenant's own, or a master's
   # tenancy-bypassing alias — so the other is a truthy `%Ash.NotLoaded{}`; find whichever is a record.
-  defp media_category(record) do
+  def media_category(record) do
     Enum.find_value([:media_category, :master_media_category], fn key ->
       case Map.get(record, key) do
         %{name: name} when is_binary(name) -> name
@@ -577,12 +608,14 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     end)
   end
 
-  defp media_date(%{inserted_at: %DateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
-  defp media_date(%{inserted_at: %NaiveDateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
-  defp media_date(_record), do: nil
+  def media_date(%{inserted_at: %DateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
+  def media_date(%{inserted_at: %NaiveDateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
+  def media_date(_record), do: nil
 
-  defp media_featured?(%{featured: true}), do: true
-  defp media_featured?(_record), do: false
+  @doc "Whether this file is featured — the star, and the card's gold ring."
+  @spec featured?(map()) :: boolean()
+  def featured?(%{featured: true}), do: true
+  def featured?(_record), do: false
 
   defp get_column_value(column, record, state) do
     cond do
@@ -777,8 +810,10 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     end
   end
 
-  defp gallery_ui_adapter(MishkaGervaz.UIAdapters.Tailwind),
+  @doc "The adapter a media card is drawn with, unless the resource named one of its own."
+  @spec gallery_ui_adapter(module()) :: module()
+  def gallery_ui_adapter(MishkaGervaz.UIAdapters.Tailwind),
     do: MishkaGervaz.UIAdapters.MediaGallery
 
-  defp gallery_ui_adapter(user_adapter), do: user_adapter
+  def gallery_ui_adapter(user_adapter), do: user_adapter
 end

@@ -622,6 +622,27 @@ defmodule MishkaGervaz.Form.Templates.Standard do
 
   # A MOUNT CAN SAY IT DRAWS NO SUBMIT ROW — see `State.apply_presentation/2`. Only the row goes; the
   # `save` event is still allowed, because whatever replaces the button still has to submit.
+  # WHAT THE BUTTON SAYS WHILE IT WORKS, and it has to say something: a submit that looks idle for
+  # the length of an upload invites a second press, and a second press on a form with a file on it
+  # is a second upload. `phx-disable-with` disables the button and swaps its text for the round
+  # trip. A form with an upload spends that time sending the file, so it says so; anything else is a
+  # save. A resource can name its own with `loading_label` and this will use it.
+  #
+  # Never do this to an ICON-ONLY button: there the label is a `.lbl` the class hides, so swapping
+  # it changes nothing a reader can see and the button just goes dead for a while.
+  defp busy_label(button, static) do
+    cond do
+      is_map(button) and is_binary(button[:loading_label]) ->
+        button[:loading_label]
+
+      static.uploads not in [nil, []] ->
+        dgettext("mishka_gervaz", "Uploading…")
+
+      true ->
+        dgettext("mishka_gervaz", "Saving…")
+    end
+  end
+
   defp render_submit(%{static: %{submit_visible?: false}} = assigns) do
     ~H""
   end
@@ -665,6 +686,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     assigns =
       assigns
       |> assign(:submit_label, submit_label)
+      |> assign(:submit_busy_label, busy_label(submit_button, assigns.static))
       |> assign(:cancel_label, cancel_label)
       |> assign(:show_submit, show_submit)
       |> assign(:show_cancel, show_cancel)
@@ -705,8 +727,10 @@ defmodule MishkaGervaz.Form.Templates.Standard do
           :if={@show_submit and (not @show_step_nav or last_step?(assigns))}
           type="submit"
           disabled={@submit_disabled}
+          phx-disable-with={@submit_busy_label}
           class={[
             "inline-flex h-[42px] items-center gap-2 rounded-[11px] px-[18px] text-[12.5px] font-bold text-white transition-opacity",
+            "disabled:cursor-wait disabled:opacity-70",
             if(@submit_disabled,
               do: "cursor-not-allowed bg-[#c3c0b8]",
               else:
