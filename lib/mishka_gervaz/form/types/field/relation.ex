@@ -73,10 +73,11 @@ defmodule MishkaGervaz.Form.Types.Field.Relation do
       field: state_assigns[:form_field],
       id: "form-#{field.name}",
       options: option_list,
-      # Form relation fields read grey `#faf9f6` like the rest of a form (the adapter's white default is
-      # for the filter bar). `assign_new(:class, …)` in the select components lets this passed class win.
-      class:
-        "h-11 w-full rounded-[12px] border border-[#ecebe6] bg-[#faf9f6] px-[14px] text-[12.5px] font-semibold text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:bg-white focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]",
+      # NO CLASS. This used to pass its own copy of the form look, because the adapter's default was
+      # the white filter one and a relation field inside a form has to read `#faf9f6` like its
+      # neighbours. The adapter answers that itself now — a field is the form variant unless the
+      # caller says `search: true` — and the copy had already drifted by a pixel of radius and a
+      # weight, which is visible the moment a Site sits beside a Category.
       placeholder: get_ui(field, :placeholder, "Select..."),
       icon: get_ui(field, :icon),
       has_more?: Map.get(rel_data, :has_more?, false),

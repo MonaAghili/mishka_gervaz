@@ -812,15 +812,16 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         required={@wrapper_required}
       >
         <div class={[
-          "px-3 py-2 text-sm border rounded cursor-not-allowed flex items-center gap-2",
+          "flex h-11 w-full items-center gap-2 rounded-[11px] border px-[14px] text-[13px] font-medium",
+          "cursor-not-allowed",
           if(@is_loading,
-            do: "bg-blue-50 border-blue-200 text-blue-500",
-            else: "bg-gray-100 border-gray-200 text-gray-400"
+            do: "border-[#dcdbf5] bg-[#f7f6fd] text-[#4f4bcc]",
+            else: "border-[#ecebe6] bg-[#f6f5f2] text-[#8a877f]"
           )
         ]}>
           <span
             :if={@is_loading}
-            class="w-4 h-4 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin shrink-0"
+            class="size-4 shrink-0 animate-spin rounded-full border-2 border-[#dcdbf5] border-t-[#5b57d6]"
           />
           {@disabled_prompt}
         </div>
