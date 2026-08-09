@@ -141,10 +141,14 @@ defmodule MishkaGervaz.Form.Web.State.ApplyPresentationTest do
   # THE FLAG IS ONLY WORTH SETTING IF SOMETHING READS IT, and the two readers need a mounted
   # LiveComponent to exercise — so what is asserted is the wiring, at the lines that make it.
   describe "the wiring" do
-    test "the standard template has a clause for a hidden submit row" do
+    # AND ONLY WHILE CREATING. A form loaded with a record and no submit is one you can change and
+    # cannot save — the mount asked for no button because a DROP submits a new file, and an edit has
+    # no drop.
+    test "the standard template hides the submit row for a create, not for an edit" do
       source = File.read!("lib/mishka_gervaz/form/templates/standard.ex")
 
-      assert source =~ "defp render_submit(%{static: %{submit_visible?: false}} = assigns)"
+      assert source =~
+               "defp render_submit(%{static: %{submit_visible?: false}, state: %{mode: :create}} = assigns)"
     end
 
     test "the component applies a mount's choices at init" do

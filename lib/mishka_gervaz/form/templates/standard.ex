@@ -643,7 +643,14 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     end
   end
 
-  defp render_submit(%{static: %{submit_visible?: false}} = assigns) do
+  # A MOUNT CAN SAY IT DRAWS NO SUBMIT ROW — see `State.apply_presentation/2`. Only the row goes; the
+  # `save` event stays allowed, because whatever replaces the button still has to submit.
+  #
+  # WHILE CREATING, though, and only then. A mount says this because it has something better for a
+  # new record — the page builder's Assets sheet says it because a drop is the submit. An EDIT has no
+  # such thing: the same form loaded with a record and no button is one you can change and cannot
+  # save, which is worse than the button it saved you.
+  defp render_submit(%{static: %{submit_visible?: false}, state: %{mode: :create}} = assigns) do
     ~H""
   end
 
