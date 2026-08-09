@@ -129,6 +129,27 @@ defmodule MishkaGervaz.UIAdapters.TailwindFieldsTest do
     end
   end
 
+  # THE FILE IN HAND, while it is still on its way. Rendering it needs a live upload, so the row is
+  # asserted at the line that draws it — a `%Phoenix.LiveView.UploadEntry{}` cannot be conjured
+  # without a socket that allowed the upload.
+  describe "a staged upload" do
+    test "is a card in this admin's colours, not the framework default" do
+      assert @template =~ ~s(rounded-[12px] border border-[#ecebe6] bg-white p-[10px])
+      refute @template =~ "bg-gray-50 rounded-lg border"
+    end
+
+    test "its progress bar is the accent, on the neutral track" do
+      assert @template =~ ~s(rounded-full bg-[#5b57d6])
+      assert @template =~ ~s(rounded-full bg-[#efeee9])
+      refute @template =~ "bg-blue-600 h-1.5"
+    end
+
+    test "cancelling it is the same square as every other destructive action" do
+      assert @template =~ ~s(hover:border-[#f3ddd9] hover:bg-[#fdf4f3] hover:text-[#c0392b])
+      refute @template =~ "text-gray-400 hover:text-red-500 hover:bg-red-50"
+    end
+  end
+
   describe "the multi-line fields" do
     test "a textarea is the same field as the one above it, minus the fixed height" do
       html = render(:textarea, %{})

@@ -1832,55 +1832,61 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     """
   end
 
+  # THE FILE IN HAND, while it is still on its way. This is the last piece of the form that had
+  # never been drawn to the design: `bg-gray-50`, a `rounded` grey square and a blue progress bar,
+  # directly under a `rounded-[11px]` dropzone on `#faf9f6`. Same radii, same neutrals, and the bar
+  # is the accent every other progress in this admin uses.
   defp render_upload_entries(assigns) do
     ~H"""
     <div :if={@upload.entries != []} class="space-y-2">
       <%= for entry <- @upload.entries do %>
-        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
-          <%!-- Thumbnail / preview --%>
-          <div class="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+        <div class="flex items-center gap-3 rounded-[12px] border border-[#ecebe6] bg-white p-[10px] shadow-[0_1px_2px_rgba(30,28,24,0.04)]">
+          <div class="size-11 flex-none overflow-hidden rounded-[9px] bg-[#f4f3ee]">
             <%= if String.starts_with?(entry.client_type, "image/") do %>
-              <.live_img_preview entry={entry} class="w-full h-full object-cover" />
+              <.live_img_preview entry={entry} class="size-full object-cover" />
             <% else %>
-              <div class="flex items-center justify-center w-full h-full">
-                <span class="hero-document w-6 h-6 text-gray-400"></span>
+              <div class="grid size-full place-items-center text-[#8a877f]">
+                <span class="hero-document size-5"></span>
               </div>
             <% end %>
           </div>
 
-          <%!-- File info + progress --%>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-900 truncate">{entry.client_name}</p>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-[12.5px] font-semibold text-[#1b1a18]">{entry.client_name}</p>
             <%= if entry.progress < 100 do %>
-              <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+              <div class="mt-[7px] h-[5px] w-full overflow-hidden rounded-full bg-[#efeee9]">
                 <div
-                  class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                  class="h-full rounded-full bg-[#5b57d6] transition-all duration-300"
                   style={"width: #{entry.progress}%"}
                 />
               </div>
-              <p class="text-xs text-gray-500 mt-0.5">{entry.progress}%</p>
+              <p class="mt-[5px] font-['Space_Grotesk'] text-[10.5px] font-semibold text-[#8a877f]">
+                {entry.progress}%
+              </p>
             <% else %>
-              <p class="text-xs text-gray-500">
+              <p class="mt-[3px] font-['Space_Grotesk'] text-[11px] font-medium text-[#8a877f]">
                 {format_filesize(entry.client_size)}
               </p>
             <% end %>
           </div>
 
-          <%!-- Cancel button --%>
           <button
             type="button"
             phx-click="cancel_upload"
             phx-value-key={@upload_config.name}
             phx-value-ref={entry.ref}
             phx-target={@myself}
-            class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+            class="grid size-[30px] flex-none place-items-center rounded-[9px] border border-[#ecebe6] bg-white text-[#8a877f] transition-colors hover:border-[#f3ddd9] hover:bg-[#fdf4f3] hover:text-[#c0392b]"
             title="Cancel upload"
           >
-            <span class="hero-x-mark w-5 h-5"></span>
+            <span class="hero-x-mark size-[15px]"></span>
           </button>
         </div>
 
-        <div :for={err <- upload_errors(@upload, entry)} class="text-sm text-red-600">
+        <div
+          :for={err <- upload_errors(@upload, entry)}
+          class="text-[11.5px] font-medium text-[#c0392b]"
+        >
           {UploadHelpers.upload_error_to_string(err)}
         </div>
       <% end %>

@@ -2312,14 +2312,18 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def upload_preview(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn -> "flex items-center gap-3 p-3 bg-gray-50 rounded-md" end)
+      |> assign_new(:class, fn ->
+        "flex items-center gap-3 rounded-[12px] border border-[#ecebe6] bg-white p-[10px]"
+      end)
 
     ~H"""
     <div class={@class}>
-      <.render_icon name="hero-document" class="w-8 h-8 text-gray-400 shrink-0" />
+      <.render_icon name="hero-document" class="size-8 shrink-0 text-[#8a877f]" />
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-medium text-gray-900 truncate">{@entry.client_name}</p>
-        <p class="text-xs text-gray-500">{format_filesize(@entry.client_size)}</p>
+        <p class="truncate text-[12.5px] font-semibold text-[#1b1a18]">{@entry.client_name}</p>
+        <p class="font-['Space_Grotesk'] text-[11px] font-medium text-[#8a877f]">
+          {format_filesize(@entry.client_size)}
+        </p>
       </div>
     </div>
     """
@@ -2333,13 +2337,17 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     ~H"""
     <div class={@class}>
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-xs font-medium text-gray-700 truncate">{@entry.client_name}</span>
-        <span class="text-xs text-gray-500">{@entry.progress}%</span>
+      <div class="mb-1 flex items-center justify-between">
+        <span class="truncate text-[11.5px] font-semibold text-[#3a382f]">
+          {@entry.client_name}
+        </span>
+        <span class="font-['Space_Grotesk'] text-[10.5px] font-semibold text-[#8a877f]">
+          {@entry.progress}%
+        </span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-1.5">
+      <div class="h-[5px] w-full overflow-hidden rounded-full bg-[#efeee9]">
         <div
-          class="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+          class="h-full rounded-full bg-[#5b57d6] transition-all duration-300 ease-out"
           style={"width: #{@entry.progress}%"}
         />
       </div>
