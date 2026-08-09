@@ -15,6 +15,21 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   import MishkaGervaz.Helpers,
     only: [normalize_options: 1, normalize_selected_values: 1, resolve_label: 1]
 
+  # ONE SWITCHED-OFF LOOK, for every kind of field.
+  #
+  # Half of these carried `bg-gray-100`, which is Tailwind's COOL grey and does not belong beside
+  # this palette's warm neutrals — a Category waiting on a Site read as a different kind of control
+  # rather than as the same control, switched off. The other half carried nothing but a cursor.
+  @disabled_class "cursor-not-allowed bg-[#f6f5f2] text-[#8a877f]"
+
+  @doc """
+  The classes every field of this adapter wears when it is disabled or readonly.
+
+  Public so an adapter that overrides one input still switches it off the way its neighbours do.
+  """
+  @spec disabled_class() :: String.t()
+  def disabled_class, do: @disabled_class
+
   @impl true
   def text_input(assigns) do
     placeholder =
@@ -67,7 +82,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           @class,
           "placeholder:text-[#a8a5a0]",
           @search && "pl-[38px]!",
-          (@disabled || @readonly) && "cursor-not-allowed bg-[#f6f5f2]"
+          (@disabled || @readonly) && disabled_class()
         ]}
         phx-debounce={@phx_debounce}
       />
@@ -79,9 +94,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def password_input(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn ->
-        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
-      end)
+      |> assign_new(:class, fn -> input_class(assigns[:search] == true) end)
       |> assign_new(:phx_debounce, fn ->
         case Map.fetch(assigns, :"phx-debounce") do
           {:ok, value} -> value
@@ -102,7 +115,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       disabled={@disabled}
       readonly={@readonly}
       autocomplete={@autocomplete}
-      class={[@class, (@disabled || @readonly) && "bg-gray-100 cursor-not-allowed"]}
+      class={[@class, (@disabled || @readonly) && disabled_class()]}
       phx-debounce={@phx_debounce}
     />
     """
@@ -120,6 +133,23 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     "w-full rounded-[11px] border border-[#ecebe6] font-medium outline-none transition-shadow " <>
       "focus:border-[#c3c1f0] focus:bg-white focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)] " <>
       base
+  end
+
+  @doc """
+  The same field, for a control that grows down the page instead of holding one line.
+
+  A textarea and a JSON editor were the last two still on the pre-redesign look — `rounded-md`,
+  `border-gray-300`, a blue focus ring — so a Description sat in the same form as a Name and did not
+  look related to it. Everything but the height is shared with `input_class/1`; the height is the
+  one thing a multi-line field cannot borrow, since `rows` decides it.
+  """
+  @spec multiline_class(String.t()) :: String.t()
+  def multiline_class(extra) do
+    "w-full rounded-[11px] border border-[#ecebe6] bg-[#faf9f6] px-[14px] py-[11px] text-[13px] " <>
+      extra <>
+      "font-medium leading-[1.55] text-[#1b1a18] outline-none transition-shadow " <>
+      "placeholder:text-[#a8a5a0] focus:border-[#c3c1f0] focus:bg-white " <>
+      "focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
   end
 
   @impl true
@@ -148,7 +178,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           @class,
           "cursor-pointer appearance-none pr-[32px]!",
           @icon && "pl-9",
-          @disabled && "cursor-not-allowed bg-[#f6f5f2]"
+          @disabled && disabled_class()
         ]}
       >
         <option :if={@prompt} value="">{@prompt}</option>
@@ -243,9 +273,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign(:current_value, current_value)
       |> assign(:disabled, disabled)
       |> assign(:display_label, display_label)
-      |> assign_new(:class, fn ->
-        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
-      end)
+      |> assign_new(:class, fn -> input_class(assigns[:search] == true) end)
       |> assign_new(:placeholder, fn -> "Search..." end)
       |> assign_new(:has_more?, fn -> false end)
       |> assign_new(:loading?, fn -> false end)
@@ -282,7 +310,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
             @class,
             @icon && "pl-9",
             "w-full",
-            @disabled && "bg-gray-100 cursor-not-allowed text-gray-700"
+            @disabled && disabled_class()
           ]}
           disabled={@disabled}
           phx-debounce={if !@disabled, do: @debounce}
@@ -295,7 +323,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         />
         <span
           :if={@loading? && !@disabled}
-          class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+          class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[#ecebe6] border-t-[#5b57d6] rounded-full animate-spin"
         />
       </div>
 
@@ -305,17 +333,17 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <%!-- Dropdown options (only show when open and not disabled) --%>
       <div
         :if={@dropdown_open? && !@disabled}
-        class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+        class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-[11px] border border-[#ecebe6] bg-white shadow-[0_10px_30px_-12px_rgba(30,28,24,0.25)]"
       >
-        <div :if={@display_options == []} class="px-3 py-2 text-sm text-gray-400">
+        <div :if={@display_options == []} class="px-3 py-2 text-[12.5px] font-medium text-[#a8a5a0]">
           No records found
         </div>
         <button
           :for={{opt_label, opt_value} <- @display_options}
           type="button"
           class={[
-            "w-full px-3 py-2 text-left text-sm hover:bg-gray-100",
-            to_string(@current_value) == to_string(opt_value) && "bg-blue-50 text-blue-700"
+            "w-full px-3 py-2 text-left text-[12.5px] font-medium text-[#3a382f] hover:bg-[#f7f6f3]",
+            to_string(@current_value) == to_string(opt_value) && "bg-[#f2f1fc] text-[#4f4bcc]"
           ]}
           phx-click="relation_select"
           phx-target={@myself}
@@ -332,7 +360,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           phx-click="relation_load_more"
           phx-target={@myself}
           phx-value-filter={@filter_name}
-          class="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-100 border-t border-gray-100"
+          class="w-full border-t border-[#f0efea] px-3 py-2 text-left text-[12.5px] font-semibold text-[#4f4bcc] hover:bg-[#f7f6f3]"
         >
           Load more...
         </button>
@@ -426,17 +454,17 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <%!-- Dropdown options (only show when open) --%>
       <div
         :if={@dropdown_open?}
-        class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+        class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-[11px] border border-[#ecebe6] bg-white shadow-[0_10px_30px_-12px_rgba(30,28,24,0.25)]"
       >
-        <div :if={@display_options == []} class="px-3 py-2 text-sm text-gray-400">
+        <div :if={@display_options == []} class="px-3 py-2 text-[12.5px] font-medium text-[#a8a5a0]">
           No records found
         </div>
         <button
           :for={{opt_label, opt_value} <- @display_options}
           type="button"
           class={[
-            "w-full px-3 py-2 text-left text-sm hover:bg-gray-100",
-            to_string(@current_value) == to_string(opt_value) && "bg-blue-50 text-blue-700"
+            "w-full px-3 py-2 text-left text-[12.5px] font-medium text-[#3a382f] hover:bg-[#f7f6f3]",
+            to_string(@current_value) == to_string(opt_value) && "bg-[#f2f1fc] text-[#4f4bcc]"
           ]}
           phx-click="relation_select"
           phx-target={@myself}
@@ -453,7 +481,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           phx-click="relation_load_more"
           phx-target={@myself}
           phx-value-filter={@filter_name}
-          class="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-100 border-t border-gray-100"
+          class="w-full border-t border-[#f0efea] px-3 py-2 text-left text-[12.5px] font-semibold text-[#4f4bcc] hover:bg-[#f7f6f3]"
         >
           Load more...
         </button>
@@ -462,7 +490,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <%!-- Loading spinner --%>
       <span
         :if={@loading?}
-        class="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+        class="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[#ecebe6] border-t-[#5b57d6] rounded-full animate-spin"
       />
     </div>
     """
@@ -488,9 +516,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign(:display_options, display_options)
       |> assign(:selected, selected)
       |> assign(:selected_set, selected_set)
-      |> assign_new(:class, fn ->
-        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
-      end)
+      |> assign_new(:class, fn -> input_class(assigns[:search] == true) end)
       |> assign_new(:placeholder, fn -> "Search..." end)
       |> assign_new(:has_more?, fn -> false end)
       |> assign_new(:loading?, fn -> false end)
@@ -534,7 +560,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         />
         <span
           :if={@loading?}
-          class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+          class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[#ecebe6] border-t-[#5b57d6] rounded-full animate-spin"
         />
       </div>
 
@@ -544,16 +570,16 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <%!-- Dropdown options (only show when open) --%>
       <div
         :if={@dropdown_open?}
-        class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+        class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-[11px] border border-[#ecebe6] bg-white shadow-[0_10px_30px_-12px_rgba(30,28,24,0.25)]"
       >
-        <div :if={@display_options == []} class="px-3 py-2 text-sm text-gray-400">
+        <div :if={@display_options == []} class="px-3 py-2 text-[12.5px] font-medium text-[#a8a5a0]">
           No records found
         </div>
         <button
           :for={{label, value} <- @display_options}
           type="button"
           class={[
-            "w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2",
+            "flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-medium text-[#3a382f] hover:bg-[#f7f6f3]",
             selected?(value, @selected_set) && "bg-blue-50"
           ]}
           phx-click="relation_toggle"
@@ -574,7 +600,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           phx-click="relation_load_more"
           phx-target={@myself}
           phx-value-filter={@filter_name}
-          class="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-100 border-t border-gray-100"
+          class="w-full border-t border-[#f0efea] px-3 py-2 text-left text-[12.5px] font-semibold text-[#4f4bcc] hover:bg-[#f7f6f3]"
         >
           Load more...
         </button>
@@ -625,9 +651,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def date_input(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn ->
-        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
-      end)
+      |> assign_new(:class, fn -> input_class(assigns[:search] == true) end)
       |> assign_new(:id, fn -> nil end)
       |> assign_new(:min, fn -> nil end)
       |> assign_new(:max, fn -> nil end)
@@ -651,7 +675,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         max={@max}
         disabled={@disabled}
         readonly={@readonly}
-        class={[@class, @icon && "pl-9", (@disabled || @readonly) && "bg-gray-100 cursor-not-allowed"]}
+        class={[@class, @icon && "pl-9", (@disabled || @readonly) && disabled_class()]}
       />
     </div>
     """
@@ -661,9 +685,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def datetime_input(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn ->
-        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
-      end)
+      |> assign_new(:class, fn -> input_class(assigns[:search] == true) end)
       |> assign_new(:icon, fn -> nil end)
       |> assign_new(:disabled, fn -> false end)
       |> assign_new(:readonly, fn -> false end)
@@ -681,7 +703,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         value={@value}
         disabled={@disabled}
         readonly={@readonly}
-        class={[@class, @icon && "pl-9", (@disabled || @readonly) && "bg-gray-100 cursor-not-allowed"]}
+        class={[@class, @icon && "pl-9", (@disabled || @readonly) && disabled_class()]}
       />
     </div>
     """
@@ -693,9 +715,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     assigns =
       assigns
-      |> assign_new(:class, fn ->
-        "h-[42px] w-full rounded-[11px] border border-[#ecebe6] bg-white px-[13px] text-[12.5px] font-medium text-[#3a382f] outline-none transition-shadow focus:border-[#c3c1f0] focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
-      end)
+      |> assign_new(:class, fn -> input_class(assigns[:search] == true) end)
       |> assign_new(:step, fn -> "any" end)
       |> assign(:placeholder, placeholder)
       |> assign_new(:min, fn -> nil end)
@@ -721,7 +741,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         step={@step}
         disabled={@disabled}
         readonly={@readonly}
-        class={[@class, @icon && "pl-9", (@disabled || @readonly) && "bg-gray-100 cursor-not-allowed"]}
+        class={[@class, @icon && "pl-9", (@disabled || @readonly) && disabled_class()]}
       />
     </div>
     """
@@ -2354,8 +2374,8 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           aria-checked={to_string(@checked)}
         />
         <div class={[
-          "w-11 h-6 rounded-full transition-colors duration-200 ease-in-out",
-          if(@checked, do: "bg-blue-600", else: "bg-gray-300")
+          "h-6 w-11 rounded-full transition-colors duration-200 ease-in-out",
+          if(@checked, do: "bg-[#5b57d6]", else: "bg-[#dcdad2]")
         ]} />
         <div class={[
           "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out",
@@ -2374,7 +2394,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:max, fn -> 100 end)
       |> assign_new(:step, fn -> 1 end)
       |> assign_new(:class, fn ->
-        "w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+        "h-2 w-full cursor-pointer appearance-none rounded-full bg-[#efeee9] accent-[#5b57d6]"
       end)
       |> assign_new(:show_value, fn -> false end)
       |> assign_new(:disabled, fn -> false end)
@@ -2406,9 +2426,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:placeholder, fn -> nil end)
-      |> assign_new(:class, fn ->
-        "w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:ring-blue-500 focus:border-blue-500"
-      end)
+      |> assign_new(:class, fn -> multiline_class("") end)
       |> assign_new(:rows, fn -> 4 end)
       |> assign_new(:phx_debounce, fn ->
         case Map.fetch(assigns, :"phx-debounce") do
@@ -2426,7 +2444,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       rows={@rows}
       disabled={@disabled}
       readonly={@readonly}
-      class={[@class, (@disabled || @readonly) && "bg-gray-100 cursor-not-allowed"]}
+      class={[@class, (@disabled || @readonly) && disabled_class()]}
       phx-debounce={@phx_debounce}
     >{@value}</textarea>
     """
@@ -2436,9 +2454,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def json_editor(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn ->
-        "w-full rounded-md border-gray-300 px-3 py-2 text-sm font-mono shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-      end)
+      |> assign_new(:class, fn -> multiline_class("font-mono ") end)
       |> assign_new(:rows, fn -> 8 end)
       |> assign_new(:disabled, fn -> false end)
 
@@ -2447,7 +2463,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       name={@name}
       rows={@rows}
       disabled={@disabled}
-      class={[@class, @disabled && "bg-gray-100 cursor-not-allowed"]}
+      class={[@class, @disabled && disabled_class()]}
       spellcheck="false"
     >{@value}</textarea>
     """
@@ -2546,7 +2562,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
             value={item}
             placeholder={@placeholder}
             disabled={@disabled}
-            class={[@input_class, @disabled && "bg-gray-100 cursor-not-allowed"]}
+            class={[@input_class, @disabled && disabled_class()]}
           />
           <button
             :if={!@disabled}
@@ -2617,7 +2633,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         value={@value}
         placeholder={@placeholder}
         disabled={@disabled}
-        class={[@class, @icon && "pl-9", @disabled && "bg-gray-100 cursor-not-allowed"]}
+        class={[@class, @icon && "pl-9", @disabled && disabled_class()]}
         phx-debounce={@phx_debounce}
         phx-click={JS.show(to: "##{@dropdown_id}")}
         phx-focus={JS.show(to: "##{@dropdown_id}")}

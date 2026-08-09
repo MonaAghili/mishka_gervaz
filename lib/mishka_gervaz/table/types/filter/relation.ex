@@ -93,6 +93,10 @@ defmodule MishkaGervaz.Table.Types.Filter.Relation do
       placeholder: get_ui(filter, :placeholder),
       icon: get_ui(filter, :icon),
       variant: :filter,
+      # A FILTER SITS ON THE PAGE, a form field sits inside a field card, and the adapter tells them
+      # apart by this key — `:text` and `:select` filters have always set it. This one did not, so it
+      # kept its own copy of the filter look instead, and drifted from its neighbours in the bar.
+      search: true,
       has_more?: filter[:has_more?] || false,
       loading?: filter[:loading?] || false,
       dropdown_open?: filter[:dropdown_open?] || false,

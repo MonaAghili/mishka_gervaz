@@ -125,7 +125,8 @@ defmodule MishkaGervaz.Form.Web.State do
       :layout_navigation,
       :header,
       :footer,
-      :notices
+      :notices,
+      submit_visible?: true
     ]
 
     @type t :: %__MODULE__{
@@ -153,7 +154,8 @@ defmodule MishkaGervaz.Form.Web.State do
             layout_navigation: :sequential | :free,
             header: map() | nil,
             footer: map() | nil,
-            notices: list(map())
+            notices: list(map()),
+            submit_visible?: boolean()
           }
   end
 
@@ -214,6 +216,12 @@ defmodule MishkaGervaz.Form.Web.State do
 
   @spec update(t(), keyword() | map()) :: t()
   defdelegate update(state, updates), to: __MODULE__.Default
+
+  @spec apply_presentation(t(), map()) :: t()
+  @doc """
+  Applies a mount's own presentation choices over the resource's — see the `__using__` version.
+  """
+  defdelegate apply_presentation(state, assigns), to: __MODULE__.Default
 
   @spec get_action(t(), atom()) :: atom()
   defdelegate get_action(state, action_type), to: __MODULE__.Default
@@ -648,6 +656,68 @@ defmodule MishkaGervaz.Form.Web.State do
       @spec update(State.t(), keyword() | map()) :: State.t()
       def update(%State{} = state, updates), do: struct(state, updates)
 
+      @doc """
+      Applies a MOUNT'S OWN presentation choices over the ones the resource declared.
+
+      A resource has one `form` section, but the same form is mounted on surfaces that do not know
+      the same things. The Media library is a page that has to ask which site a file belongs to; the
+      page builder's Assets sheet already knows, because the page being edited belongs to one. Before
+      this, giving the sheet a shorter form meant shortening the library's too, or forking the
+      resource.
+
+      Two keys, both optional, both ignored when absent — a mount that passes neither behaves exactly
+      as it did:
+
+        * `:hidden_fields` — the fields THIS mount does not draw. The value still reaches the save:
+          `drop_protected_fields/2` only looks at fields that are still declared, and `merge_defaults/2`
+          then fills any param a hidden field would have carried. So pair this with `defaults` for
+          anything the action requires, or the save arrives without it.
+        * `:submit` — `false` draws no submit row. The `save` event stays ALLOWED, because a form
+          with no button of its own is submitted by something else: a dropzone that fires on drop, a
+          keystroke, a control the parent draws. Refusing the event here would make the form
+          unsubmittable rather than merely quiet.
+
+      Applied at init only, like its table-side counterpart — a value the reader has since changed
+      must not be dragged back by an unrelated parent render.
+      """
+      @spec apply_presentation(State.t(), map()) :: State.t()
+      def apply_presentation(%State{} = state, assigns) when is_map(assigns) do
+        state
+        |> hide_fields(Map.get(assigns, :hidden_fields))
+        |> hide_submit(Map.get(assigns, :submit))
+      end
+
+      def apply_presentation(state, _assigns), do: state
+
+      defp hide_fields(state, names) when is_list(names) and names != [] do
+        hidden = MapSet.new(names)
+        keep_name = &(not MapSet.member?(hidden, &1))
+        keep_field = &keep_name.(&1.name)
+
+        groups =
+          Enum.map(state.static.groups, fn group ->
+            group
+            |> Map.update(:fields, [], fn fields -> Enum.filter(fields, keep_name) end)
+            |> Map.update(:resolved_fields, [], fn fields -> Enum.filter(fields, keep_field) end)
+          end)
+
+        %{
+          state
+          | static: %{
+              state.static
+              | fields: Enum.filter(state.static.fields, keep_field),
+                groups: groups
+            }
+        }
+      end
+
+      defp hide_fields(state, _names), do: state
+
+      defp hide_submit(state, false),
+        do: %{state | static: %{state.static | submit_visible?: false}}
+
+      defp hide_submit(state, _other), do: state
+
       @spec get_action(State.t(), atom()) :: atom()
       def get_action(
             %State{
@@ -717,6 +787,7 @@ defmodule MishkaGervaz.Form.Web.State do
                      init: 3,
                      default_init: 3,
                      update: 2,
+                     apply_presentation: 2,
                      get_action: 2,
                      get_preloads: 1,
                      wizard_mode?: 1,

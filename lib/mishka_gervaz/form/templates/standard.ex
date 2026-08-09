@@ -615,6 +615,12 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   defp nested_span_class(4), do: "col-span-4"
   defp nested_span_class(_), do: nil
 
+  # A MOUNT CAN SAY IT DRAWS NO SUBMIT ROW — see `State.apply_presentation/2`. Only the row goes; the
+  # `save` event is still allowed, because whatever replaces the button still has to submit.
+  defp render_submit(%{static: %{submit_visible?: false}} = assigns) do
+    ~H""
+  end
+
   defp render_submit(assigns) do
     submit = assigns.static.submit
     mode = assigns.state.mode

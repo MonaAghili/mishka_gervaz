@@ -83,7 +83,7 @@ defmodule MishkaGervaz.Form.Web.Live do
 
     socket =
       if is_nil(existing_state) do
-        state = State.init(id, resource, current_user)
+        state = id |> State.init(resource, current_user) |> State.apply_presentation(assigns)
         state = if defaults, do: State.update(state, defaults: defaults), else: state
 
         socket
