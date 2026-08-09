@@ -1,50 +1,78 @@
 defmodule MishkaGervaz.UIAdapters.MediaGallery do
   @moduledoc """
-  UI adapter for media gallery template.
+  UI adapter for the media gallery template.
 
-  Extends the Tailwind adapter with gallery-specific styling. Only `button/1` differs: a gallery
-  action is a round white tile floating over a thumbnail rather than a row of labelled controls, and
-  it shows its label as text only when it has no icon to show instead. Everything else — including
-  the view switcher — falls back to `MishkaGervaz.UIAdapters.Tailwind`.
+  Extends the Tailwind adapter; only `button/1` differs, because a media card's actions are not a
+  row of labelled controls — they are the small bordered squares under the file's name, and beside
+  them one wide button that says what it does.
 
-  Reached through `MishkaGervaz.Table.Templates.MediaGallery`, which swaps to this adapter only when
-  the resource has not named one of its own.
+  Both are the SAME button. This draws one square and colours it by `variant`, and the label always
+  reaches the DOM inside a `.lbl` span; `MishkaGervaz.Table.Templates.MediaGallery` widens the one
+  it makes primary and hides the label on the rest. Drawing two shapes here instead would put the
+  card's layout in two places, and the template is the one that knows how much room there is.
+
+  Everything else — including the view switcher — falls back to `MishkaGervaz.UIAdapters.Tailwind`.
+
+  Reached through `MishkaGervaz.Table.Templates.MediaGallery.render_item/1`, which swaps to this
+  adapter whenever the resource has not named one of its own, so a card carries the same buttons on
+  every surface that borrows it — the Media library and the page builder's Assets sheet alike.
   """
 
   use MishkaGervaz.Behaviours.UIAdapter,
     fallback: MishkaGervaz.UIAdapters.Tailwind
 
+  @square "grid size-[30px] flex-none place-items-center rounded-[9px] border transition-colors"
+
   attr :label, :string, default: nil
   attr :class, :string, default: nil
   attr :icon, :string, default: nil
+  attr :variant, :atom, default: :default
 
   attr :rest, :global,
     include: ~w(phx-click phx-target phx-value-id phx-value-event phx-value-values data-confirm)
 
   @doc """
-  Gallery-styled button with circular overlay appearance.
+  A card action, drawn as a bordered square around a 15px glyph.
+
+  A `:destroy` variant is tinted red — an archive or a permanent delete should not look like the
+  three buttons next to it. An action that declares its own `ui do class … end` keeps it; that is
+  the escape hatch for a design this square does not fit.
   """
   def button(assigns) do
-    default_class = "p-2 bg-white rounded-full shadow hover:bg-gray-100"
-
     assigns =
       assigns
-      |> assign(
-        :class,
-        if(assigns[:class] in [nil, ""], do: default_class, else: assigns[:class])
-      )
       |> assign_new(:icon, fn -> nil end)
+      |> assign_new(:label, fn -> nil end)
+      |> assign_new(:variant, fn -> :default end)
+
+    assigns =
+      assign(
+        assigns,
+        :class,
+        if(assigns[:class] in [nil, ""],
+          do: default_class(assigns[:variant]),
+          else: assigns.class
+        )
+      )
 
     ~H"""
-    <button
-      type="button"
-      class={@class}
-      title={@label}
-      {@rest}
-    >
-      <.icon :if={@icon} name={@icon} class="w-4 h-4" />
-      <span :if={!@icon} class="text-xs">{@label}</span>
+    <button type="button" class={@class} title={@label} {@rest}>
+      <.icon :if={@icon} name={@icon} class="size-[15px]" />
+      <span :if={@label not in [nil, ""]} class="lbl">{@label}</span>
     </button>
     """
   end
+
+  # EACH VARIANT NAMES ITS OWN BACKGROUND rather than tinting a shared `bg-white`: two background
+  # utilities on one element are settled by their order in the stylesheet, not in the class string,
+  # so the tint would be a coin toss.
+  defp default_class(:destroy),
+    do:
+      @square <>
+        " border-[#f3ddd9] bg-[#fdf4f3] text-[#c0392b] hover:border-[#e8bfb8] hover:bg-[#fbeae7]"
+
+  defp default_class(_variant),
+    do:
+      @square <>
+        " border-[#ecebe6] bg-white text-[#8a877f] hover:border-[#dcdbf5] hover:text-[#4f4bcc]"
 end

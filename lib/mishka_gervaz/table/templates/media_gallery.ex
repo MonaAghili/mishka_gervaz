@@ -25,8 +25,18 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
   only in MediaGallery, or `visible fn state -> state.template.name() == :table end`
   for Table-only columns.
 
+  ## The card's actions
+
+  A card is small, so its actions are not equals. One is the star over the thumbnail — a toggle you
+  read as state, not as a button. One is wide and labelled, because a card needs a control you can
+  hit without decoding a glyph. The rest are bordered squares beside it, red if they destroy
+  something. `split_actions/3` decides which is which, and `:overlay_action` / `:primary_action`
+  below let a resource whose actions are named differently say so.
+
   ## Options
   - `:columns` - Number of grid columns (3, 4, 6, or 8)
+  - `:overlay_action` - the action drawn as the star over the thumbnail (default `:toggle_featured`)
+  - `:primary_action` - the action drawn wide and labelled (default `:edit`)
 
   ## Performance
   Uses `@static.*` for columns, ui_adapter, etc. (no re-render on user interaction)
@@ -72,7 +82,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
 
   @impl true
   def default_options do
-    [columns: 6]
+    [columns: 6, overlay_action: :toggle_featured, primary_action: :edit]
   end
 
   @impl true
@@ -233,9 +243,10 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
 
   @impl true
   def render_item(assigns) do
-    static = assigns.static
+    static = %{assigns.static | ui_adapter: gallery_ui_adapter(assigns.static.ui_adapter)}
     state = assigns.state
     record = assigns.record
+    assigns = assign(assigns, :static, static)
 
     thumbnail_column =
       static.columns
@@ -256,10 +267,11 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       |> assign(:checked, is_checked)
       |> assign(:class, "gervaz-media-checkbox size-4 cursor-pointer rounded accent-[#5b57d6]")
 
-    visible_row_actions =
+    groups =
       static.row_actions
       |> Shared.non_accordion_actions()
       |> Enum.filter(&Shared.action_visible?(&1, record, state))
+      |> split_actions(static, media_featured?(record))
 
     image_url =
       case thumbnail_column do
@@ -271,7 +283,8 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       assigns
       |> assign(:is_checked, is_checked)
       |> assign(:checkbox_assigns, checkbox_assigns)
-      |> assign(:visible_row_actions, visible_row_actions)
+      |> assign(:primary_actions, groups.primary)
+      |> assign(:secondary_actions, groups.secondary)
       |> assign(:custom_card_class, get_custom_card_class(static, record))
       |> assign(:image_url, image_url)
       |> assign(:is_image, is_image_url?(image_url))
@@ -283,6 +296,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
       |> assign(:category, media_category(record))
       |> assign(:date_label, media_date(record))
       |> assign(:featured?, media_featured?(record))
+      |> assign(:star_actions, groups.overlay)
 
     ~H"""
     <div
@@ -297,12 +311,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
         @custom_card_class
       ]}
     >
-      <div
-        class={["relative isolate aspect-square", @tint]}
-        phx-click="expand"
-        phx-value-id={@record.id}
-        phx-target={@myself}
-      >
+      <div class={["relative isolate aspect-square", @tint]}>
         <span class="absolute inset-0 flex items-center justify-center">
           <span class="grid size-[52px] place-items-center rounded-[14px] bg-white shadow-[0_2px_6px_rgba(30,28,24,0.06)]">
             <.type_svg type={@media_type} />
@@ -338,18 +347,31 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
           />
         </span>
 
-        <span
-          :if={@featured?}
-          title="Featured"
-          class="absolute bottom-2 right-2 z-20 grid size-7 place-items-center rounded-lg bg-white/85 text-[#e6b422] shadow-[0_1px_2px_rgba(30,28,24,0.08)]"
+        <div
+          :if={@star_actions != [] or @featured?}
+          title={@star_actions == [] && "Featured"}
+          class={[
+            "absolute bottom-2 right-2 z-20 grid size-7 place-items-center rounded-lg bg-white/85 shadow-[0_1px_2px_rgba(30,28,24,0.08)]",
+            "[&>div]:contents [&_.lbl]:hidden [&_button]:size-full [&_button]:rounded-lg [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-inherit [&_button]:hover:text-inherit",
+            (@featured? && "text-[#e6b422]") || "text-[#c3c0b8] hover:text-[#e6b422]"
+          ]}
         >
+          <Shared.render_row_actions
+            :if={@star_actions != []}
+            row_actions={@star_actions}
+            record={@record}
+            static={@static}
+            state={@state}
+            myself={@myself}
+          />
           <.dynamic_component
+            :if={@star_actions == []}
             module={@static.ui_adapter}
             function={:icon}
             name="hero-star-solid"
             class="size-[15px]"
           />
-        </span>
+        </div>
       </div>
 
       <div class="px-[13px] py-3">
@@ -374,18 +396,95 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
           {@date_label}
         </div>
 
-        <div :if={@visible_row_actions != []} class="mt-2.5 flex items-center gap-1.5">
-          <Shared.render_row_actions
-            row_actions={@visible_row_actions}
-            record={@record}
-            static={@static}
-            state={@state}
-            myself={@myself}
-          />
+        <div
+          :if={@primary_actions != [] or @secondary_actions != []}
+          class="mt-3 flex items-center gap-1.5"
+        >
+          <div
+            :if={@primary_actions != []}
+            class="contents [&>div]:contents [&_.lbl]:truncate [&_button]:flex [&_button]:w-auto [&_button]:min-w-0 [&_button]:flex-1 [&_button]:items-center [&_button]:justify-center [&_button]:gap-1.5 [&_button]:px-2.5 [&_button]:text-[11.5px] [&_button]:font-bold [&_button]:text-[#5c5a54]"
+          >
+            <Shared.render_row_actions
+              row_actions={@primary_actions}
+              record={@record}
+              static={@static}
+              state={@state}
+              myself={@myself}
+            />
+          </div>
+
+          <div :if={@secondary_actions != []} class="contents [&>div]:contents [&_.lbl]:hidden">
+            <Shared.render_row_actions
+              row_actions={@secondary_actions}
+              record={@record}
+              static={@static}
+              state={@state}
+              myself={@myself}
+            />
+          </div>
         </div>
       </div>
     </div>
     """
+  end
+
+  @doc """
+  The card's three action groups: the star over the thumbnail, the one wide button, and the squares.
+
+  A card has room for one action that says what it does; the rest are glyphs. Which action gets
+  which part is a `template_options` decision, defaulting to the names the media resource uses:
+
+      presentation do
+        template_options [overlay_action: :pin, primary_action: :open]
+      end
+
+  A resource whose `row_actions_layout` PLACES an action — inline, or behind a dropdown — has
+  already said where its actions go, so this hands them all back as one row rather than overruling
+  it. An empty layout is not an answer; every resource with row actions has one of those.
+
+  `featured?` fills the overlay's star. The DSL can only name one icon, because a resource cannot
+  know which record its action will be drawn on; the template can, so the file that IS featured
+  wears the filled star and the rest wear the outline.
+  """
+  @spec split_actions([map()], map(), boolean()) :: %{
+          overlay: [map()],
+          primary: [map()],
+          secondary: [map()]
+        }
+  def split_actions(actions, static, featured? \\ false) do
+    if placed_by_layout?(static) do
+      %{overlay: [], primary: [], secondary: actions}
+    else
+      options = Map.get(static, :template_options) || []
+      {overlay, rest} = Enum.split_with(actions, &named?(&1, options, :overlay_action))
+      {primary, secondary} = Enum.split_with(rest, &named?(&1, options, :primary_action))
+
+      %{overlay: fill_star(overlay, featured?), primary: primary, secondary: secondary}
+    end
+  end
+
+  # EVERY resource with row actions carries a layout map, whether or not it names anything in it —
+  # `BuildRuntimeConfig` builds one from the defaults. So "has a layout" is not the question; the
+  # question is whether the layout PLACES an action, which is the same test
+  # `Shared.render_row_actions/1` makes before it honours one.
+  defp placed_by_layout?(static) do
+    layout = Map.get(static, :row_actions_layout)
+    dropdowns = Map.get(static, :row_action_dropdowns) || []
+
+    layout != nil and (dropdowns != [] or (layout[:inline] || []) != [])
+  end
+
+  defp named?(action, options, key) do
+    action[:name] == Keyword.get(options, key, Keyword.fetch!(default_options(), key))
+  end
+
+  defp fill_star(actions, false), do: actions
+
+  defp fill_star(actions, true) do
+    Enum.map(actions, fn
+      %{ui: %{icon: "hero-star"} = ui} = action -> %{action | ui: %{ui | icon: "hero-star-solid"}}
+      action -> action
+    end)
   end
 
   @tints %{
