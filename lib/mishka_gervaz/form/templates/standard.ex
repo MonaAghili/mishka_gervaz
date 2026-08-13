@@ -1058,6 +1058,13 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:disabled, is_readonly)
       |> assign(:module, ui)
       |> assign(:phx_debounce, debounce)
+      # DECLARED ON `ui do … end` AND NEVER PASSED, until now. `extra` is documented as the
+      # template-specific escape hatch and every table column type already reads it off
+      # `column.ui.extra`; on a field it reached the entity and stopped there, so an adapter had no
+      # way to be told anything about one input. `rows` was the same — a `field :content, :textarea`
+      # asking for `rows 12` got the adapter's default four and nobody could see why.
+      |> assign(:extra, get_in_map(field, [:ui, :extra]) || %{})
+      |> put_present(:rows, get_in_map(field, [:ui, :rows]))
 
     case type do
       :password ->
@@ -1302,11 +1309,11 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:target, assigns[:myself])
 
     ~H"""
-    <div class="space-y-3">
+    <div class="space-y-[10px]">
       <.inputs_for :let={nested_form} field={@state.form[@nested_field.name]}>
-        <div class="border rounded bg-gray-50 p-3">
-          <div class="flex justify-between items-start mb-2">
-            <span class="text-sm font-medium text-gray-600">
+        <div class={nested_card_class()}>
+          <div class="mb-[14px] flex items-start justify-between gap-3">
+            <span class={nested_title_class()}>
               <%= if @nested_mode == :array do %>
                 {Phoenix.Naming.humanize(@nested_field.name)} {nested_form.index + 1}
               <% else %>
@@ -1319,12 +1326,12 @@ defmodule MishkaGervaz.Form.Templates.Standard do
               phx-click="remove_nested"
               phx-value-path={nested_form.name}
               phx-target={@target}
-              class="text-red-600 hover:text-red-800 text-sm"
+              class={nested_remove_class()}
             >
               {@remove_label}
             </button>
           </div>
-          <div class="grid md:grid-cols-2 gap-3">
+          <div class={nested_grid_class()}>
             <%= for sub_field <- @nested_fields do %>
               <% sf = extract_sub_field_info(sub_field, @parent_readonly, @state) %>
               {render_nested_sub_field(assigns, nested_form, sf)}
@@ -1339,7 +1346,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         phx-click="add_nested"
         phx-value-path={@form_path}
         phx-target={@target}
-        class="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:border-gray-400 hover:text-gray-700"
+        class={nested_add_class()}
       >
         {@add_label}
       </button>
@@ -1374,12 +1381,12 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:target, assigns[:myself])
 
     ~H"""
-    <div class="space-y-3">
+    <div class="space-y-[10px]">
       <%= for {idx, entry} <- @entries do %>
         <% entry_errors = compute_sub_field_errors(entry, @nested_fields, @error_mode) %>
-        <div class="border rounded bg-gray-50 p-3">
-          <div class="flex justify-between items-start mb-2">
-            <span class="text-sm font-medium text-gray-600">
+        <div class={nested_card_class()}>
+          <div class="mb-[14px] flex items-start justify-between gap-3">
+            <span class={nested_title_class()}>
               {Phoenix.Naming.humanize(@nested_field.name)} {idx + 1}
             </span>
             <button
@@ -1389,12 +1396,12 @@ defmodule MishkaGervaz.Form.Templates.Standard do
               phx-value-field={to_string(@nested_field.name)}
               phx-value-index={to_string(idx)}
               phx-target={@target}
-              class="text-red-600 hover:text-red-800 text-sm"
+              class={nested_remove_class()}
             >
               {@remove_label}
             </button>
           </div>
-          <div class="grid md:grid-cols-2 gap-3">
+          <div class={nested_grid_class()}>
             <%= for sub_field <- @nested_fields do %>
               <% sf = extract_sub_field_info(sub_field, @parent_readonly, @state) %>
               <% sf_errors = Map.get(entry_errors, sf.name, []) %>
@@ -1410,7 +1417,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         phx-click="add_nested"
         phx-value-field={to_string(@nested_field.name)}
         phx-target={@target}
-        class="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:border-gray-400 hover:text-gray-700"
+        class={nested_add_class()}
       >
         {@add_label}
       </button>
@@ -1421,244 +1428,159 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   defp render_constrained_sub_field(assigns, sf, idx, entry, errors) do
     field_name = assigns.nested_field.name
     form_name = assigns.form_name
-    name = "#{form_name}[#{field_name}][#{idx}][#{sf.name}]"
-    id = "#{assigns.static.id}_#{form_name}_#{field_name}_#{idx}_#{sf.name}"
-    value = get_entry_value(entry, sf.name)
 
-    assigns =
-      assigns
-      |> assign(:sf, sf)
-      |> assign(:input_name, name)
-      |> assign(:input_id, id)
-      |> assign(:input_value, value)
-      |> assign(:sub_errors, errors)
-
-    if not sf.visible do
-      ~H""
-    else
-      base_class =
-        "block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-
-      error_ring = if(errors != [], do: " ring-1 ring-red-500", else: "")
-
-      input_class =
-        if sf.class do
-          "#{base_class} #{sf.class}#{error_ring}"
-        else
-          "#{base_class}#{error_ring}"
-        end
-
-      assigns =
-        assigns
-        |> assign(:input_class, input_class)
-
-      ~H"""
-      <div class={nested_span_class(@sf.span)}>
-        <label class="block text-xs font-medium text-gray-500 mb-1">
-          {@sf.label}
-          <span :if={@sf.required} class="text-red-500">*</span>
-        </label>
-        <%= case @sf.type do %>
-          <% :textarea -> %>
-            <textarea
-              name={@input_name}
-              id={@input_id}
-              placeholder={@sf.placeholder}
-              rows={@sf.rows || 3}
-              disabled={@sf.readonly}
-              class={@input_class}
-            >{@input_value}</textarea>
-          <% t when t in [:checkbox, :toggle] -> %>
-            <input type="hidden" name={@input_name} value="false" />
-            <input
-              type="checkbox"
-              name={@input_name}
-              id={@input_id}
-              value="true"
-              checked={@input_value in [true, "true"]}
-              disabled={@sf.readonly}
-              class="rounded border-gray-300"
-            />
-          <% :number -> %>
-            <input
-              type="number"
-              name={@input_name}
-              id={@input_id}
-              value={@input_value}
-              placeholder={@sf.placeholder}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-          <% :date -> %>
-            <input
-              type="date"
-              name={@input_name}
-              id={@input_id}
-              value={@input_value}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-          <% :datetime -> %>
-            <input
-              type="datetime-local"
-              name={@input_name}
-              id={@input_id}
-              value={@input_value}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-          <% :json -> %>
-            <textarea
-              name={@input_name}
-              id={@input_id}
-              placeholder={@sf.placeholder}
-              rows={@sf.rows || 3}
-              disabled={@sf.readonly}
-              class={@input_class}
-            >{encode_json_value(@input_value)}</textarea>
-          <% :select -> %>
-            <select
-              name={@input_name}
-              id={@input_id}
-              disabled={@sf.readonly}
-              class={@input_class}
-            >
-              <option value="">{@sf.placeholder}</option>
-              <%= for opt <- @sf.options || [] do %>
-                <% {opt_label, opt_val} = if is_tuple(opt), do: opt, else: {opt, opt} %>
-                <option value={opt_val} selected={to_string(opt_val) == to_string(@input_value)}>
-                  {opt_label}
-                </option>
-              <% end %>
-            </select>
-          <% _ -> %>
-            <input
-              type="text"
-              name={@input_name}
-              id={@input_id}
-              value={@input_value}
-              placeholder={@sf.placeholder}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-        <% end %>
-        <div :if={@sub_errors != []} class="mt-1">
-          <p :for={err <- @sub_errors} class="text-sm text-red-600">{err}</p>
-        </div>
-      </div>
-      """
-    end
+    render_sub_field(assigns, sf,
+      name: "#{form_name}[#{field_name}][#{idx}][#{sf.name}]",
+      id: "#{assigns.static.id}_#{form_name}_#{field_name}_#{idx}_#{sf.name}",
+      value: get_entry_value(entry, sf.name),
+      errors: errors
+    )
   end
 
   defp render_nested_sub_field(assigns, nested_form, sf) do
+    render_sub_field(assigns, sf,
+      name: nested_form[sf.name].name,
+      id: nested_form[sf.name].id,
+      value: nested_form[sf.name].value,
+      errors: []
+    )
+  end
+
+  # ONE SUB-FIELD, DRAWN BY THE ADAPTER — the same route a top-level field takes.
+  #
+  # Both nested paths used to hand-roll `<input class="rounded-md border-gray-300
+  # focus:ring-indigo-500 sm:text-sm">`, so a sub-field could not follow the resource's
+  # `ui_adapter` and stayed on Tailwind's cool-grey defaults however the form around it was
+  # styled. Dispatching through `dynamic_component/1` means a custom adapter restyles a nested
+  # field for free, exactly as it already restyles every other input.
+  defp render_sub_field(assigns, sf, opts) do
+    ui = assigns.static.ui_adapter
+
     assigns =
       assigns
       |> assign(:sf, sf)
-      |> assign(:nf, nested_form)
+      |> assign(:ui, ui)
+      |> assign(:input_name, opts[:name])
+      |> assign(:input_id, opts[:id])
+      |> assign(:input_value, opts[:value])
+      |> assign(:sub_errors, opts[:errors] || [])
 
-    if not sf.visible do
-      ~H""
-    else
-      base_class =
-        "block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+    cond do
+      not sf.visible ->
+        ~H""
 
-      input_class = if(sf.class, do: "#{base_class} #{sf.class}", else: base_class)
-      assigns = assign(assigns, :input_class, input_class)
+      sf.type == :hidden ->
+        ~H"""
+        <input type="hidden" name={@input_name} id={@input_id} value={@input_value} />
+        """
 
-      ~H"""
-      <div class={nested_span_class(@sf.span)}>
-        <label class="block text-xs font-medium text-gray-500 mb-1">
-          {@sf.label}
-          <span :if={@sf.required} class="text-red-500">*</span>
-        </label>
-        <%= case @sf.type do %>
-          <% :textarea -> %>
-            <textarea
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              placeholder={@sf.placeholder}
-              rows={@sf.rows || 3}
-              disabled={@sf.readonly}
-              class={@input_class}
-            >{@nf[@sf.name].value}</textarea>
-          <% t when t in [:checkbox, :toggle] -> %>
-            <input type="hidden" name={@nf[@sf.name].name} value="false" />
-            <input
-              type="checkbox"
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              value="true"
-              checked={@nf[@sf.name].value in [true, "true"]}
-              disabled={@sf.readonly}
-              class="rounded border-gray-300"
-            />
-          <% :number -> %>
-            <input
-              type="number"
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              value={@nf[@sf.name].value}
-              placeholder={@sf.placeholder}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-          <% :date -> %>
-            <input
-              type="date"
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              value={@nf[@sf.name].value}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-          <% :datetime -> %>
-            <input
-              type="datetime-local"
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              value={@nf[@sf.name].value}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-          <% :hidden -> %>
-            <input
-              type="hidden"
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              value={@nf[@sf.name].value}
-            />
-          <% :select -> %>
-            <select
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              disabled={@sf.readonly}
-              class={@input_class}
-            >
-              <option value="">{@sf.placeholder}</option>
-              <%= for opt <- @sf.options || [] do %>
-                <% {opt_label, opt_val} = if is_tuple(opt), do: opt, else: {opt, opt} %>
-                <option
-                  value={opt_val}
-                  selected={to_string(opt_val) == to_string(@nf[@sf.name].value)}
-                >
-                  {opt_label}
-                </option>
-              <% end %>
-            </select>
-          <% _ -> %>
-            <input
-              type="text"
-              name={@nf[@sf.name].name}
-              id={@nf[@sf.name].id}
-              value={@nf[@sf.name].value}
-              placeholder={@sf.placeholder}
-              disabled={@sf.readonly}
-              class={@input_class}
-            />
-        <% end %>
-      </div>
-      """
+      true ->
+        ~H"""
+        <div class={nested_span_class(@sf.span)}>
+          <label class={nested_label_class()} for={@input_id}>
+            {@sf.label}<span :if={@sf.required} class="ml-0.5 text-[#e5484d]">*</span>
+          </label>
+          <div class={@sub_errors != [] && "rounded-[11px] ring-1 ring-[#f0dcd8]"}>
+            {sub_field_input(assigns)}
+          </div>
+          <p :for={err <- @sub_errors} class={nested_error_class()}>{err}</p>
+        </div>
+        """
     end
+  end
+
+  # The sub-field types the DSL allows, each mapped to the adapter component that draws it.
+  # `MishkaGervaz.Form.Entities.NestedField` accepts a narrower set than a top-level field, so
+  # this list is the whole of it — anything else falls through to a text input.
+  defp sub_field_input(%{sf: %{type: :textarea}} = assigns) do
+    assigns
+    |> sub_field_base()
+    |> assign(:function, :textarea)
+    |> assign(:rows, assigns.sf.rows || 3)
+    |> assign(:placeholder, assigns.sf.placeholder)
+    |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :json}} = assigns) do
+    assigns
+    |> sub_field_base()
+    |> assign(:function, :json_editor)
+    |> assign(:rows, assigns.sf.rows || 3)
+    |> assign(:value, encode_json_value(assigns.input_value))
+    |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :select}} = assigns) do
+    assigns
+    |> sub_field_base()
+    |> assign(:function, :select)
+    |> assign(:options, assigns.sf.options || [])
+    |> assign(:prompt, assigns.sf.placeholder)
+    |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :checkbox}} = assigns) do
+    assigns
+    |> sub_field_base()
+    |> assign(:function, :checkbox)
+    |> assign(:value, "true")
+    |> assign(:checked, assigns.input_value in [true, "true"])
+    |> assign(:hidden_input, true)
+    |> assign(:label, nil)
+    |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :toggle}} = assigns) do
+    assigns
+    |> sub_field_base()
+    |> assign(:function, :toggle_input)
+    |> assign(:checked, assigns.input_value in [true, "true"])
+    |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :number}} = assigns) do
+    assigns
+    |> sub_field_base()
+    |> assign(:function, :number_input)
+    |> assign(:placeholder, assigns.sf.placeholder)
+    |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :range}} = assigns) do
+    assigns |> sub_field_base() |> assign(:function, :range_input) |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :date}} = assigns) do
+    assigns |> sub_field_base() |> assign(:function, :date_input) |> dynamic_component()
+  end
+
+  defp sub_field_input(%{sf: %{type: :datetime}} = assigns) do
+    assigns |> sub_field_base() |> assign(:function, :datetime_input) |> dynamic_component()
+  end
+
+  defp sub_field_input(assigns) do
+    assigns
+    |> sub_field_base()
+    |> assign(:function, :text_input)
+    |> assign(:placeholder, assigns.sf.placeholder)
+    |> dynamic_component()
+  end
+
+  # A sub-field's `ui do class … end` REPLACES the adapter's input class rather than being appended
+  # to it — the adapter owns the default, and a caller that names a class is saying it wants its
+  # own. Omitted (the usual case) the key never reaches the component, so `assign_new` supplies the
+  # adapter's own styling.
+  defp sub_field_base(assigns) do
+    base = %{
+      module: assigns.ui,
+      name: assigns.input_name,
+      id: assigns.input_id,
+      value: assigns.input_value,
+      disabled: assigns.sf.readonly,
+      readonly: assigns.sf.readonly
+    }
+
+    if assigns.sf.class, do: Map.put(base, :class, assigns.sf.class), else: base
   end
 
   @doc false
@@ -2033,7 +1955,10 @@ defmodule MishkaGervaz.Form.Templates.Standard do
 
   defp render_upload_errors(assigns) do
     ~H"""
-    <div :for={err <- upload_errors(@upload)} class="text-sm text-red-600 flex items-center gap-1">
+    <div
+      :for={err <- upload_errors(@upload)}
+      class="flex items-center gap-1 text-[11.5px] font-medium text-[#c0392b]"
+    >
       <span class="hero-exclamation-circle w-4 h-4 shrink-0"></span>
       {UploadHelpers.upload_error_to_string(err)}
     </div>
@@ -2066,6 +1991,43 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       steps -> List.last(steps).name == current
     end
   end
+
+  # THE NESTED-ENTRY CHROME, named once instead of twice. Both `render_embedded_nested/4` and
+  # `render_constrained_nested/4` draw the same card, the same title, the same remove link, the same
+  # grid and the same add button, and they held two identical copies of every class string — so a
+  # change to the look had to be made twice or the two drifted apart.
+  #
+  # Having one copy is what made the restyle possible: these carried the pre-redesign look
+  # (`border rounded bg-gray-50`, a red text link, a grey dashed button) while every field around
+  # them had moved to the warm palette, which is what a page's SEO Tags block looked like.
+  defp nested_card_class, do: "rounded-[14px] border border-[#ecebe6] bg-white p-4"
+
+  defp nested_title_class, do: "text-[12px] font-bold text-[#3a382f]"
+
+  defp nested_remove_class,
+    do:
+      "inline-flex h-7 shrink-0 items-center rounded-[8px] px-[9px] text-[11.5px] font-semibold " <>
+        "text-[#c0392b] transition-colors hover:bg-[#fdf4f3]"
+
+  defp nested_grid_class, do: "grid gap-x-4 gap-y-[14px] md:grid-cols-2"
+
+  # Dashed, because it adds a row rather than submitting one — the same signal the dropzone gives.
+  defp nested_add_class,
+    do:
+      "inline-flex h-10 w-full items-center justify-center gap-[7px] rounded-[11px] border " <>
+        "border-dashed border-[#dcdbf5] bg-[#f7f6fd] text-[12px] font-semibold text-[#4f4bcc] " <>
+        "transition-colors hover:border-[#c3c1f0] hover:bg-[#f2f1fc]"
+
+  # The same label a top-level field wears, from the adapter's `field_wrapper/1`.
+  defp nested_label_class, do: "mb-[7px] block text-[10.5px] font-bold text-[#8a877f]"
+
+  defp nested_error_class, do: "mt-[6px] text-[11.5px] font-medium text-[#c0392b]"
+
+  # ABSENT, NOT NIL. The adapters fill their own defaults with `assign_new/3`, which only fires when
+  # the key is missing — assigning `nil` here would silence every one of those defaults instead of
+  # deferring to them.
+  defp put_present(assigns, _key, nil), do: assigns
+  defp put_present(assigns, key, value), do: assign(assigns, key, value)
 
   defp get_in_map(map, keys) do
     Enum.reduce_while(keys, map, fn key, acc ->
