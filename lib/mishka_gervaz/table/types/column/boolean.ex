@@ -9,7 +9,7 @@ defmodule MishkaGervaz.Table.Types.Column.Boolean do
   - `:true_icon` - Icon for true value (default: "hero-check")
   - `:false_icon` - Icon for false value (default: "hero-x-mark")
   - `:true_class` - CSS class for true (default: "text-green-600")
-  - `:false_class` - CSS class for false (default: "text-red-600")
+  - `:false_class` - CSS class for false (default: "text-[#c0392b]")
   - `:true_label` - Text label for true (alternative to icon)
   - `:false_label` - Text label for false (alternative to icon)
 

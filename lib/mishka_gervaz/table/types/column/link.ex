@@ -9,7 +9,7 @@ defmodule MishkaGervaz.Table.Types.Column.Link do
   - `:path_fn` - Function to generate path from record (required for navigation)
     Example: `fn record -> "/users/\#{record.id}" end`
   - `:external` - Open in new tab (default: false)
-  - `:class` - CSS class for link (default: "text-blue-600 hover:text-blue-800")
+  - `:class` - CSS class for link (default: "text-[#4f4bcc] hover:text-[#3a3f8f]")
   - `:label_fn` - Function to generate label (default: uses column value)
 
   See `MishkaGervaz.Table.Types.Column` (registry),

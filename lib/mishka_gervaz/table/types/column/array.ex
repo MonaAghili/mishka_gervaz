@@ -9,7 +9,7 @@ defmodule MishkaGervaz.Table.Types.Column.Array do
   - `:separator` - Separator between items (default: ", ")
   - `:max_items` - Maximum items to show (default: nil, show all)
   - `:as_badges` - Render each item as a badge (default: false)
-  - `:badge_class` - CSS class for badges (default: "bg-gray-100 text-gray-800")
+  - `:badge_class` - CSS class for badges (default: "bg-[#f2f1ec] text-[#3a382f]")
 
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and

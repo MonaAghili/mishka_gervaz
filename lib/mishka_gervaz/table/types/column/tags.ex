@@ -33,7 +33,7 @@ defmodule MishkaGervaz.Table.Types.Column.Tags do
       column :dependencies do
         ui do
           type :tags
-          extra %{max_items: 3, badge_class: "rounded-full bg-blue-50 px-2 py-0.5 text-blue-700"}
+          extra %{max_items: 3, badge_class: "rounded-full bg-[#f2f1fc] px-2 py-0.5 text-[#4f4bcc]"}
         end
       end
 

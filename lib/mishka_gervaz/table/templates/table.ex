@@ -221,7 +221,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
             id={@static.id <> "-infinite-trigger"}
             phx-viewport-bottom={@viewport_event}
             phx-target={@myself}
-            class="py-6 flex items-center justify-center gap-2 text-sm text-gray-400"
+            class="flex items-center justify-center gap-2 py-6 text-[12.5px] font-medium text-[#a8a5a0]"
           >
             <span class="hero-arrow-down-circle w-4 h-4 animate-bounce"></span>
             <span>{dgettext("mishka_gervaz", "Scroll for more")}</span>
@@ -832,9 +832,9 @@ defmodule MishkaGervaz.Table.Templates.Table do
 
     ~H"""
     <div class="py-12 text-center">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent">
+      <div class="inline-block size-8 animate-spin rounded-full border-4 border-[#dcdbf5] border-t-[#5b57d6]">
       </div>
-      <p class="mt-2 text-gray-500">{@loading_text}</p>
+      <p class="mt-2 text-[12.5px] font-medium text-[#8a877f]">{@loading_text}</p>
     </div>
     """
   end
@@ -853,9 +853,11 @@ defmodule MishkaGervaz.Table.Templates.Table do
 
       ~H"""
       <div class="py-12 text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent">
+        <div class="inline-block size-8 animate-spin rounded-full border-4 border-[#dcdbf5] border-t-[#5b57d6]">
         </div>
-        <p class="mt-2 text-gray-500">{@loading_text || dgettext("mishka_gervaz", "Loading...")}</p>
+        <p class="mt-2 text-[12.5px] font-medium text-[#8a877f]">
+          {@loading_text || dgettext("mishka_gervaz", "Loading...")}
+        </p>
       </div>
       """
     end
@@ -868,9 +870,10 @@ defmodule MishkaGervaz.Table.Templates.Table do
     ~H"""
     <div class="absolute inset-0 bg-white/70 flex items-center justify-center z-20 min-h-[200px]">
       <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-md">
-        <div class="inline-block animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent">
+        <div class="inline-block size-5 animate-spin rounded-full border-2 border-[#dcdbf5] border-t-[#5b57d6]">
         </div>
-        <span class="text-gray-600">{@loading_text || dgettext("mishka_gervaz", "Loading...")}</span>
+        <span class="text-[12.5px] font-medium text-[#5c5a54]">{@loading_text ||
+          dgettext("mishka_gervaz", "Loading...")}</span>
       </div>
     </div>
     """
@@ -891,13 +894,13 @@ defmodule MishkaGervaz.Table.Templates.Table do
     <span class="ml-1 inline-flex items-center">
       <%= cond do %>
         <% @direction == :asc -> %>
-          <span class="text-blue-500">&#9650;</span>
+          <span class="text-[#5b57d6]">&#9650;</span>
         <% @direction == :desc -> %>
-          <span class="text-blue-500">&#9660;</span>
+          <span class="text-[#5b57d6]">&#9660;</span>
         <% true -> %>
-          <span class="text-gray-300">&#9650;</span>
+          <span class="text-[#c3c0b8]">&#9650;</span>
       <% end %>
-      <span :if={@position} class="text-xs text-blue-500 ml-0.5">{@position}</span>
+      <span :if={@position} class="ml-0.5 text-[11px] text-[#5b57d6]">{@position}</span>
     </span>
     """
   end

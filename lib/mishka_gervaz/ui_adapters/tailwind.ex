@@ -139,7 +139,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   The same field, for a control that grows down the page instead of holding one line.
 
   A textarea and a JSON editor were the last two still on the pre-redesign look — `rounded-md`,
-  `border-gray-300`, a blue focus ring — so a Description sat in the same form as a Name and did not
+  `border-[#e0ded7]`, a blue focus ring — so a Description sat in the same form as a Name and did not
   look related to it. Everything but the height is shared with `input_class/1`; the height is the
   one thing a multi-line field cannot borrow, since `rows` decides it.
   """
@@ -169,7 +169,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <.render_icon
         :if={@icon}
         name={@icon}
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a5a0] pointer-events-none"
       />
       <select
         name={@name}
@@ -299,7 +299,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         <.render_icon
           :if={@icon}
           name={@icon}
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a5a0] pointer-events-none z-10"
         />
         <input
           type="text"
@@ -410,7 +410,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign(:current_value, current_value)
       |> assign(:selected_label, selected_label)
       |> assign_new(:class, fn ->
-        "rounded border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        "rounded-[10px] border border-[#ecebe6] bg-[#faf9f6] px-3 py-2 text-[12.5px] outline-none focus:border-[#c3c1f0] focus:bg-white focus:shadow-[0_0_0_3px_rgba(91,87,214,0.1)]"
       end)
       |> assign_new(:placeholder, fn -> "Select..." end)
       |> assign_new(:has_more?, fn -> false end)
@@ -437,10 +437,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         phx-target={@myself}
         phx-value-filter={@filter_name}
       >
-        <span class={[!@selected_label && "text-gray-400"]}>
+        <span class={[!@selected_label && "text-[#a8a5a0]"]}>
           {@selected_label || @placeholder}
         </span>
-        <span class="ml-2 text-gray-400">
+        <span class="ml-2 text-[#a8a5a0]">
           <.render_icon
             name="hero-chevron-down"
             class={["w-4 h-4 transition-transform", @dropdown_open? && "rotate-180"]}
@@ -542,7 +542,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         <.render_icon
           :if={@icon}
           name={@icon}
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a5a0] pointer-events-none z-10"
         />
         <input
           type="text"
@@ -580,7 +580,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           type="button"
           class={[
             "flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-medium text-[#3a382f] hover:bg-[#f7f6f3]",
-            selected?(value, @selected_set) && "bg-blue-50"
+            selected?(value, @selected_set) && "bg-[#f2f1fc]"
           ]}
           phx-click="relation_toggle"
           phx-target={@myself}
@@ -628,7 +628,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     ~H"""
     <label class="flex items-center gap-[9px]">
-      <.render_icon :if={@icon} name={@icon} class="w-4 h-4 text-gray-400" />
+      <.render_icon :if={@icon} name={@icon} class="w-4 h-4 text-[#a8a5a0]" />
       <input :if={@hidden_input} type="hidden" name={@name} value="false" />
       <input
         type="checkbox"
@@ -664,7 +664,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <.render_icon
         :if={@icon}
         name={@icon}
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a5a0]"
       />
       <input
         type="date"
@@ -695,7 +695,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <.render_icon
         :if={@icon}
         name={@icon}
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a5a0]"
       />
       <input
         type="datetime-local"
@@ -729,7 +729,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <.render_icon
         :if={@icon}
         name={@icon}
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a5a0]"
       />
       <input
         type="number"
@@ -903,7 +903,11 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns = assign_new(assigns, :class, fn -> "w-6 h-6" end)
 
     ~H"""
-    <div class={["animate-spin rounded-full border-b-2 border-gray-900", @class]}></div>
+    <div class={[
+      "animate-spin rounded-full border-2 border-[#dcdbf5] border-t-[#5b57d6]",
+      @class
+    ]}>
+    </div>
     """
   end
 
@@ -948,15 +952,15 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:target, fn -> nil end)
 
     ~H"""
-    <div class="p-8 text-center text-red-500">
-      <.render_icon :if={@icon} name={@icon} class="w-12 h-12 mx-auto mb-4" />
-      <div class="text-lg font-semibold">{@message}</div>
+    <div class="p-8 text-center">
+      <.render_icon :if={@icon} name={@icon} class="mx-auto mb-4 size-12 text-[#c0392b]" />
+      <div class="text-[14px] font-bold text-[#8f2c21]">{@message}</div>
       <div :if={@retry_label} class="mt-4">
         <button
           type="button"
           phx-click="reload"
           phx-target={@target}
-          class="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200"
+          class="inline-flex h-9 items-center rounded-[10px] border border-[#f0dcd8] bg-[#fdf3f1] px-[13px] text-[12px] font-semibold text-[#c0392b] transition-colors hover:bg-[#fbe9e7]"
         >
           {@retry_label}
         </button>
@@ -970,7 +974,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
   ## Assigns
     * `:class` - Container CSS class (default: "flex items-center gap-2")
-    * `:separator_class` - Separator text CSS class (default: "text-gray-500")
+    * `:separator_class` - Separator text CSS class (default: "text-[#8a877f]")
     * `:from_input` - Pre-rendered from date input
     * `:to_input` - Pre-rendered to date input
   """
@@ -979,7 +983,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:class, fn -> "flex items-center gap-2" end)
-      |> assign_new(:separator_class, fn -> "text-gray-500" end)
+      |> assign_new(:separator_class, fn -> "text-[#8a877f]" end)
 
     ~H"""
     <div class={@class}>
@@ -1035,7 +1039,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   @impl true
   def table_header(assigns) do
     ~H"""
-    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+    <thead class="text-xs text-[#3a382f] uppercase bg-[#faf9f6]">
       <tr>
         {render_slot(@inner_block)}
       </tr>
@@ -1054,7 +1058,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     ~H"""
     <th
-      class={[@class, @sortable && "cursor-pointer hover:bg-gray-100 select-none"]}
+      class={[@class, @sortable && "cursor-pointer hover:bg-[#f7f6f3] select-none"]}
       phx-click={@sortable && "sort"}
       phx-value-field={@sortable && @field}
       phx-target={@sortable && @target}
@@ -1068,7 +1072,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   def tr(assigns) do
     assigns =
       assigns
-      |> assign_new(:class, fn -> "bg-white border-b hover:bg-gray-50" end)
+      |> assign_new(:class, fn -> "border-b border-[#f0efea] bg-white hover:bg-[#f7f6f3]" end)
 
     ~H"""
     <tr id={@id} class={@class}>
@@ -1133,14 +1137,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
   ## Assigns
     * `:text` - Text to show (default: "-")
-    * `:class` - CSS class (default: "text-gray-400")
+    * `:class` - CSS class (default: "text-[#a8a5a0]")
   """
   @impl true
   def cell_empty(assigns) do
     assigns =
       assigns
       |> assign_new(:text, fn -> "-" end)
-      |> assign_new(:class, fn -> "text-gray-400" end)
+      |> assign_new(:class, fn -> "text-[#a8a5a0]" end)
 
     ~H"""
     <span class={@class}>{@text}</span>
@@ -1155,7 +1159,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     * `:title` - Optional tooltip (for truncated text)
     * `:class` - CSS class
     * `:suffix` - Optional suffix text (with different styling)
-    * `:suffix_class` - CSS class for suffix (default: "text-gray-500")
+    * `:suffix_class` - CSS class for suffix (default: "text-[#8a877f]")
   """
   @impl true
   def cell_text(assigns) do
@@ -1164,7 +1168,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:class, fn -> nil end)
       |> assign_new(:title, fn -> nil end)
       |> assign_new(:suffix, fn -> nil end)
-      |> assign_new(:suffix_class, fn -> "text-gray-500" end)
+      |> assign_new(:suffix_class, fn -> "text-[#8a877f]" end)
 
     ~H"""
     <span class={@class} title={@title}>
@@ -1589,7 +1593,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:label, fn -> "Clear filters" end)
-      |> assign_new(:class, fn -> "text-sm text-gray-500 hover:text-gray-700 underline" end)
+      |> assign_new(:class, fn -> "text-sm text-[#8a877f] hover:text-[#3a382f] underline" end)
 
     ~H"""
     <button type="reset" name="reset" class={@class}>
@@ -2115,7 +2119,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         {@label}
         <span :if={@required} class="ml-0.5 text-[#e5484d]">*</span>
       </label>
-      <div class={[@has_errors && "ring-1 ring-red-500 rounded-md"]}>
+      <div class={[@has_errors && "rounded-[11px] ring-1 ring-[#f0dcd8]"]}>
         {render_slot(@inner_block)}
       </div>
       <.field_error :if={@has_errors} errors={@errors} />
@@ -2138,20 +2142,24 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <%= if @collapsible do %>
         <legend class="px-2">
           <details open={!@collapsed}>
-            <summary class="cursor-pointer text-sm font-semibold text-gray-900 select-none">
+            <summary class="cursor-pointer select-none text-[13px] font-bold text-[#17161a]">
               {@label}
             </summary>
-            <p :if={@description} class="mt-1 text-sm text-gray-500">{@description}</p>
+            <p :if={@description} class="mt-1 text-[12px] font-medium text-[#8a877f]">
+              {@description}
+            </p>
             <div class="mt-4 space-y-4">
               {render_slot(@inner_block)}
             </div>
           </details>
         </legend>
       <% else %>
-        <legend :if={@label} class="px-2 text-sm font-semibold text-gray-900">
+        <legend :if={@label} class="px-2 text-[13px] font-bold text-[#17161a]">
           {@label}
         </legend>
-        <p :if={@description} class="mt-1 text-sm text-gray-500">{@description}</p>
+        <p :if={@description} class="mt-1 text-[12px] font-medium text-[#8a877f]">
+          {@description}
+        </p>
         <div class="mt-4 space-y-4">
           {render_slot(@inner_block)}
         </div>
@@ -2222,7 +2230,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:submit_label, fn -> "Submit" end)
       |> assign_new(:phx_target, fn -> nil end)
       |> assign_new(:class, fn ->
-        "flex items-center justify-between pt-6 border-t border-gray-200"
+        "flex items-center justify-between border-t border-[#ecebe6] pt-6"
       end)
 
     ~H"""
@@ -2232,20 +2240,17 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         type="button"
         phx-click="prev_step"
         phx-target={@phx_target}
-        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
+        class={secondary_button_class()}
       >
-        <.render_icon name="hero-arrow-left" class="w-4 h-4" />
+        <.render_icon name="hero-arrow-left" class="size-4" />
         {@prev_label}
       </button>
       <div :if={!@can_go_back} />
 
       <%= if @is_last_step do %>
-        <button
-          type="submit"
-          class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-        >
+        <button type="submit" class={primary_button_class(true)}>
           {@submit_label}
-          <.render_icon name="hero-check" class="w-4 h-4" />
+          <.render_icon name="hero-check" class="size-4" />
         </button>
       <% else %>
         <button
@@ -2253,19 +2258,44 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           phx-click="next_step"
           phx-target={@phx_target}
           disabled={!@can_advance}
-          class={[
-            "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors",
-            @can_advance &&
-              "bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-            !@can_advance && "bg-gray-400 cursor-not-allowed"
-          ]}
+          class={primary_button_class(@can_advance)}
         >
           {@next_label}
-          <.render_icon name="hero-arrow-right" class="w-4 h-4" />
+          <.render_icon name="hero-arrow-right" class="size-4" />
         </button>
       <% end %>
     </div>
     """
+  end
+
+  @doc """
+  The form's primary button — the same gradient the submit row wears.
+
+  Public so a template drawing its own navigation lands on the one shape rather than inventing a
+  second primary button beside it.
+  """
+  @spec primary_button_class(boolean()) :: list()
+  def primary_button_class(enabled?) do
+    [
+      "inline-flex h-[42px] items-center gap-2 rounded-[11px] px-[18px] text-[12.5px] font-bold",
+      "text-white transition-opacity",
+      if(enabled?,
+        do:
+          "bg-[linear-gradient(140deg,#6d69e6,#4f4bcc)] shadow-[0_5px_14px_rgba(79,75,204,0.28)] hover:opacity-95",
+        else: "cursor-not-allowed bg-[#c3c0b8]"
+      )
+    ]
+  end
+
+  @doc """
+  The bordered companion to `primary_button_class/1` — Back, Cancel, and anything else that sits
+  beside the primary action without competing with it.
+  """
+  @spec secondary_button_class() :: String.t()
+  def secondary_button_class do
+    "inline-flex h-[42px] items-center gap-[7px] rounded-[11px] border border-[#ecebe6] " <>
+      "bg-white px-[15px] text-[12.5px] font-semibold text-[#5c5a54] transition-colors " <>
+      "hover:bg-[#f7f6f3]"
   end
 
   @impl true
@@ -2386,7 +2416,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
           if(@checked, do: "bg-[#5b57d6]", else: "bg-[#dcdad2]")
         ]} />
         <div class={[
-          "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out",
+          "absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-[0_1px_2px_rgba(30,28,24,0.12)] transition-transform duration-200 ease-in-out",
           if(@checked, do: "translate-x-5", else: "translate-x-0")
         ]} />
       </div>
@@ -2421,7 +2451,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       />
       <span
         :if={@show_value}
-        class="text-sm font-medium text-gray-700 tabular-nums min-w-[3ch] text-right"
+        class="text-sm font-medium text-[#3a382f] tabular-nums min-w-[3ch] text-right"
       >
         {@value}
       </span>
@@ -2490,7 +2520,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     ~H"""
     <div class={@class}>
       <div :if={@label} class="flex items-center justify-between">
-        <h4 class="text-sm font-semibold text-gray-900">{@label}</h4>
+        <h4 class="text-sm font-semibold text-[#17161a]">{@label}</h4>
       </div>
       <div class="space-y-3">
         {render_slot(@inner_block)}
@@ -2522,7 +2552,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     ~H"""
     <div class={@class}>
       <div :if={@label} class="flex items-center justify-between">
-        <h4 class="text-sm font-semibold text-gray-900">{@label}</h4>
+        <h4 class="text-sm font-semibold text-[#17161a]">{@label}</h4>
       </div>
       <div class="space-y-2">
         {render_slot(@inner_block)}
@@ -2579,7 +2609,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
             phx-value-field={@field_name}
             phx-value-index={idx}
             phx-target={@target}
-            class="inline-flex items-center p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+            class="inline-flex items-center rounded-[8px] p-1.5 text-[#a8a5a0] transition-colors hover:bg-[#fdf4f3] hover:text-[#c0392b]"
             title={@remove_label}
           >
             <.render_icon name="hero-x-mark" class="w-5 h-5" />
@@ -2633,7 +2663,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <.render_icon
         :if={@icon}
         name={@icon}
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a5a0]"
       />
       <input
         type="text"
@@ -2650,7 +2680,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       />
       <div
         id={@dropdown_id}
-        class="hidden absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md bg-white shadow-lg ring-1 ring-black/5"
+        class="absolute z-50 mt-1 hidden max-h-60 w-full overflow-auto rounded-[11px] border border-[#ecebe6] bg-white shadow-[0_10px_30px_rgba(23,22,26,0.08)]"
       >
         <%= for {label, value} <- @options do %>
           <button
@@ -2662,7 +2692,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
               )
               |> JS.hide(to: "##{@dropdown_id}")
             }
-            class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+            class="block w-full px-3 py-2 text-left text-[12.5px] font-medium text-[#3a382f] transition-colors hover:bg-[#f2f1fc] hover:text-[#4f4bcc]"
           >
             {label}
           </button>
@@ -2681,8 +2711,11 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     ~H"""
     <div :if={@errors != []} class={@class}>
-      <p :for={error <- @errors} class="text-sm text-red-600 flex items-center gap-1">
-        <.render_icon name="hero-exclamation-circle" class="w-4 h-4 shrink-0" />
+      <p
+        :for={error <- @errors}
+        class="flex items-center gap-1 text-[11.5px] font-medium text-[#c0392b]"
+      >
+        <.render_icon name="hero-exclamation-circle" class="size-4 shrink-0" />
         {error}
       </p>
     </div>
@@ -2696,7 +2729,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:accept, fn -> nil end)
       |> assign_new(:max_entries, fn -> 1 end)
       |> assign_new(:class, fn ->
-        "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        "block w-full text-[12.5px] font-medium text-[#8a877f] " <>
+          "file:mr-4 file:rounded-[10px] file:border file:border-[#dcdbf5] file:bg-[#f2f1fc] " <>
+          "file:px-[13px] file:py-[9px] file:text-[12px] file:font-semibold file:text-[#4f4bcc] " <>
+          "hover:file:bg-[#e9e7fb]"
       end)
 
     ~H"""
@@ -2704,10 +2740,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       <div class={@class}>
         {render_slot(@inner_block)}
       </div>
-      <p :if={@accept} class="text-xs text-gray-500">
+      <p :if={@accept} class="text-[11px] font-medium text-[#a8a5a0]">
         Accepted: {format_accept(@accept)}
       </p>
-      <p :if={@max_entries > 1} class="text-xs text-gray-500">
+      <p :if={@max_entries > 1} class="text-[11px] font-medium text-[#a8a5a0]">
         Up to {@max_entries} files
       </p>
     </div>
@@ -2721,7 +2757,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     assigns =
       assigns
       |> assign_new(:class, fn ->
-        "flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 group"
+        "group flex items-center gap-3 rounded-[12px] border border-[#ecebe6] bg-[#faf9f6] p-3"
       end)
       |> assign_new(:filename, fn -> file[:filename] || file[:name] || "File" end)
       |> assign_new(:url, fn -> file[:url] end)
@@ -2732,18 +2768,18 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     ~H"""
     <div class={@class}>
-      <div class="w-14 h-14 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+      <div class="size-14 flex-shrink-0 overflow-hidden rounded-[10px] bg-[#f0efea]">
         <%= if @is_image && @url do %>
-          <img src={@url} alt={@filename} class="w-full h-full object-cover" />
+          <img src={@url} alt={@filename} class="size-full object-cover" />
         <% else %>
-          <div class="flex items-center justify-center w-full h-full">
-            <.render_icon name={file_type_icon(@format)} class="w-7 h-7 text-gray-400" />
+          <div class="grid size-full place-items-center">
+            <.render_icon name={file_type_icon(@format)} class="size-7 text-[#c3c0b8]" />
           </div>
         <% end %>
       </div>
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-medium text-gray-900 truncate">{@filename}</p>
-        <p :if={@size || @format} class="text-xs text-gray-500">
+        <p class="truncate text-[13px] font-semibold text-[#17161a]">{@filename}</p>
+        <p :if={@size || @format} class="text-[11px] font-medium text-[#a8a5a0]">
           <span :if={@format}>{@format}</span>
           <span :if={@size && @format} class="mx-1">&middot;</span>
           <span :if={@size}>{format_filesize(@size)}</span>
@@ -2755,7 +2791,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
         phx-value-upload={@upload_name}
         phx-value-file-id={@file_id}
         phx-target={@phx_target}
-        class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+        class="flex-shrink-0 rounded-[8px] p-1.5 text-[#a8a5a0] opacity-0 transition-colors hover:bg-[#fdf4f3] hover:text-[#c0392b] group-hover:opacity-100"
         title="Remove file"
       >
         <.render_icon name="hero-x-mark" class="w-5 h-5" />
@@ -2796,12 +2832,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   defp selected?(value, selected_set), do: to_string(value) in selected_set
 
   defp checkbox_class(value, selected_set) do
-    base = "w-4 h-4 border rounded flex items-center justify-center"
+    base = "grid size-4 place-items-center rounded-[5px] border transition-colors"
 
     if selected?(value, selected_set) do
-      "#{base} bg-blue-500 border-blue-500 text-white"
+      "#{base} border-[#5b57d6] bg-[#5b57d6] text-white"
     else
-      "#{base} border-gray-300"
+      "#{base} border-[#dcdad2] bg-white"
     end
   end
 
@@ -2864,7 +2900,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   defp icon_class(:boolean_false), do: "size-5 text-[#c0473d]"
   defp icon_class(_), do: "size-5"
 
-  defp cell_datetime_class(:relative), do: "text-gray-600"
+  defp cell_datetime_class(:relative), do: "text-[#5c5a54]"
   defp cell_datetime_class(_), do: nil
 
   defp clear_selection_js(myself, scope) do
@@ -2880,24 +2916,24 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   end
 
   defp step_circle_class(:complete, _current),
-    do: "bg-blue-600 border-blue-600 text-white"
+    do: "border-[#5b57d6] bg-[#5b57d6] text-white"
 
   defp step_circle_class(_status, true),
-    do: "border-blue-600 text-blue-600 bg-white"
+    do: "border-[#5b57d6] bg-white text-[#4f4bcc]"
 
   defp step_circle_class(:error, _current),
-    do: "border-red-500 text-red-500 bg-white"
+    do: "border-[#e5484d] bg-white text-[#c0392b]"
 
   defp step_circle_class(_status, false),
-    do: "border-gray-300 text-gray-400 bg-white"
+    do: "border-[#e0ded7] bg-white text-[#a8a5a0]"
 
-  defp step_connector_class(:complete), do: "bg-blue-600"
-  defp step_connector_class(_), do: "bg-gray-300"
+  defp step_connector_class(:complete), do: "bg-[#5b57d6]"
+  defp step_connector_class(_), do: "bg-[#e0ded7]"
 
-  defp step_label_class(:complete, _current), do: "text-blue-600 font-medium"
-  defp step_label_class(_status, true), do: "text-blue-600 font-medium"
-  defp step_label_class(:error, _current), do: "text-red-500"
-  defp step_label_class(_, _), do: "text-gray-500"
+  defp step_label_class(:complete, _current), do: "font-semibold text-[#4f4bcc]"
+  defp step_label_class(_status, true), do: "font-semibold text-[#4f4bcc]"
+  defp step_label_class(:error, _current), do: "font-semibold text-[#c0392b]"
+  defp step_label_class(_, _), do: "font-medium text-[#8a877f]"
 
   defp format_accept(nil), do: ""
   defp format_accept(accept) when is_binary(accept), do: accept
@@ -2919,10 +2955,10 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   defp render_spinner_loading(assigns) do
     ~H"""
     <div class={["py-12 text-center", @class]}>
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent">
+      <div class="inline-block size-8 animate-spin rounded-full border-4 border-[#dcdbf5] border-t-[#5b57d6]">
       </div>
-      <p :if={@text} class="mt-2 text-gray-500">{@text}</p>
-      <p :if={!@text} class="mt-2 text-gray-500">Loading...</p>
+      <p :if={@text} class="mt-2 text-[#8a877f]">{@text}</p>
+      <p :if={!@text} class="mt-2 text-[#8a877f]">Loading...</p>
     </div>
     """
   end
@@ -2932,24 +2968,24 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     <div class={["space-y-3 p-4", @class]}>
       <div class="animate-pulse space-y-4">
         <div class="flex items-center space-x-4">
-          <div class="rounded-full bg-gray-200 h-10 w-10"></div>
+          <div class="rounded-full bg-[#efeee9] h-10 w-10"></div>
           <div class="flex-1 space-y-2">
-            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div class="h-4 bg-[#efeee9] rounded w-3/4"></div>
+            <div class="h-4 bg-[#efeee9] rounded w-1/2"></div>
           </div>
         </div>
-        <div class="h-4 bg-gray-200 rounded"></div>
-        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
-        <div class="h-4 bg-gray-200 rounded w-4/6"></div>
+        <div class="h-4 bg-[#efeee9] rounded"></div>
+        <div class="h-4 bg-[#efeee9] rounded w-5/6"></div>
+        <div class="h-4 bg-[#efeee9] rounded w-4/6"></div>
         <div class="flex items-center space-x-4 pt-2">
-          <div class="rounded-full bg-gray-200 h-10 w-10"></div>
+          <div class="rounded-full bg-[#efeee9] h-10 w-10"></div>
           <div class="flex-1 space-y-2">
-            <div class="h-4 bg-gray-200 rounded w-2/3"></div>
-            <div class="h-4 bg-gray-200 rounded w-1/3"></div>
+            <div class="h-4 bg-[#efeee9] rounded w-2/3"></div>
+            <div class="h-4 bg-[#efeee9] rounded w-1/3"></div>
           </div>
         </div>
-        <div class="h-4 bg-gray-200 rounded w-full"></div>
-        <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+        <div class="h-4 bg-[#efeee9] rounded w-full"></div>
+        <div class="h-4 bg-[#efeee9] rounded w-3/4"></div>
       </div>
     </div>
     """
@@ -2959,12 +2995,12 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     ~H"""
     <div class={["py-12 text-center", @class]}>
       <div class="flex justify-center space-x-2">
-        <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-        <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-        <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+        <div class="size-3 animate-bounce rounded-full bg-[#5b57d6] [animation-delay:-0.3s]"></div>
+        <div class="size-3 animate-bounce rounded-full bg-[#5b57d6] [animation-delay:-0.15s]"></div>
+        <div class="size-3 animate-bounce rounded-full bg-[#5b57d6]"></div>
       </div>
-      <p :if={@text} class="mt-4 text-gray-500">{@text}</p>
-      <p :if={!@text} class="mt-4 text-gray-500">Loading...</p>
+      <p :if={@text} class="mt-4 text-[#8a877f]">{@text}</p>
+      <p :if={!@text} class="mt-4 text-[#8a877f]">Loading...</p>
     </div>
     """
   end
@@ -3003,7 +3039,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     ~H"""
     <div
       class={[
-        "rounded-md border p-4 flex items-start gap-3",
+        "flex items-start gap-3 rounded-[12px] border p-4",
         @tone.wrapper,
         @class
       ]}
@@ -3043,44 +3079,47 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
+  # THE SAME FIVE TONES THE BADGES AND CHIPS WEAR. These were Tailwind's stock `blue-50`/`amber-50`
+  # families — cool where this palette is warm, so a notice inside a form read as belonging to some
+  # other application than the fields it sat between.
   defp alert_tone(:info),
     do: %{
-      wrapper: "bg-blue-50 border-blue-200",
-      icon: "text-blue-500",
-      title: "text-blue-900",
-      body: "text-blue-800"
+      wrapper: "border-[#dcdbf5] bg-[#f2f1fc]",
+      icon: "text-[#5b57d6]",
+      title: "text-[#3a3f8f]",
+      body: "text-[#4f4bcc]"
     }
 
   defp alert_tone(:warning),
     do: %{
-      wrapper: "bg-amber-50 border-amber-200",
-      icon: "text-amber-500",
-      title: "text-amber-900",
-      body: "text-amber-800"
+      wrapper: "border-[#f0e2c4] bg-[#fbf1df]",
+      icon: "text-[#a5691a]",
+      title: "text-[#7a4d13]",
+      body: "text-[#a5691a]"
     }
 
   defp alert_tone(:error),
     do: %{
-      wrapper: "bg-red-50 border-red-200",
-      icon: "text-red-500",
-      title: "text-red-900",
-      body: "text-red-800"
+      wrapper: "border-[#f0dcd8] bg-[#fdf3f1]",
+      icon: "text-[#c0392b]",
+      title: "text-[#8f2c21]",
+      body: "text-[#c0473d]"
     }
 
   defp alert_tone(:success),
     do: %{
-      wrapper: "bg-emerald-50 border-emerald-200",
-      icon: "text-emerald-500",
-      title: "text-emerald-900",
-      body: "text-emerald-800"
+      wrapper: "border-[#cfe8da] bg-[#eaf6ee]",
+      icon: "text-[#177a53]",
+      title: "text-[#11593c]",
+      body: "text-[#177a53]"
     }
 
   defp alert_tone(_),
     do: %{
-      wrapper: "bg-gray-50 border-gray-200",
-      icon: "text-gray-500",
-      title: "text-gray-900",
-      body: "text-gray-700"
+      wrapper: "border-[#ecebe6] bg-[#faf9f6]",
+      icon: "text-[#a8a5a0]",
+      title: "text-[#17161a]",
+      body: "text-[#6d6a63]"
     }
 
   @doc """
@@ -3103,14 +3142,14 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
 
     ~H"""
     <div class={["mb-6 flex items-start gap-3", @class]}>
-      <.render_icon
-        :if={@icon}
-        name={@icon}
-        class="w-6 h-6 mt-1 text-gray-500 shrink-0"
-      />
-      <div class="flex-1 min-w-0">
-        <h2 :if={@title} class="text-lg font-semibold text-gray-900">{@title}</h2>
-        <p :if={@description} class="mt-1 text-sm text-gray-500">{@description}</p>
+      <.render_icon :if={@icon} name={@icon} class="mt-1 size-[18px] shrink-0 text-[#a8a5a0]" />
+      <div class="min-w-0 flex-1">
+        <h2 :if={@title} class="text-[15px] font-bold tracking-[-0.01em] text-[#17161a]">
+          {@title}
+        </h2>
+        <p :if={@description} class="mt-[5px] text-[12.5px] font-medium text-[#8a877f]">
+          {@description}
+        </p>
       </div>
     </div>
     """
@@ -3133,7 +3172,7 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:inner_block, fn -> nil end)
 
     ~H"""
-    <div class={["mt-4 text-sm text-gray-500", @class]}>
+    <div class={["mt-4 text-[12px] font-medium text-[#8a877f]", @class]}>
       <div :if={@content && !@inner_block}>{@content}</div>
       <div :if={@inner_block}>{render_slot(@inner_block)}</div>
     </div>

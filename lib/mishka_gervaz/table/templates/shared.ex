@@ -508,7 +508,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
             module={@static.ui_adapter}
             function={:filter_reset_button}
             label={dgettext("mishka_gervaz", "Clear filters")}
-            class="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
+            class="mt-4 text-[12px] font-semibold text-[#8a877f] underline transition-colors hover:text-[#3a382f]"
           />
         </form>
       </aside>
@@ -534,7 +534,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         type="button"
         label={dgettext("mishka_gervaz", "Filters")}
         icon="hero-funnel-solid"
-        class="px-4 py-2 border rounded hover:bg-gray-50 flex items-center gap-2"
+        class="flex h-[42px] items-center gap-2 rounded-[11px] border border-[#ecebe6] bg-white px-[15px] text-[12.5px] font-semibold text-[#5c5a54] transition-colors hover:bg-[#f7f6f3]"
         phx-click="toggle_filters"
         phx-target={@myself}
       />
@@ -545,7 +545,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         function={:button}
         type="button"
         label={dgettext("mishka_gervaz", "Clear filters")}
-        class="text-sm text-gray-500 hover:text-gray-700 underline"
+        class="text-[12px] font-semibold text-[#8a877f] underline transition-colors hover:text-[#3a382f]"
         phx-click="clear_filters"
         phx-target={@myself}
       />
@@ -666,7 +666,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   """
   @spec group_panel_class(map()) :: String.t()
   def group_panel_class(group) do
-    (group.ui && group.ui.class) || "p-4 bg-gray-50 rounded-lg border border-gray-200"
+    (group.ui && group.ui.class) || "rounded-[14px] border border-[#ecebe6] bg-[#faf9f6] p-4"
   end
 
   @doc """
@@ -761,11 +761,11 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     <div class="min-w-[170px] flex-1">
       <label
         :if={@resolved_label}
-        class="mb-1.5 block text-[10.5px] font-bold text-[#8a877f] text-gray-400"
+        class="mb-1.5 block text-[10.5px] font-bold text-[#a8a5a0]"
       >
         {@resolved_label}
       </label>
-      <div class="px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded text-gray-400 cursor-not-allowed">
+      <div class="h-11 cursor-not-allowed rounded-[11px] border border-[#ecebe6] bg-[#f6f5f2] px-[14px] text-[13px] font-medium text-[#8a877f]">
         {@disabled_prompt}
       </div>
     </div>
@@ -1198,7 +1198,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     <%!-- Loading indicator for "load more" --%>
     <div
       :if={@loading == :loading and @loading_type == :more}
-      class="mt-4 py-4 text-center border-t border-gray-200"
+      class="mt-4 border-t border-[#ecebe6] py-4 text-center"
     >
       <.dynamic_component
         module={@ui_adapter}
@@ -1206,14 +1206,14 @@ defmodule MishkaGervaz.Table.Templates.Shared do
         type={:more}
         style={:spinner}
         text={@loading_text}
-        class="inline-flex items-center gap-2 text-gray-500"
+        class="inline-flex items-center gap-2 text-[12.5px] font-medium text-[#8a877f]"
       />
     </div>
 
     <%!-- End-of-list marker for :infinite (the real load trigger is phx-viewport-bottom on tbody) --%>
     <div
       :if={@pagination_type == :infinite and not @has_more? and @loading != :loading and @page > 1}
-      class="mt-4 py-4 text-center text-xs text-gray-400 border-t border-gray-200"
+      class="mt-4 border-t border-[#ecebe6] py-4 text-center text-[11px] font-medium text-[#a8a5a0]"
     >
       {dgettext("mishka_gervaz", "End of results")}
     </div>
@@ -1407,7 +1407,7 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     <%= for item <- @pages do %>
       <%= case item do %>
         <% :ellipsis -> %>
-          <span class="px-2 py-1 text-gray-500">...</span>
+          <span class="px-2 py-1 text-[12px] font-medium text-[#8a877f]">...</span>
         <% page_num -> %>
           <.dynamic_component
             module={@ui_adapter}
