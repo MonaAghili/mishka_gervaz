@@ -1566,12 +1566,53 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     |> dynamic_component()
   end
 
-  # A sub-field's `ui do class … end` REPLACES the adapter's input class rather than being appended
-  # to it — the adapter owns the default, and a caller that names a class is saying it wants its
-  # own. Omitted (the usual case) the key never reaches the component, so `assign_new` supplies the
-  # adapter's own styling.
+  # A sub-field's `ui do class … end` is ADDED to the adapter's input class, not swapped for it.
+  #
+  # It briefly replaced it, and that reads fine until you see what the callers actually write:
+  # `class "font-mono text-sm"` on a code field, six times across this project. Nobody writing that
+  # means "and take the border, the padding and the focus ring away" — but that is what replacing
+  # did, because every adapter input fills its own styling with `assign_new(:class, …)` and a
+  # supplied key wins outright.
+  #
+  # The adapter is asked for its own base rather than the base being written down here, which is
+  # what the pre-extraction code did wrong: it carried a hardcoded copy of the Tailwind classes in
+  # the template, so a second adapter got the first one's look. `multiline_class/1` already takes
+  # the extra as an argument — the seam existed and was simply not used. An adapter that publishes
+  # neither is left with the caller's class alone, which is the best that can be done for it.
+  defp sub_field_class(_ui, _type, nil), do: nil
+  defp sub_field_class(_ui, _type, ""), do: nil
+
+  defp sub_field_class(ui, :textarea, extra),
+    do: adapter_class(ui, :multiline_class, [extra <> " "], extra)
+
+  defp sub_field_class(ui, :json, extra),
+    do: adapter_class(ui, :multiline_class, [extra <> " "], extra)
+
+  defp sub_field_class(ui, _type, extra) do
+    case adapter_class(ui, :input_class, [false], nil) do
+      nil -> extra
+      base -> base <> " " <> extra
+    end
+  end
+
+  defp adapter_class(ui, fun, args, fallback) do
+    case Code.ensure_loaded?(ui) and function_exported?(ui, fun, length(args)) do
+      true -> apply(ui, fun, args)
+      false -> fallback
+    end
+  end
+
+  # `__changed__` IS NOT OPTIONAL. This map is handed to a function component, and a component
+  # compiled from `~H` reads change tracking off its assigns — `assign/3` refuses a map without the
+  # key outright, and every clause below pipes through `assign/3`. Nested sub-fields therefore
+  # raised on the first one they tried to draw, which in a browser is the LiveView dying and the
+  # page appearing to reload itself when somebody presses "Add".
+  #
+  # `nil` is the "assume everything changed" marker, which is the honest answer for a map built
+  # fresh on every render: there is no previous version of it to diff against.
   defp sub_field_base(assigns) do
     base = %{
+      __changed__: nil,
       module: assigns.ui,
       name: assigns.input_name,
       id: assigns.input_id,
@@ -1580,7 +1621,10 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       readonly: assigns.sf.readonly
     }
 
-    if assigns.sf.class, do: Map.put(base, :class, assigns.sf.class), else: base
+    case sub_field_class(assigns.ui, assigns.sf.type, assigns.sf.class) do
+      nil -> base
+      class -> Map.put(base, :class, class)
+    end
   end
 
   @doc false
