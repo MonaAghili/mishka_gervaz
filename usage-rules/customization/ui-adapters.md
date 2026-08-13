@@ -1,0 +1,195 @@
+# Custom UI adapters
+
+A **UI adapter** answers *how things look*: the button, the select, the badge, the cell. It is one
+module implementing `MishkaGervaz.Behaviours.UIAdapter` — 69 one-arity component functions, all
+supplied with defaults, so you override only what differs.
+
+Wire it in either DSL:
+
+```elixir
+presentation do
+  ui_adapter MyAppWeb.UIAdapters.Admin
+  ui_adapter_opts component_module: MyAppWeb.Components
+end
+```
+
+Set it once on the **domain** and every resource inherits it.
+
+## Inheritance and fallback — the whole model
+
+`use MishkaGervaz.Behaviours.UIAdapter` generates a `defdelegate` for **every** component function
+to a fallback module, then marks them all `defoverridable`. So:
+
+- an adapter that defines nothing behaves exactly like its fallback;
+- an adapter that defines `button/1` changes buttons and nothing else;
+- fallbacks chain — your adapter may fall back to another adapter, which falls back to Tailwind.
+
+```elixir
+defmodule MyAppWeb.UIAdapters.Admin do
+  use MishkaGervaz.Behaviours.UIAdapter          # fallback: MishkaGervaz.UIAdapters.Tailwind
+
+  def button(assigns), do: MyAppWeb.Components.Button.button(assigns)
+end
+```
+
+### The worked example that ships with the library
+
+`MishkaGervaz.UIAdapters.MediaGallery` is the smallest useful adapter — it changes exactly one
+component and inherits the other 68:
+
+```elixir
+defmodule MishkaGervaz.UIAdapters.MediaGallery do
+  use MishkaGervaz.Behaviours.UIAdapter,
+    fallback: MishkaGervaz.UIAdapters.Tailwind
+
+  attr :label, :string, default: nil
+  attr :class, :string, default: nil
+  attr :icon, :string, default: nil
+  attr :variant, :atom, default: :default
+  attr :rest, :global,
+    include: ~w(phx-click phx-target phx-value-id phx-value-event phx-value-values data-confirm)
+
+  def button(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:icon, fn -> nil end)
+      |> assign_new(:label, fn -> nil end)
+      |> assign_new(:variant, fn -> :default end)
+
+    # An action that declares its own `ui do class … end` KEEPS it — that is the escape hatch.
+    assigns =
+      assign(assigns, :class,
+        if(assigns[:class] in [nil, ""], do: default_class(assigns[:variant]), else: assigns.class))
+
+    ~H"""
+    <button type="button" class={@class} title={@label} {@rest}>
+      <.icon :if={@icon} name={@icon} class="size-[15px]" />
+      <span :if={@label not in [nil, ""]} class="lbl">{@label}</span>
+    </button>
+    """
+  end
+
+  defp default_class(:destroy), do: @square <> " border-[#f3ddd9] bg-[#fdf4f3] text-[#c0392b] …"
+  defp default_class(_variant), do: @square <> " border-[#ecebe6] bg-white text-[#8a877f] …"
+end
+```
+
+Three things to copy from it:
+
+1. **Honour a caller-supplied `class`.** The DSL's `ui do class "…" end` must win, or the adapter
+   becomes a wall the resource cannot get past.
+2. **Always emit the label into the DOM**, even when the design hides it — the paired template
+   widens one button and hides the label on the rest. Two shapes here would put the card's layout
+   in two places.
+3. **Each variant names its own background** rather than tinting a shared one. Two background
+   utilities on one element are settled by stylesheet order, not class-string order.
+
+## Generating overrides from a components module
+
+Instead of writing a delegate per component, point the macro at your components module. Each
+function is wired only when the target module is **loaded and exports** the matching 1-arity
+function; everything else stays on the fallback.
+
+```elixir
+# Flat — MyAppWeb.Components.button/1
+use MishkaGervaz.Behaviours.UIAdapter, components: MyAppWeb.Components
+
+# Nested — MyAppWeb.Components.Button.button/1
+use MishkaGervaz.Behaviours.UIAdapter, components: MyAppWeb.Components, nested_components: true
+
+# Module prefix — MyAppWeb.Components.MishkaButton.button/1
+use MishkaGervaz.Behaviours.UIAdapter,
+  components: MyAppWeb.Components, nested_components: true, module_prefix: "Mishka"
+
+# Function prefix — MyAppWeb.Components.mc_button/1
+use MishkaGervaz.Behaviours.UIAdapter, components: MyAppWeb.Components, component_prefix: "mc_"
+
+# Custom fallback instead of Tailwind
+use MishkaGervaz.Behaviours.UIAdapter,
+  fallback: MyAppWeb.Components.Base, components: MyAppWeb.Components.Custom
+```
+
+| `use` option | Type | Default | Effect |
+|---|---|---|---|
+| `:fallback` | module | `MishkaGervaz.UIAdapters.Tailwind` | where undefined components go |
+| `:components` | module | — | source of auto-generated overrides |
+| `:nested_components` | bool | `false` | look under `Components.Button.button/1` |
+| `:module_prefix` | string | — | prepended to the submodule name |
+| `:component_prefix` | string | — | prepended to the function name |
+
+## The dynamic adapter — components resolved at runtime
+
+`MishkaGervaz.UIAdapters.Dynamic` renders components looked up at runtime (from a database, a
+compiled registry, anywhere) and falls back per component when the target is unavailable.
+
+```elixir
+presentation do
+  ui_adapter MishkaGervaz.UIAdapters.Dynamic
+  ui_adapter_opts [
+    site: "Global",
+    component_renderer: &MyApp.LiveViewHelpers.component/1,
+    module_resolver: &MyApp.Compilers.Helpers.module_name/3,
+    fallback: MishkaGervaz.UIAdapters.Tailwind
+  ]
+end
+```
+
+| `ui_adapter_opts` key | Shape | Default |
+|---|---|---|
+| `:site` | any | `"Global"` |
+| `:component_renderer` | `(assigns) -> rendered` | — |
+| `:module_resolver` | `(component_name, site, kind) -> module` | — |
+| `:fallback` | adapter module | `MishkaGervaz.UIAdapters.Tailwind` |
+
+Or bake the options in with `use MishkaGervaz.UIAdapters.Dynamic, site: …, fallback: …`.
+
+## The three ways to build an adapter — compared
+
+| Approach | Write | Best for |
+|---|---|---|
+| `use …UIAdapter` + hand-written functions | one function per difference | a handful of components differ (see `UIAdapters.MediaGallery`) |
+| `use …UIAdapter, components: MyComponents` | nothing per component | you already have a components module with matching names |
+| `use …UIAdapters.Dynamic` | a resolver + renderer | components live in a database or are compiled at runtime |
+
+All three end up behind the same `ui_adapter` DSL option, and all three fall back per component.
+
+## The component list
+
+69 callbacks, grouped by what they render. Introspect the live list with
+`MishkaGervaz.Behaviours.UIAdapter.component_functions/0`.
+
+- **Inputs** — `text_input` `select` `multi_select` `search_select` `load_more_select` `checkbox`
+  `date_input` `datetime_input` `number_input` `textarea` `json_editor` `toggle_input`
+  `range_input` `string_list_input` `password_input` `combobox`
+- **Actions & display** — `button` `icon` `badge` `copy_button` `spinner` `nav_link` `dropdown`
+- **State & status** — `empty_state` `error_state` `loading_state` `alert`
+- **Table** — `table` `table_header` `th` `tr` `td` `date_range_container` `cell_empty`
+  `cell_text` `cell_number` `cell_date` `cell_datetime` `cell_code` `cell_array` `cell_tags`
+  `cell_avatars` `cell_stacked` `cell_stats` `cell_bars` `filter_reset_button` `archive_toggle`
+  `bulk_action_bar` `bulk_action_button` `pagination_container` `pagination_nav_button`
+  `pagination_page_button` `template_switcher` `template_switcher_button`
+- **Form** — `form_container` `form_header` `form_footer` `field_wrapper` `field_group`
+  `field_error` `step_indicator` `step_navigation` `upload_dropzone` `upload_preview`
+  `upload_progress` `upload_file_input` `upload_existing_file` `nested_fields` `array_fields`
+
+One adapter serves **both** the table and the form — there is no separate form adapter.
+
+## TODO
+- [ ] `use MishkaGervaz.Behaviours.UIAdapter` rather than `@behaviour` + 69 stubs
+- [ ] Only the components that genuinely differ are defined
+- [ ] A caller-supplied `class` wins over the adapter's default
+- [ ] `attr`/`:rest` declared so `phx-*` and `data-confirm` reach the DOM
+- [ ] The label reaches the DOM even when the design hides it
+- [ ] `fallback:` set when extending another adapter rather than Tailwind
+- [ ] Adapter set on the **domain**, overridden per resource only where it differs
+- [ ] Added components verified against `component_functions/0`, not guessed
+
+## DSL reference
+
+The complete, schema-generated option list for every section:
+
+- [`MishkaGervaz.Resource` DSL](https://hexdocs.pm/mishka_gervaz/dsl-mishkagervaz-resource.html) — the `table` and `form` sections on a resource
+- [`MishkaGervaz.Domain` DSL](https://hexdocs.pm/mishka_gervaz/dsl-mishkagervaz-domain.html) — the domain-wide defaults and `navigation`
+
+**Behaviour:** `MishkaGervaz.Behaviours.UIAdapter` ·
+**Built in:** `UIAdapters.Tailwind` (default) · `UIAdapters.MediaGallery` · `UIAdapters.Dynamic`

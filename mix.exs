@@ -63,7 +63,8 @@ defmodule MishkaGervaz.MixProject do
         "Changelog" => "#{@source_url}/blob/master/CHANGELOG.md",
         "Sponsor" => "https://github.com/sponsors/mishka-group"
       },
-      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md)
+      files: ~w(lib mix.exs .formatter.exs README.md LICENSE CHANGELOG.md
+                usage-rules.md usage-rules documentation)
     ]
   end
 
@@ -72,7 +73,14 @@ defmodule MishkaGervaz.MixProject do
       main: "MishkaGervaz",
       source_ref: "v#{@version}",
       source_url: @source_url,
-      extras: ["README.md", "CHANGELOG.md"],
+      # The generated DSL cheat sheets are the reference every `usage-rules/**/*.md` file links
+      # to, so they have to be published — `mix docs` regenerates them first (see `aliases/0`).
+      extras:
+        ["README.md", "usage-rules.md", "CHANGELOG.md"] ++
+          Path.wildcard("documentation/**/*.md"),
+      groups_for_extras: [
+        "DSL Reference": Path.wildcard("documentation/dsls/*.md")
+      ],
       groups_for_modules: groups_for_modules()
     ]
   end
@@ -159,7 +167,12 @@ defmodule MishkaGervaz.MixProject do
 
   defp aliases do
     [
-      "spark.formatter": "spark.formatter --extensions MishkaGervaz.Resource,MishkaGervaz.Domain"
+      "spark.formatter": "spark.formatter --extensions MishkaGervaz.Resource,MishkaGervaz.Domain",
+      "spark.cheat_sheets":
+        "spark.cheat_sheets --extensions MishkaGervaz.Resource,MishkaGervaz.Domain",
+      # `usage-rules/**/*.md` links into the cheat sheets by anchor, so they are regenerated
+      # before every docs build rather than left to drift behind the schema.
+      docs: ["spark.cheat_sheets", "docs", "spark.replace_doc_links"]
     ]
   end
 

@@ -1,0 +1,65 @@
+# Table → `empty_state` / `error_state`
+
+What fills the table when there is nothing to show, or the load failed. Both are entities —
+inline or block form.
+
+```elixir
+empty_state message: "No blog posts found",
+            icon: "hero-newspaper",
+            action_label: "New post",
+            action_path: "/admin/dashboard/blog/posts/new",
+            action_icon: "hero-plus"
+
+error_state message: "Failed to load posts",
+            icon: "hero-exclamation-triangle",
+            retry_label: "Retry"
+```
+
+Block form is identical:
+
+```elixir
+empty_state do
+  message "No media files found"
+  icon "hero-photo"
+end
+```
+
+## `empty_state`
+
+| Option | Type | Default |
+|---|---|---|
+| `message` | string | `"No records found"` |
+| `icon` | string | — |
+| `action_label` | string | — |
+| `action_path` | string | — |
+| `action_icon` | string | — |
+
+The three `action_*` options draw one call-to-action link. Give all three or none.
+
+## `error_state`
+
+| Option | Type | Default |
+|---|---|---|
+| `message` | string | `"Error loading data"` |
+| `icon` | string | — |
+| `retry_label` | string | `"Retry"` |
+
+## Empty vs "no match"
+
+`empty_state` is the whole-table empty. A **filtered** empty ("nothing matches your filters") is
+better said with a notice bound to `:no_results`, which can carry its own wording and a hint to
+clear the filters — see [layout.md](layout.md).
+
+## TODO
+- [ ] Both messages written for the reader, not the developer
+- [ ] `empty_state` action wired to a real route, or omitted
+- [ ] A `:no_results` notice added where the filtered-empty case reads differently
+- [ ] Messages via `dgettext("mishka_gervaz", …)` in a localized app
+
+## DSL reference
+
+Generated from the schema, always current:
+
+- Resource — [`mishka_gervaz.table.empty_state`](https://hexdocs.pm/mishka_gervaz/dsl-mishkagervaz-resource.html#mishka_gervaz-table-empty_state) · [`mishka_gervaz.table.error_state`](https://hexdocs.pm/mishka_gervaz/dsl-mishkagervaz-resource.html#mishka_gervaz-table-error_state)
+
+**Schema:** `MishkaGervaz.Table.Dsl.States`, `Table.Entities.EmptyState`, `.ErrorState`
