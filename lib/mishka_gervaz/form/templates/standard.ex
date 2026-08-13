@@ -1718,28 +1718,8 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     }
   end
 
-  defp extract_sub_field_info(%{name: name} = sf, parent_readonly, state) do
-    label = resolve_callable(Map.get(sf, :label)) || Phoenix.Naming.humanize(name)
-    type = Map.get(sf, :type, :text)
-
-    %{
-      name: name,
-      label: label,
-      type: type,
-      ash_type: Map.get(sf, :ash_type),
-      required: Map.get(sf, :required, false),
-      placeholder: resolve_callable(Map.get(sf, :placeholder)) || label,
-      options: Map.get(sf, :options),
-      rows: Map.get(sf, :rows),
-      class: Map.get(sf, :class),
-      span: Map.get(sf, :span) || auto_span(type),
-      visible: Map.get(sf, :visible, true),
-      readonly: parent_readonly or resolve_sub_readonly(Map.get(sf, :readonly, false), state)
-    }
-  end
-
   defp extract_sub_field_info(sf, parent_readonly, state) when is_map(sf) do
-    name = Map.get(sf, :field, Map.get(sf, :name))
+    name = sub_field_name(sf)
     label = resolve_callable(Map.get(sf, :label)) || Phoenix.Naming.humanize(name)
     type = Map.get(sf, :type, :text)
 
@@ -1758,6 +1738,12 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       readonly: parent_readonly or resolve_sub_readonly(Map.get(sf, :readonly, false), state)
     }
   end
+
+  # `:name` when the map carries one, `:field` otherwise — the DSL entity names it one way and a
+  # hand-written map the other, and the twelve lines that follow did not care which. They were
+  # written out twice all the same.
+  defp sub_field_name(%{name: name}), do: name
+  defp sub_field_name(sf), do: Map.get(sf, :field, Map.get(sf, :name))
 
   defp auto_span(:textarea), do: 2
   defp auto_span(:json), do: 2
