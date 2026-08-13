@@ -541,10 +541,6 @@ defmodule MishkaGervaz.Form.Transformers.BuildRuntimeConfig do
     })
   end
 
-  # Drops `__spark_metadata__`, returns the rest as a plain map iff at
-  # least one value is meaningful — non-nil, or a non-empty `:extra` map.
-  # Otherwise returns `nil` so accessors don't have to skip empty UI
-  # placeholders.
   defp maybe_ui(nil), do: nil
 
   defp maybe_ui(%_{} = ui) do

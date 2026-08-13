@@ -1064,12 +1064,6 @@ defmodule MishkaGervaz.Table.Web.Events do
   end
 
   @doc false
-  # A deleted row leaves the stream but the header keeps counting it: "3 items" over two rows, until
-  # something else triggers a read. The count is part of what the table just changed, so it is
-  # changed here rather than left for the next query to correct.
-  #
-  # `nil` means counting is switched off for this read (`show_total` is opt-in, because a count is a
-  # second query) — there is no number to decrement, and inventing one would be worse than none.
   @spec drop_from_total(State.t()) :: State.t()
   defp drop_from_total(%{total_count: nil} = state), do: state
 

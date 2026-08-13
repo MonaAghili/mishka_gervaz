@@ -224,8 +224,6 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     """
   end
 
-  # A filter standing on its own in the toolbar row: the search box grows to fill it, anything else
-  # keeps its natural width. Only the text filter gets the magnifier and the flex-1.
   defp render_toolbar_filter(%{filter: %{type: :text}} = assigns) do
     assigns = assign(assigns, :field_class, @toolbar_field)
 
@@ -263,12 +261,6 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     """
   end
 
-  # A collapsible group is the design's "Advanced" drawer: a toggle in the toolbar row and a panel of
-  # its own on the line below (`basis-full` + `order-6`), which is what keeps the panel under the whole
-  # row instead of wedged beside the button. A non-collapsible group has no box or heading of its own —
-  # its filters just join the row, so `group :primary do filters [:search] end` reads as the search box
-  # the design draws. The panel opens client-side: asking the server to remember whether a drawer is
-  # open would cost a round trip per click.
   defp render_filter_group(assigns) do
     group = assigns.group
     group_filters = Enum.filter(assigns.filters, fn f -> f.name in group.filters end)
@@ -351,8 +343,6 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     """
   end
 
-  # Both class sets are swapped rather than one layered over the other — they set the same properties,
-  # and which wins would otherwise be down to their order in the stylesheet.
   defp toggle_filter_group(group_id) do
     JS.toggle(to: "##{group_id}")
     |> JS.toggle_class("border-[#ecebe6] bg-white text-[#5c5a54]", to: "##{group_id}-btn")

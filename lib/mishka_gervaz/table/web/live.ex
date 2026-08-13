@@ -201,10 +201,6 @@ defmodule MishkaGervaz.Table.Web.Live do
               if map_size(path_params) > 0, do: %{s | path_params: path_params}, else: s
             end)
 
-          # A PATH PARAM THAT NAMES AN ATTRIBUTE IS A FILTER, so changing one has to re-read. A
-          # caller that swaps `%{category_id: a}` for `%{category_id: b}` — or drops the key to mean
-          # "all" — was left looking at the rows the old value selected, which is a filter that
-          # appears not to work.
           {state, path_params != existing_state.path_params}
 
         true ->
@@ -276,9 +272,6 @@ defmodule MishkaGervaz.Table.Web.Live do
     {:ok, socket}
   end
 
-  # Collapsing a row nulls `expanded_data`, but a page that loads its panel asynchronously can still
-  # push HTML afterwards — a note saved from a modal, a PubSub event. `AsyncResult.ok/2` has no clause
-  # for a nil first argument, so that arrival would take the whole LiveView down.
   @spec expanded_result(AsyncResult.t() | nil, term()) :: AsyncResult.t()
   defp expanded_result(%AsyncResult{} = current, html), do: AsyncResult.ok(current, html)
   defp expanded_result(_collapsed, html), do: AsyncResult.ok(html)
@@ -424,9 +417,6 @@ defmodule MishkaGervaz.Table.Web.Live do
     end
   end
 
-  # The expanded panel renders inline inside the record's own stream `<tbody>`, so
-  # re-streaming the expanded record re-renders the panel in place (LiveView patches
-  # it where it already is — no node is ever moved, so it cannot "pop"/jump).
   @spec reinsert_expanded_record(Phoenix.LiveView.Socket.t(), State.t()) ::
           Phoenix.LiveView.Socket.t()
   defp reinsert_expanded_record(socket, %{expanded_id: nil}), do: socket

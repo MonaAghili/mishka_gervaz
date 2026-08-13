@@ -468,7 +468,6 @@ defmodule MishkaGervaz.Form.Transformers.ResolveFields do
     explicit_map = Map.new(explicit, &{&1.name, &1})
 
     if auto_fields do
-      # Replace in-place: walk inferred order, apply overrides where they exist
       merged =
         Enum.map(inferred, fn inf ->
           case Map.get(explicit_map, inf.name) do
@@ -477,7 +476,6 @@ defmodule MishkaGervaz.Form.Transformers.ResolveFields do
           end
         end)
 
-      # Add any explicit fields not found in inferred (e.g. virtual nested fields)
       inferred_names = MapSet.new(inferred, & &1.name)
 
       extra =

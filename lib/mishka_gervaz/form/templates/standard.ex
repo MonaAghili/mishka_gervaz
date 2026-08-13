@@ -245,7 +245,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     groups = assigns.static.groups
 
     if groups == [] do
-      # No explicit groups — render all fields in a flat layout
       render_group_fields(assigns, assigns.static.fields, nil)
     else
       visible_groups = Enum.filter(groups, &accessible?(&1, assigns.state))
@@ -572,11 +571,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         accessible?(field, assigns.state) and show_on_mode?(field, mode)
       end)
 
-    # A GROUP IS AS WIDE AS WHAT IT DRAWS. `columns 3` is what the resource asked for with all three
-    # fields in hand; it is not a promise to leave a third of the row empty when one of them is not
-    # drawn — because it is `show_on :update`, because `restricted true` hides it from a tenant, or
-    # because this mount passed `hidden_fields`. All three used to leave a hole and squeeze the
-    # fields that remained into columns sized for company they no longer have.
     col_class =
       if group_columns do
         group_col_class(min(group_columns, max(length(visible_fields), 1)))
@@ -620,16 +614,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   defp nested_span_class(4), do: "col-span-4"
   defp nested_span_class(_), do: nil
 
-  # A MOUNT CAN SAY IT DRAWS NO SUBMIT ROW — see `State.apply_presentation/2`. Only the row goes; the
-  # `save` event is still allowed, because whatever replaces the button still has to submit.
-  # WHAT THE BUTTON SAYS WHILE IT WORKS, and it has to say something: a submit that looks idle for
-  # the length of an upload invites a second press, and a second press on a form with a file on it
-  # is a second upload. `phx-disable-with` disables the button and swaps its text for the round
-  # trip. A form with an upload spends that time sending the file, so it says so; anything else is a
-  # save. A resource can name its own with `loading_label` and this will use it.
-  #
-  # Never do this to an ICON-ONLY button: there the label is a `.lbl` the class hides, so swapping
-  # it changes nothing a reader can see and the button just goes dead for a while.
   defp busy_label(button, static) do
     cond do
       is_map(button) and is_binary(button[:loading_label]) ->
@@ -643,13 +627,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     end
   end
 
-  # A MOUNT CAN SAY IT DRAWS NO SUBMIT ROW — see `State.apply_presentation/2`. Only the row goes; the
-  # `save` event stays allowed, because whatever replaces the button still has to submit.
-  #
-  # WHILE CREATING, though, and only then. A mount says this because it has something better for a
-  # new record — the page builder's Assets sheet says it because a drop is the submit. An EDIT has no
-  # such thing: the same form loaded with a record and no button is one you can change and cannot
-  # save, which is worse than the button it saved you.
   defp render_submit(%{static: %{submit_visible?: false}, state: %{mode: :create}} = assigns) do
     ~H""
   end
@@ -801,15 +778,10 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     """
   end
 
-  # ONLY WHILE CREATING, and only what the mount declared — see `State.apply_presentation/2`.
   defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create}, false)
        when is_list(alternatives),
        do: alternatives
 
-  # A SUBMIT THAT WOULD BE REFUSED IS NOT AN ALTERNATIVE. `Events.do_handle("save", …)` asks the
-  # submit config before it does anything, so while the button is disabled an item that submits this
-  # form is a control that silently does nothing. One that LEAVES still means what it says — and it
-  # is the more useful of the two here, since being unable to save is a reason to want the other way.
   defp alternatives_for(%{submit_alternatives: alternatives}, %{mode: :create}, true)
        when is_list(alternatives),
        do: Enum.filter(alternatives, &Map.has_key?(&1, :navigate))
@@ -818,9 +790,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
 
   attr :alt, :map, required: true
 
-  # A LINK LEAVES, A BUTTON SUBMITS. An alternative that collects its own details elsewhere must not
-  # drag this form's validation with it — that is the whole difference between "create it here
-  # differently" and "create it somewhere else".
   defp alternative(%{alt: %{navigate: path}} = assigns) do
     assigns = assign(assigns, :path, path)
 
@@ -1058,11 +1027,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:disabled, is_readonly)
       |> assign(:module, ui)
       |> assign(:phx_debounce, debounce)
-      # DECLARED ON `ui do … end` AND NEVER PASSED, until now. `extra` is documented as the
-      # template-specific escape hatch and every table column type already reads it off
-      # `column.ui.extra`; on a field it reached the entity and stopped there, so an adapter had no
-      # way to be told anything about one input. `rows` was the same — a `field :content, :textarea`
-      # asking for `rows 12` got the adapter's default four and nobody could see why.
       |> assign(:extra, get_in_map(field, [:ui, :extra]) || %{})
       |> put_present(:rows, get_in_map(field, [:ui, :rows]))
 
@@ -1291,19 +1255,79 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     end
   end
 
+  attr(:title, :string, required: true)
+  attr(:removable, :boolean, required: true)
+  attr(:remove_label, :string, required: true)
+  attr(:target, :any, default: nil)
+
+  attr(:path, :string, default: nil)
+  attr(:field, :string, default: nil)
+  attr(:index, :string, default: nil)
+
+  slot(:inner_block, required: true)
+
+  defp nested_card(assigns) do
+    ~H"""
+    <div class="rounded-[14px] border border-[#ecebe6] bg-white p-4">
+      <div class="mb-[14px] flex items-start justify-between gap-3">
+        <span class="text-[12px] font-bold text-[#3a382f]">{@title}</span>
+        <button
+          :if={@removable}
+          type="button"
+          phx-click="remove_nested"
+          phx-value-path={@path}
+          phx-value-field={@field}
+          phx-value-index={@index}
+          phx-target={@target}
+          class="inline-flex h-7 shrink-0 items-center rounded-[8px] px-[9px] text-[11.5px] font-semibold text-[#c0392b] transition-colors hover:bg-[#fdf4f3]"
+        >
+          {@remove_label}
+        </button>
+      </div>
+      <div class="grid gap-x-4 gap-y-[14px] md:grid-cols-2">
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  attr(:show, :boolean, required: true)
+  attr(:label, :string, required: true)
+  attr(:path, :string, default: nil)
+  attr(:field, :string, default: nil)
+  attr(:target, :any, default: nil)
+
+  defp nested_add(assigns) do
+    ~H"""
+    <button
+      :if={@show}
+      type="button"
+      phx-click="add_nested"
+      phx-value-path={@path}
+      phx-value-field={@field}
+      phx-target={@target}
+      class="inline-flex h-10 w-full items-center justify-center gap-[7px] rounded-[11px] border border-dashed border-[#dcdbf5] bg-[#f7f6fd] text-[12px] font-semibold text-[#4f4bcc] transition-colors hover:border-[#c3c1f0] hover:bg-[#f2f1fc]"
+    >
+      {@label}
+    </button>
+    """
+  end
+
+  defp entry_title(name, :array, index), do: "#{Phoenix.Naming.humanize(name)} #{index + 1}"
+  defp entry_title(name, _mode, _index), do: Phoenix.Naming.humanize(name)
+
   defp render_embedded_nested(_ui, field, _form_field, assigns) do
     nested_fields = Map.get(field, :nested_fields, [])
-    form_path = assigns.state.form.name <> "[#{field.name}]"
-    nested_mode = get_in_map(field, [:ui, :extra, :nested_mode]) || :array
     parent_readonly = evaluate_readonly(field, assigns.state)
+    nested_mode = get_in_map(field, [:ui, :extra, :nested_mode]) || :array
 
     assigns =
       assigns
       |> assign(:nested_field, field)
-      |> assign(:nested_fields, nested_fields)
-      |> assign(:form_path, form_path)
+      |> assign(:sub_fields, sub_fields(nested_fields, parent_readonly, assigns.state))
+      |> assign(:form_path, assigns.state.form.name <> "[#{field.name}]")
       |> assign(:nested_mode, nested_mode)
-      |> assign(:parent_readonly, parent_readonly)
+      |> assign(:removable?, nested_mode == :array and not parent_readonly)
       |> assign(:add_label, resolve_nested_label(field, :add_label, "+ Add"))
       |> assign(:remove_label, resolve_nested_label(field, :remove_label, "Remove"))
       |> assign(:target, assigns[:myself])
@@ -1311,45 +1335,25 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     ~H"""
     <div class="space-y-[10px]">
       <.inputs_for :let={nested_form} field={@state.form[@nested_field.name]}>
-        <div class={nested_card_class()}>
-          <div class="mb-[14px] flex items-start justify-between gap-3">
-            <span class={nested_title_class()}>
-              <%= if @nested_mode == :array do %>
-                {Phoenix.Naming.humanize(@nested_field.name)} {nested_form.index + 1}
-              <% else %>
-                {Phoenix.Naming.humanize(@nested_field.name)}
-              <% end %>
-            </span>
-            <button
-              :if={@nested_mode == :array and not @parent_readonly}
-              type="button"
-              phx-click="remove_nested"
-              phx-value-path={nested_form.name}
-              phx-target={@target}
-              class={nested_remove_class()}
-            >
-              {@remove_label}
-            </button>
-          </div>
-          <div class={nested_grid_class()}>
-            <%= for sub_field <- @nested_fields do %>
-              <% sf = extract_sub_field_info(sub_field, @parent_readonly, @state) %>
-              {render_nested_sub_field(assigns, nested_form, sf)}
-            <% end %>
-          </div>
-        </div>
+        <.nested_card
+          title={entry_title(@nested_field.name, @nested_mode, nested_form.index)}
+          removable={@removable?}
+          remove_label={@remove_label}
+          path={nested_form.name}
+          target={@target}
+        >
+          <%= for sf <- @sub_fields do %>
+            {render_sub_field(assigns, sf,
+              name: nested_form[sf.name].name,
+              id: nested_form[sf.name].id,
+              value: nested_form[sf.name].value,
+              errors: []
+            )}
+          <% end %>
+        </.nested_card>
       </.inputs_for>
 
-      <button
-        :if={@nested_mode == :array and not @parent_readonly}
-        type="button"
-        phx-click="add_nested"
-        phx-value-path={@form_path}
-        phx-target={@target}
-        class={nested_add_class()}
-      >
-        {@add_label}
-      </button>
+      <.nested_add show={@removable?} label={@add_label} path={@form_path} target={@target} />
     </div>
     """
   end
@@ -1357,141 +1361,101 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   defp render_constrained_map_nested(field, assigns) do
     nested_fields = Map.get(field, :nested_fields, [])
     nested_mode = get_in_map(field, [:ui, :extra, :nested_mode]) || :array
-    entries = get_map_entries(field.name, assigns.state.form)
-    form_name = assigns.state.form.name
     parent_readonly = evaluate_readonly(field, assigns.state)
-
-    submitted_once =
-      assigns.state.form != nil and assigns.state.form.source != nil and
-        assigns.state.form.source.submitted_once?
-
-    error_mode = %{required: submitted_once, type: true}
 
     assigns =
       assigns
       |> assign(:nested_field, field)
-      |> assign(:nested_fields, nested_fields)
-      |> assign(:nested_mode, nested_mode)
-      |> assign(:parent_readonly, parent_readonly)
-      |> assign(:entries, entries)
-      |> assign(:form_name, form_name)
-      |> assign(:error_mode, error_mode)
+      |> assign(:sub_fields, sub_fields(nested_fields, parent_readonly, assigns.state))
+      |> assign(:entries, judged_entries(field, nested_fields, assigns.state))
+      |> assign(:form_name, assigns.state.form.name)
+      |> assign(:removable?, nested_mode == :array and not parent_readonly)
       |> assign(:add_label, resolve_nested_label(field, :add_label, "+ Add"))
       |> assign(:remove_label, resolve_nested_label(field, :remove_label, "Remove"))
       |> assign(:target, assigns[:myself])
 
     ~H"""
     <div class="space-y-[10px]">
-      <%= for {idx, entry} <- @entries do %>
-        <% entry_errors = compute_sub_field_errors(entry, @nested_fields, @error_mode) %>
-        <div class={nested_card_class()}>
-          <div class="mb-[14px] flex items-start justify-between gap-3">
-            <span class={nested_title_class()}>
-              {Phoenix.Naming.humanize(@nested_field.name)} {idx + 1}
-            </span>
-            <button
-              :if={@nested_mode == :array and not @parent_readonly}
-              type="button"
-              phx-click="remove_nested"
-              phx-value-field={to_string(@nested_field.name)}
-              phx-value-index={to_string(idx)}
-              phx-target={@target}
-              class={nested_remove_class()}
-            >
-              {@remove_label}
-            </button>
-          </div>
-          <div class={nested_grid_class()}>
-            <%= for sub_field <- @nested_fields do %>
-              <% sf = extract_sub_field_info(sub_field, @parent_readonly, @state) %>
-              <% sf_errors = Map.get(entry_errors, sf.name, []) %>
-              {render_constrained_sub_field(assigns, sf, idx, entry, sf_errors)}
-            <% end %>
-          </div>
-        </div>
-      <% end %>
-
-      <button
-        :if={@nested_mode == :array and not @parent_readonly}
-        type="button"
-        phx-click="add_nested"
-        phx-value-field={to_string(@nested_field.name)}
-        phx-target={@target}
-        class={nested_add_class()}
+      <.nested_card
+        :for={{idx, entry, errors} <- @entries}
+        title={entry_title(@nested_field.name, :array, idx)}
+        removable={@removable?}
+        remove_label={@remove_label}
+        field={to_string(@nested_field.name)}
+        index={to_string(idx)}
+        target={@target}
       >
-        {@add_label}
-      </button>
+        <%= for sf <- @sub_fields do %>
+          {render_sub_field(assigns, sf,
+            name: "#{@form_name}[#{@nested_field.name}][#{idx}][#{sf.name}]",
+            id: "#{@static.id}_#{@form_name}_#{@nested_field.name}_#{idx}_#{sf.name}",
+            value: get_entry_value(entry, sf.name),
+            errors: Map.get(errors, sf.name, [])
+          )}
+        <% end %>
+      </.nested_card>
+
+      <.nested_add
+        show={@removable?}
+        label={@add_label}
+        field={to_string(@nested_field.name)}
+        target={@target}
+      />
     </div>
     """
   end
 
-  defp render_constrained_sub_field(assigns, sf, idx, entry, errors) do
-    field_name = assigns.nested_field.name
-    form_name = assigns.form_name
+  defp sub_fields(nested_fields, parent_readonly, state),
+    do: Enum.map(nested_fields, &extract_sub_field_info(&1, parent_readonly, state))
 
-    render_sub_field(assigns, sf,
-      name: "#{form_name}[#{field_name}][#{idx}][#{sf.name}]",
-      id: "#{assigns.static.id}_#{form_name}_#{field_name}_#{idx}_#{sf.name}",
-      value: get_entry_value(entry, sf.name),
-      errors: errors
-    )
+  defp judged_entries(field, nested_fields, state) do
+    error_mode = %{required: submitted_once?(state), type: true}
+
+    field.name
+    |> get_map_entries(state.form)
+    |> Enum.map(fn {idx, entry} ->
+      {idx, entry, compute_sub_field_errors(entry, nested_fields, error_mode)}
+    end)
   end
 
-  defp render_nested_sub_field(assigns, nested_form, sf) do
-    render_sub_field(assigns, sf,
-      name: nested_form[sf.name].name,
-      id: nested_form[sf.name].id,
-      value: nested_form[sf.name].value,
-      errors: []
-    )
-  end
+  defp submitted_once?(%{form: %{source: %{submitted_once?: submitted}}}), do: submitted
+  defp submitted_once?(_state), do: false
 
-  # ONE SUB-FIELD, DRAWN BY THE ADAPTER — the same route a top-level field takes.
-  #
-  # Both nested paths used to hand-roll `<input class="rounded-md border-gray-300
-  # focus:ring-indigo-500 sm:text-sm">`, so a sub-field could not follow the resource's
-  # `ui_adapter` and stayed on Tailwind's cool-grey defaults however the form around it was
-  # styled. Dispatching through `dynamic_component/1` means a custom adapter restyles a nested
-  # field for free, exactly as it already restyles every other input.
   defp render_sub_field(assigns, sf, opts) do
-    ui = assigns.static.ui_adapter
-
-    assigns =
-      assigns
-      |> assign(:sf, sf)
-      |> assign(:ui, ui)
-      |> assign(:input_name, opts[:name])
-      |> assign(:input_id, opts[:id])
-      |> assign(:input_value, opts[:value])
-      |> assign(:sub_errors, opts[:errors] || [])
-
-    cond do
-      not sf.visible ->
-        ~H""
-
-      sf.type == :hidden ->
-        ~H"""
-        <input type="hidden" name={@input_name} id={@input_id} value={@input_value} />
-        """
-
-      true ->
-        ~H"""
-        <div class={nested_span_class(@sf.span)}>
-          <label class={nested_label_class()} for={@input_id}>
-            {@sf.label}<span :if={@sf.required} class="ml-0.5 text-[#e5484d]">*</span>
-          </label>
-          <div class={@sub_errors != [] && "rounded-[11px] ring-1 ring-[#f0dcd8]"}>
-            {sub_field_input(assigns)}
-          </div>
-          <p :for={err <- @sub_errors} class={nested_error_class()}>{err}</p>
-        </div>
-        """
-    end
+    assigns
+    |> assign(:sf, sf)
+    |> assign(:ui, assigns.static.ui_adapter)
+    |> assign(:input_name, opts[:name])
+    |> assign(:input_id, opts[:id])
+    |> assign(:input_value, opts[:value])
+    |> assign(:sub_errors, opts[:errors] || [])
+    |> sub_field()
   end
 
-  # The sub-field types the DSL allows, each mapped to the adapter component that draws it.
-  # `MishkaGervaz.Form.Entities.NestedField` accepts a narrower set than a top-level field, so
-  # this list is the whole of it — anything else falls through to a text input.
+  defp sub_field(%{sf: %{visible: false}} = assigns), do: ~H""
+
+  defp sub_field(%{sf: %{type: :hidden}} = assigns) do
+    ~H"""
+    <input type="hidden" name={@input_name} id={@input_id} value={@input_value} />
+    """
+  end
+
+  defp sub_field(assigns) do
+    ~H"""
+    <div class={nested_span_class(@sf.span)}>
+      <label class="mb-[7px] block text-[10.5px] font-bold text-[#8a877f]" for={@input_id}>
+        {@sf.label}<span :if={@sf.required} class="ml-0.5 text-[#e5484d]">*</span>
+      </label>
+      <div class={@sub_errors != [] && "rounded-[11px] ring-1 ring-[#f0dcd8]"}>
+        {sub_field_input(assigns)}
+      </div>
+      <p :for={err <- @sub_errors} class="mt-[6px] text-[11.5px] font-medium text-[#c0392b]">
+        {err}
+      </p>
+    </div>
+    """
+  end
+
   defp sub_field_input(%{sf: %{type: :textarea}} = assigns) do
     assigns
     |> sub_field_base()
@@ -1566,19 +1530,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     |> dynamic_component()
   end
 
-  # A sub-field's `ui do class … end` is ADDED to the adapter's input class, not swapped for it.
-  #
-  # It briefly replaced it, and that reads fine until you see what the callers actually write:
-  # `class "font-mono text-sm"` on a code field, six times across this project. Nobody writing that
-  # means "and take the border, the padding and the focus ring away" — but that is what replacing
-  # did, because every adapter input fills its own styling with `assign_new(:class, …)` and a
-  # supplied key wins outright.
-  #
-  # The adapter is asked for its own base rather than the base being written down here, which is
-  # what the pre-extraction code did wrong: it carried a hardcoded copy of the Tailwind classes in
-  # the template, so a second adapter got the first one's look. `multiline_class/1` already takes
-  # the extra as an argument — the seam existed and was simply not used. An adapter that publishes
-  # neither is left with the caller's class alone, which is the best that can be done for it.
   defp sub_field_class(_ui, _type, nil), do: nil
   defp sub_field_class(_ui, _type, ""), do: nil
 
@@ -1602,14 +1553,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     end
   end
 
-  # `__changed__` IS NOT OPTIONAL. This map is handed to a function component, and a component
-  # compiled from `~H` reads change tracking off its assigns — `assign/3` refuses a map without the
-  # key outright, and every clause below pipes through `assign/3`. Nested sub-fields therefore
-  # raised on the first one they tried to draw, which in a browser is the LiveView dying and the
-  # page appearing to reload itself when somebody presses "Add".
-  #
-  # `nil` is the "assume everything changed" marker, which is the honest answer for a map built
-  # fresh on every render: there is no previous version of it to diff against.
   defp sub_field_base(assigns) do
     base = %{
       __changed__: nil,
@@ -1935,10 +1878,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     """
   end
 
-  # THE FILE IN HAND, while it is still on its way. This is the last piece of the form that had
-  # never been drawn to the design: `bg-gray-50`, a `rounded` grey square and a blue progress bar,
-  # directly under a `rounded-[11px]` dropzone on `#faf9f6`. Same radii, same neutrals, and the bar
-  # is the accent every other progress in this admin uses.
   defp render_upload_entries(assigns) do
     ~H"""
     <div :if={@upload.entries != []} class="space-y-2">
@@ -2036,40 +1975,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
     end
   end
 
-  # THE NESTED-ENTRY CHROME, named once instead of twice. Both `render_embedded_nested/4` and
-  # `render_constrained_nested/4` draw the same card, the same title, the same remove link, the same
-  # grid and the same add button, and they held two identical copies of every class string — so a
-  # change to the look had to be made twice or the two drifted apart.
-  #
-  # Having one copy is what made the restyle possible: these carried the pre-redesign look
-  # (`border rounded bg-gray-50`, a red text link, a grey dashed button) while every field around
-  # them had moved to the warm palette, which is what a page's SEO Tags block looked like.
-  defp nested_card_class, do: "rounded-[14px] border border-[#ecebe6] bg-white p-4"
-
-  defp nested_title_class, do: "text-[12px] font-bold text-[#3a382f]"
-
-  defp nested_remove_class,
-    do:
-      "inline-flex h-7 shrink-0 items-center rounded-[8px] px-[9px] text-[11.5px] font-semibold " <>
-        "text-[#c0392b] transition-colors hover:bg-[#fdf4f3]"
-
-  defp nested_grid_class, do: "grid gap-x-4 gap-y-[14px] md:grid-cols-2"
-
-  # Dashed, because it adds a row rather than submitting one — the same signal the dropzone gives.
-  defp nested_add_class,
-    do:
-      "inline-flex h-10 w-full items-center justify-center gap-[7px] rounded-[11px] border " <>
-        "border-dashed border-[#dcdbf5] bg-[#f7f6fd] text-[12px] font-semibold text-[#4f4bcc] " <>
-        "transition-colors hover:border-[#c3c1f0] hover:bg-[#f2f1fc]"
-
-  # The same label a top-level field wears, from the adapter's `field_wrapper/1`.
-  defp nested_label_class, do: "mb-[7px] block text-[10.5px] font-bold text-[#8a877f]"
-
-  defp nested_error_class, do: "mt-[6px] text-[11.5px] font-medium text-[#c0392b]"
-
-  # ABSENT, NOT NIL. The adapters fill their own defaults with `assign_new/3`, which only fires when
-  # the key is missing — assigning `nil` here would silence every one of those defaults instead of
-  # deferring to them.
   defp put_present(assigns, _key, nil), do: assigns
   defp put_present(assigns, key, value), do: assign(assigns, key, value)
 

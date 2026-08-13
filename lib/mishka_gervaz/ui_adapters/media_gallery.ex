@@ -63,9 +63,6 @@ defmodule MishkaGervaz.UIAdapters.MediaGallery do
     """
   end
 
-  # EACH VARIANT NAMES ITS OWN BACKGROUND rather than tinting a shared `bg-white`: two background
-  # utilities on one element are settled by their order in the stylesheet, not in the class string,
-  # so the tint would be a coin toss.
   defp default_class(:destroy),
     do:
       @square <>

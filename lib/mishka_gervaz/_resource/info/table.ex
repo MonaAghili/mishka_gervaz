@@ -146,8 +146,6 @@ defmodule MishkaGervaz.Resource.Info.Table do
     end
   end
 
-  # `false` is an answer, not an absence: a resource that turns realtime off must outrank a domain
-  # that turns it on, which `||` cannot express.
   @spec default_when_nil(term(), term()) :: term()
   defp default_when_nil(nil, default), do: default
   defp default_when_nil(value, _default), do: value

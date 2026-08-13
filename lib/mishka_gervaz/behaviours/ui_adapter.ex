@@ -55,12 +55,7 @@ defmodule MishkaGervaz.Behaviours.UIAdapter do
   @typedoc "A `{function_name, docstring}` pair."
   @type component :: {atom(), String.t()}
 
-  # Single source of truth for all component callbacks. Every entry produces
-  # a `@callback`, an entry in `@component_functions` (drives the
-  # `defdelegate` defaults in `__using__`), and an entry in
-  # `@optional_callbacks`. To add a new component, add ONE line here.
   @components [
-    # ----- Inputs -----------------------------------------------------------
     {:text_input, "Render a text input"},
     {:select, "Render a select dropdown"},
     {:multi_select, "Render a multi-select with search support"},
@@ -77,8 +72,6 @@ defmodule MishkaGervaz.Behaviours.UIAdapter do
     {:string_list_input, "Render a dynamic string list input with add/remove buttons"},
     {:password_input, "Render a password input (masked text entry)"},
     {:combobox, "Render a combobox (text input with dropdown suggestions)"},
-
-    # ----- Actions and display ---------------------------------------------
     {:button, "Render a button"},
     {:icon, "Render an icon"},
     {:badge, "Render a badge/tag (variant :tag or :pill, optional leading dot)"},
@@ -86,14 +79,10 @@ defmodule MishkaGervaz.Behaviours.UIAdapter do
     {:spinner, "Render a loading spinner"},
     {:nav_link, "Render a navigation link"},
     {:dropdown, "Render a dropdown menu"},
-
-    # ----- State and status ------------------------------------------------
     {:empty_state, "Render empty state"},
     {:error_state, "Render error state"},
     {:loading_state, "Render loading state"},
     {:alert, "Render a static alert/notice (info/warning/error/success/neutral)"},
-
-    # ----- Table -----------------------------------------------------------
     {:table, "Render table wrapper"},
     {:table_header, "Render table header row"},
     {:th, "Render a table header cell"},
@@ -121,8 +110,6 @@ defmodule MishkaGervaz.Behaviours.UIAdapter do
     {:pagination_page_button, "Render pagination page number button"},
     {:template_switcher, "Render template switcher container with buttons"},
     {:template_switcher_button, "Render template switcher button"},
-
-    # ----- Form ------------------------------------------------------------
     {:form_container, "Render the main form wrapper (phx-change, phx-submit)"},
     {:form_header, "Render a form header (title + description)"},
     {:form_footer, "Render a form footer (static content below the submit row)"},
@@ -147,9 +134,6 @@ defmodule MishkaGervaz.Behaviours.UIAdapter do
     @callback unquote(name)(assigns()) :: Phoenix.LiveView.Rendered.t()
   end
 
-  # Every callback ships with a default implementation via `use`, so all of
-  # them are effectively optional — hand-rolled implementers can pick the
-  # subset they want without compile warnings.
   @optional_callbacks Enum.map(@component_functions, &{&1, 1})
 
   @doc """

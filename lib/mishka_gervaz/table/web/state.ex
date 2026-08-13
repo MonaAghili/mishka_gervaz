@@ -547,12 +547,7 @@ defmodule MishkaGervaz.Table.Web.State do
 
       defp override_template(state, template) when is_atom(template) do
         cond do
-          # A MODULE, which is the common case: the caller names the template it wrote.
-          # `Code.ensure_loaded?/1` FIRST: `function_exported?/3` answers false for a module that is
-          # merely not loaded yet, which under lazy loading is most of them.
           template_module?(template) -> %{state | template: template}
-          # …or the `name/0` of one the resource already knows, so a caller can say `:media_card`
-          # without reaching for the module.
           found = by_name(state, template) -> %{state | template: found}
           true -> state
         end

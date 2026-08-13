@@ -301,12 +301,6 @@ defmodule MishkaGervaz.Table.Web.DataLoader do
 
       def load_more(socket, _state), do: socket
 
-      # Only for a template that declared `keep_loaded_records true` — see
-      # `MishkaGervaz.Table.Dsl.Presentation`. Every other table renders from the stream, and
-      # holding a second copy of its rows is the cost streams exist to avoid.
-      #
-      # It REPLACES rather than appends, because for those tables `PaginationHandler.load_page/5`
-      # reads the first N pages in one query — the read already is everything loaded.
       @spec accumulate_records(State.t(), list(), boolean()) :: list()
       defp accumulate_records(%State{static: %{keep_loaded_records: false}}, _records, _reset),
         do: []

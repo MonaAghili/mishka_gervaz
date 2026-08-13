@@ -1,13 +1,6 @@
 defmodule MishkaGervaz.Form.Entities.Schema do
   @moduledoc false
 
-  # Shared schema fragments used by multiple form entities. Keeping them
-  # here avoids drift across the 7 entities that gate themselves with
-  # `visible` / `restricted` predicates (Field, Group, Header, Footer,
-  # Notice, Submit.Button, Step). Merge into each entity's `@opt_schema`
-  # with `++ MishkaGervaz.Form.Entities.Schema.access_predicates()` (or
-  # the narrower accessors when only one of the two applies).
-
   @visible_key [
     visible: [
       type: {:or, [:boolean, {:fun, 1}]},

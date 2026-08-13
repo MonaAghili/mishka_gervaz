@@ -813,10 +813,6 @@ defmodule MishkaGervaz.Table.Templates.Table do
     """
   end
 
-  # A page owns its expanded panel and may hand back either a rendered template — a `~H` result,
-  # which is already HTML-safe — or an HTML string it built itself. `Phoenix.HTML.raw/1` has clauses
-  # only for a binary, an iolist, `nil` and an existing `{:safe, _}`, so a `Rendered` struct has to
-  # pass through untouched instead: putting it through `raw/1` raises FunctionClauseError.
   @spec expanded_content(term()) :: term()
   defp expanded_content(%Phoenix.LiveView.Rendered{} = rendered), do: rendered
   defp expanded_content({:safe, _} = safe), do: safe
@@ -953,14 +949,6 @@ defmodule MishkaGervaz.Table.Templates.Table do
     |> Enum.join(" ")
   end
 
-  # A column's grid track comes from its own `ui do width end` when the author set one; otherwise the
-  # table derives it from the column's TYPE. A badge, a bar meter, a boolean tick or a number is an
-  # intrinsically small shape, and giving it the same `1fr` share as a description is what leaves a
-  # status pill floating in half a table. Only a text column — one whose content really can run long —
-  # takes an open share, and only a leading text column is treated as the row's headline.
-  #
-  # A column with its own `render` is opaque: the table cannot tell a 44px thumbnail from a paragraph,
-  # so those keep falling back to a share and are the honest case for setting `width` by hand.
   defp column_track(%{ui: %{width: width}}, _index) when is_binary(width), do: width
   defp column_track(column, index), do: type_track(Map.get(column, :type_module), index)
 

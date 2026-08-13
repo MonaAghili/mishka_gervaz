@@ -95,10 +95,6 @@ defmodule MishkaGervaz.Form.Web.Events.Helpers do
     end
   end
 
-  # Maps a field-type callback name to the boolean key cached on the field
-  # map by `MishkaGervaz.Form.Web.State.FieldBuilder.build_field_config/3`.
-  # `function_exported?/3` is fast but unnecessary on every keystroke —
-  # the booleans are computed once at state-init time.
   defp callback_flag(:sanitize), do: :custom_sanitize?
   defp callback_flag(:parse_params), do: :custom_parse_params?
   defp callback_flag(:validate), do: :custom_validate?

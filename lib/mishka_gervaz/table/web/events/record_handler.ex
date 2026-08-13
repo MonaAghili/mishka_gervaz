@@ -124,8 +124,6 @@ defmodule MishkaGervaz.Table.Web.Events.RecordHandler do
         opts = [action: action, actor: state.current_user, load: State.get_preloads(state)]
         opts = if tenant, do: Keyword.put(opts, :tenant, tenant), else: opts
 
-        # A row can be deleted while still rendered (stale stream / open expand), so a miss returns
-        # nil instead of raising — callers treat nil as "gone" rather than crashing the LiveView.
         case Ash.get(state.static.resource, id, opts) do
           {:ok, record} ->
             MishkaGervaz.Helpers.inject_preload_aliases(record, state.preload_aliases)

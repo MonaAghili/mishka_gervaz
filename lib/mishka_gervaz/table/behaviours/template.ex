@@ -355,10 +355,6 @@ defmodule MishkaGervaz.Table.Behaviours.Template do
     Map.get(record, source)
   end
 
-  # A column sourced from a `has_many` holds a list of structs, and `String.Chars` is not implemented
-  # for those — joining them raises rather than producing a display string. The types that read such
-  # a list want it whole anyway (`MishkaGervaz.Table.Types.Column.Avatars`), so an unjoinable list is
-  # handed on untouched instead of crashing the row.
   @spec join_values(list(), String.t()) :: String.t() | list()
   defp join_values(values, separator) do
     if Enum.all?(values, &joinable?/1), do: Enum.join(values, separator), else: values

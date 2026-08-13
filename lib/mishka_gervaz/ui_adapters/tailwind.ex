@@ -15,11 +15,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
   import MishkaGervaz.Helpers,
     only: [normalize_options: 1, normalize_selected_values: 1, resolve_label: 1]
 
-  # ONE SWITCHED-OFF LOOK, for every kind of field.
-  #
-  # Half of these carried `bg-gray-100`, which is Tailwind's COOL grey and does not belong beside
-  # this palette's warm neutrals — a Category waiting on a Site read as a different kind of control
-  # rather than as the same control, switched off. The other half carried nothing but a cursor.
   @disabled_class "cursor-not-allowed bg-[#f6f5f2] text-[#8a877f]"
 
   @doc """
@@ -121,8 +116,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
-  # A filter control sits on the page (white, 42px); a form field sits inside a field card
-  # (#faf9f6, 44px). Callers in the table filter bar pass `search: true` to get the page variant.
   @doc false
   def input_class(search?) do
     base =
@@ -1351,8 +1344,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
-  # `+N` ⇄ `- less`: toggle the hidden rest chips and swap the chip's own label. Click-away resets to the
-  # collapsed state regardless of where the toggle currently sits.
   defp tags_toggle(id) do
     JS.toggle_class("hidden", to: "##{id}-rest")
     |> JS.toggle_class("hidden", to: "##{id}-more")
@@ -1401,8 +1392,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
       |> assign_new(:size, fn -> nil end)
       |> assign_new(:empty, fn -> nil end)
 
-    # The column type always hands both keys over, nil included, so `assign_new` would never fire —
-    # the defaults have to be applied to the value, not to the key's absence.
     assigns =
       assigns
       |> assign(:size, assigns.size || "size-[26px]")
@@ -1724,9 +1713,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
-  # Colour + icon per bulk action, derived from its built-in type so a resource declares nothing
-  # extra (`handler: :destroy` etc.). A custom action (type nil) reads primary/indigo and honours its
-  # own `ui.icon`; any action may still fully override via `ui.class`.
   @bulk_btn_base "inline-flex h-[34px] items-center gap-1.5 rounded-[9px] border px-[13px] text-[12px] font-semibold transition-colors [&_svg]:size-[14px]"
 
   defp bulk_variant(action) do
@@ -1739,10 +1725,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     end
   end
 
-  # The bulk-action kind, read from whichever field carries it: the `static` copy handed to the adapter
-  # is pre-transform (so `type` is nil and `handler` is the raw `:destroy` atom, a `{master, tenant}` /
-  # `{:type, kind}` tuple whose second element is the kind, or a scoped `:master_destroy` atom). The
-  # action name is the last fallback — `:archive` is the conventional name for a `:destroy` bulk action.
   @bulk_kinds [:destroy, :unarchive, :permanent_destroy, :activate]
   defp bulk_kind(%{type: t}) when t in @bulk_kinds, do: t
   defp bulk_kind(%{handler: {_scope, kind}}) when kind in @bulk_kinds, do: kind
@@ -1840,8 +1822,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     * `:page_info_format` - Format string for page info
     * `:inner_block` - Slot for pagination buttons
   """
-  # The pagination the design draws: soft neutral chrome, the current page tinted indigo rather than
-  # filled, and a disabled step muted instead of merely translucent.
   @pagination_nav "h-9 rounded-[9px] border border-[#ecebe6] bg-white px-3.5 text-[12px] " <>
                     "font-semibold text-[#6d6a63] transition-colors hover:bg-[#f7f6f3] " <>
                     "disabled:cursor-default disabled:bg-[#f6f5f2] disabled:text-[#c3c0b8]"
@@ -3079,9 +3059,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
-  # THE SAME FIVE TONES THE BADGES AND CHIPS WEAR. These were Tailwind's stock `blue-50`/`amber-50`
-  # families — cool where this palette is warm, so a notice inside a form read as belonging to some
-  # other application than the fields it sat between.
   defp alert_tone(:info),
     do: %{
       wrapper: "border-[#dcdbf5] bg-[#f2f1fc]",
@@ -3179,15 +3156,6 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
-  # THE NAME IS PASSED THROUGH WHOLE, never taken apart and rebuilt. A heroicon is a class with a CSS
-  # mask and no glyph in the markup, and the mask rule is emitted by the heroicons Tailwind plugin
-  # only for icon classes it finds while scanning source. This stripped the `hero-` prefix and
-  # re-attached it as `"hero-\#{@name}"`, which is a string with a hole in it — so any icon whose name
-  # reaches here from a column config rather than a literal at the call site got no rule and rendered
-  # as blank space the size of the icon.
-  #
-  # Handing `@name` through untouched means the literal at the call site (`icon: "hero-users"`) is
-  # what the scanner sees, which is the only place it can see one.
   defp render_icon(assigns) do
     name = assigns[:name] || ""
 

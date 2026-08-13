@@ -73,11 +73,6 @@ defmodule MishkaGervaz.Form.Types.Field.Relation do
       field: state_assigns[:form_field],
       id: "form-#{field.name}",
       options: option_list,
-      # NO CLASS. This used to pass its own copy of the form look, because the adapter's default was
-      # the white filter one and a relation field inside a form has to read `#faf9f6` like its
-      # neighbours. The adapter answers that itself now — a field is the form variant unless the
-      # caller says `search: true` — and the copy had already drifted by a pixel of radius and a
-      # weight, which is visible the moment a Site sits beside a Category.
       placeholder: get_ui(field, :placeholder, "Select..."),
       icon: get_ui(field, :icon),
       has_more?: Map.get(rel_data, :has_more?, false),

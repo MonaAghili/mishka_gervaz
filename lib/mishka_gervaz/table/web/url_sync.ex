@@ -320,14 +320,6 @@ defmodule MishkaGervaz.Table.Web.UrlSync do
     )
   end
 
-  # A key the caller did not specify is not a disagreement. `apply_url_state/2` ignores an absent or
-  # nil key, so treating one as a mismatch would report the table stale, reload it, and change
-  # nothing — forever, on every parent re-render.
-  #
-  # It also lets a host LiveView hand over only what it actually tracks. The page builder's Studio
-  # passes `path_params` alone: its category chips are the table's own filters and its depth is
-  # whatever the reader built with "load more", so a map that claimed `filters: %{}, page: 1` would
-  # wipe both every time an unrelated path param changed.
   @spec specified_match?(url_state(), atom(), any()) :: boolean()
   defp specified_match?(url_state, key, current) do
     case url_state[key] do
@@ -574,10 +566,6 @@ defmodule MishkaGervaz.Table.Web.UrlSync do
 
   defp maybe_apply_page(state, _), do: state
 
-  # `matches_state?/2` compares `page_size`, so a caller that changes it is telling the table its
-  # state is stale — but nothing here applied it, and the table reloaded at the old size. Note that
-  # `MishkaGervaz.Table.Web.State.UrlSync` is the implementation `State.apply_url_state/2` resolves
-  # to by default, and it clamps the incoming size to `page_size_options`; this one does not.
   @spec maybe_apply_page_size(map(), map()) :: map()
   defp maybe_apply_page_size(state, %{page_size: size}) when is_integer(size) and size > 0 do
     %{state | current_page_size: size}

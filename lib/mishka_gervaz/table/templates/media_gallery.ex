@@ -449,10 +449,6 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     end
   end
 
-  # EVERY resource with row actions carries a layout map, whether or not it names anything in it —
-  # `BuildRuntimeConfig` builds one from the defaults. So "has a layout" is not the question; the
-  # question is whether the layout PLACES an action, which is the same test
-  # `Shared.render_row_actions/1` makes before it honours one.
   defp placed_by_layout?(static) do
     layout = Map.get(static, :row_actions_layout)
     dropdowns = Map.get(static, :row_action_dropdowns) || []
@@ -597,8 +593,6 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
 
   def media_size(_record), do: "—"
 
-  # Only one of the two category relationships is preloaded — a tenant's own, or a master's
-  # tenancy-bypassing alias — so the other is a truthy `%Ash.NotLoaded{}`; find whichever is a record.
   def media_category(record) do
     Enum.find_value([:media_category, :master_media_category], fn key ->
       case Map.get(record, key) do
@@ -774,9 +768,6 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     """
   end
 
-  # The track never drops a card below its floor unless the viewport itself is narrower, so the count
-  # falls on its own — no breakpoint to miss. The `columns` option only sets that floor: a smaller
-  # column count means wider cards, so a wider minimum.
   defp gallery_classes(static) do
     options = static.template_options || default_options()
 
@@ -788,15 +779,6 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     |> Enum.filter(& &1)
   end
 
-  # WHOLE CLASS NAMES, one clause per floor, because Tailwind's scanner reads SOURCE TEXT. Written
-  # with the floor interpolated in, the scanner took the surrounding text literally and emitted a
-  # rule for a selector containing `#{floor` — so the gallery got dead CSS and no working track, and
-  # every card stretched across the full row instead of tiling.
-  #
-  # It looked right only while the admin was styled by the in-browser Tailwind JIT, which reads
-  # classes off the rendered DOM and never cared how they were assembled. The admin is served a
-  # compiled `admin.css` now (`mix admin_css`); a class that exists only after interpolation has
-  # nothing to find.
   defp track_class(columns) when columns <= 3,
     do: "grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))]"
 

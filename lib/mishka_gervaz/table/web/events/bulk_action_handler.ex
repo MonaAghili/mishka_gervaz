@@ -500,16 +500,12 @@ defmodule MishkaGervaz.Table.Web.Events.BulkActionHandler do
         end
       end
 
-      # Full success: no default flash (the table reload is the feedback).
-      # Hooks may add their own.
       defp finish_bulk_success(action, %BulkActionResult{} = summary, state, socket) do
         state
         |> apply_lifecycle_socket(:on_bulk_action_success, action, [summary, state], socket)
         |> reload_after_bulk(action, state)
       end
 
-      # Partial: default `"X succeeded, Y failed."` flash. Hooks return
-      # `{:halt, socket}` (`BulkActionHooks.silence/1`) to own the messaging.
       defp finish_bulk_partial(action, %BulkActionResult{} = summary, state, socket) do
         state
         |> apply_lifecycle_with_default(
@@ -522,10 +518,6 @@ defmodule MishkaGervaz.Table.Web.Events.BulkActionHandler do
         |> reload_after_bulk(action, state)
       end
 
-      # Reloads page 1 after a bulk action, clearing the selection when the
-      # builtin is enabled. `sync_url: false`: a `push_patch` clears the flash
-      # (`Phoenix.LiveView.Channel`), so keep it off — a bulk action doesn't
-      # change the synced params anyway.
       defp reload_after_bulk(socket, action, state) do
         new_state =
           if builtin_enabled?(state, :clear_selection_after_bulk) do
@@ -543,8 +535,6 @@ defmodule MishkaGervaz.Table.Web.Events.BulkActionHandler do
         {:noreply, socket}
       end
 
-      # Full failure: default error flash (hooks can silence). No reload; the
-      # selection is kept so the user can retry.
       defp finish_bulk_error(action, %BulkActionResult{} = summary, state, socket) do
         socket =
           apply_lifecycle_with_default(
@@ -623,12 +613,6 @@ defmodule MishkaGervaz.Table.Web.Events.BulkActionHandler do
         execute_bulk_by_type(query, opts, action_type)
       end
 
-      # Unarchive partial-skip: restoring a row re-enters the resource's unique
-      # constraints, so a row whose identity is already held by an active row
-      # would make the whole bulk roll back. Detect those, run the bulk on the
-      # rest, and leave the conflicting rows selected. The flash describes
-      # what was skipped (otherwise invisible to the user); hooks may suppress
-      # it via `BulkActionHooks.silence/1`.
       defp unarchive_skipping_conflicts(
              action,
              ash_action,
@@ -709,9 +693,6 @@ defmodule MishkaGervaz.Table.Web.Events.BulkActionHandler do
       defp drop_conflicts({:all_except, excluded}, conflict_ids),
         do: {:all_except, Enum.uniq(excluded ++ conflict_ids)}
 
-      # Ids among the selection whose identity is already taken by an active
-      # (non-archived) row. Any read failure degrades to "no conflicts" so the
-      # normal bulk path still runs.
       defp unarchive_conflict_ids(state, selected_ids) do
         identities =
           state.static.resource
@@ -795,8 +776,6 @@ defmodule MishkaGervaz.Table.Web.Events.BulkActionHandler do
         end
       end
 
-      # Reads every matching row, paging past the action's `max_page_size`
-      # (these read actions require pagination, so `page: false` is rejected).
       defp read_all(query, opts, offset \\ 0, acc \\ []) do
         case Ash.read(query, Keyword.put(opts, :page, limit: 100, offset: offset)) do
           {:ok, %{results: results}} when length(results) == 100 ->
