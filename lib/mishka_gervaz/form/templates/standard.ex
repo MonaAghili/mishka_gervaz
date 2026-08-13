@@ -1597,39 +1597,35 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   end
 
   @doc false
-  def validate_sub_field_value(value, sf, show_required \\ true, show_type \\ true) do
-    errors = []
+  def validate_sub_field_value(value, sf, show_required \\ true, show_type \\ true),
+    do: required_error(value, sf, show_required) ++ type_error(value, sf, show_type)
 
-    errors =
-      if show_required && sf.required && blank_sub_value?(value) do
-        ["is required" | errors]
-      else
-        errors
-      end
+  defp required_error(value, %{required: true}, true) do
+    case blank_sub_value?(value) do
+      true -> ["is required"]
+      false -> []
+    end
+  end
 
-    errors =
-      if show_type && not is_nil(value) && not blank_sub_value?(value) do
-        type_mod = MishkaGervaz.Form.Types.Field.get_or_passthrough(sf.type)
-        config = %{ash_type: Map.get(sf, :ash_type)}
+  defp required_error(_value, _sf, _show_required), do: []
 
-        cond do
-          not is_atom(type_mod) or is_nil(type_mod) ->
-            errors
+  defp type_error(nil, _sf, _show_type), do: []
+  defp type_error(_value, _sf, false), do: []
 
-          not Map.get(sf, :custom_validate?, function_exported?(type_mod, :validate, 2)) ->
-            errors
+  # Every step is a reason NOT to check: a blank value has nothing to check, a type that resolved to
+  # no module has nothing to check it with, and a type module that declares no `validate/2` has
+  # nothing to say. Only a value that survives all three is asked.
+  defp type_error(value, sf, true) do
+    type_mod = MishkaGervaz.Form.Types.Field.get_or_passthrough(sf.type)
 
-          true ->
-            case type_mod.validate(value, config) do
-              {:error, msg} -> [msg | errors]
-              _ -> errors
-            end
-        end
-      else
-        errors
-      end
-
-    Enum.reverse(errors)
+    with false <- blank_sub_value?(value),
+         true <- is_atom(type_mod) and not is_nil(type_mod),
+         true <- Map.get(sf, :custom_validate?, function_exported?(type_mod, :validate, 2)),
+         {:error, message} <- type_mod.validate(value, %{ash_type: Map.get(sf, :ash_type)}) do
+      [message]
+    else
+      _nothing_to_say -> []
+    end
   end
 
   @doc false
