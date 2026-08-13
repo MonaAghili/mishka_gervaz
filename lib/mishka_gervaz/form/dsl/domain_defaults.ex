@@ -169,6 +169,23 @@ defmodule MishkaGervaz.Form.Dsl.DomainDefaults do
     ]
   ]
 
+  @doc """
+  The domain-level `form` section — the defaults every resource in the domain inherits.
+
+  A resource overrides these per key, never per block:
+
+      mishka_gervaz do
+        form do
+          actor_key :current_user
+
+          actions do
+            create {:master_create, :create}
+            update {:master_update, :update}
+            read {:master_get, :read}
+          end
+        end
+      end
+  """
   def section do
     %Spark.Dsl.Section{
       name: :form,

@@ -7,6 +7,17 @@ defmodule MishkaGervaz.Table.Types.Filter.Select do
   - Auto-loaded from relationship
   - Loaded via custom function
 
+  ## Example
+
+      filter :status, :select do
+        options [{"Published", :published}, {"Draft", :draft}]
+
+        ui do
+          label fn -> dgettext("mishka_gervaz", "Status") end
+          prompt "All statuses"
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Filter` (registry),
   `MishkaGervaz.Table.Behaviours.FilterType`, and
   `MishkaGervaz.Table.Entities.Filter`.

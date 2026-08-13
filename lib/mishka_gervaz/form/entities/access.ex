@@ -57,5 +57,6 @@ defmodule MishkaGervaz.Form.Entities.Access do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(access), do: {:ok, access}
 end

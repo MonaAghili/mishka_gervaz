@@ -2,6 +2,12 @@ defmodule MishkaGervaz.Form.Types.Field.File do
   @moduledoc """
   File upload field type.
 
+  ## Example
+
+      field :attachment, :file do
+        ui do label "Attachment" end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

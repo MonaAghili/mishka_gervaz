@@ -198,6 +198,7 @@ defmodule MishkaGervaz.Form.Entities.Notice do
       {:error,
        "invalid notice position #{inspect(other)}. Expected one of #{inspect(@valid_position_atoms)} or `{:before_group, atom}` / `{:after_group, atom}`."}
 
+  @doc false
   def transform(%__MODULE__{} = notice) do
     {:ok, MishkaGervaz.Helpers.extract_singleton_entity(notice, :ui)}
   end
@@ -236,5 +237,6 @@ defmodule MishkaGervaz.Form.Entities.Notice.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end

@@ -11,6 +11,15 @@ defmodule MishkaGervaz.Table.Types.Column.Array do
   - `:as_badges` - Render each item as a badge (default: false)
   - `:badge_class` - CSS class for badges (default: "bg-[#f2f1ec] text-[#3a382f]")
 
+  ## Example
+
+      column :keywords do
+        ui do
+          type :array
+          extra %{as_badges: true, max_items: 3}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

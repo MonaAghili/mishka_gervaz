@@ -91,5 +91,6 @@ defmodule MishkaGervaz.Table.Entities.Header do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(header), do: {:ok, header}
 end

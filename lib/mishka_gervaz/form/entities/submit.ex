@@ -56,6 +56,7 @@ defmodule MishkaGervaz.Form.Entities.Submit.Button do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(button), do: {:ok, button}
 end
 
@@ -185,5 +186,6 @@ defmodule MishkaGervaz.Form.Entities.Submit.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end

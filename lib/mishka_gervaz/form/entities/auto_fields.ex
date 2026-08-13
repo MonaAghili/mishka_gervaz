@@ -73,6 +73,7 @@ defmodule MishkaGervaz.Form.Entities.AutoFields do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(auto_fields), do: {:ok, auto_fields}
 end
 
@@ -116,6 +117,7 @@ defmodule MishkaGervaz.Form.Entities.AutoFields.Defaults do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(defaults), do: {:ok, defaults}
 end
 
@@ -173,6 +175,7 @@ defmodule MishkaGervaz.Form.Entities.AutoFields.UiDefaults do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui_defaults), do: {:ok, ui_defaults}
 end
 
@@ -258,6 +261,7 @@ defmodule MishkaGervaz.Form.Entities.AutoFields.Override do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(%__MODULE__{} = override) do
     {:ok, MishkaGervaz.Helpers.extract_singleton_entity(override, :ui)}
   end

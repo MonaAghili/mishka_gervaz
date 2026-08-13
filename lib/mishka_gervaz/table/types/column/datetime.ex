@@ -10,6 +10,17 @@ defmodule MishkaGervaz.Table.Types.Column.DateTime do
   - `:relative` - Show relative time like "2 hours ago" (default: false)
   - `:timezone` - Convert to timezone (default: nil, shows as-is)
 
+  ## Example
+
+      column :inserted_at do
+        sortable true
+
+        ui do
+          type :datetime
+          extra %{relative: true}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

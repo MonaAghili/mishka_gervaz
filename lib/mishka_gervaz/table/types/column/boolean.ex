@@ -13,6 +13,15 @@ defmodule MishkaGervaz.Table.Types.Column.Boolean do
   - `:true_label` - Text label for true (alternative to icon)
   - `:false_label` - Text label for false (alternative to icon)
 
+  ## Example
+
+      column :active do
+        ui do
+          type :boolean
+          extra %{true_label: "Yes", false_label: "No"}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

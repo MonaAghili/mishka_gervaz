@@ -327,6 +327,7 @@ defmodule MishkaGervaz.Table.Entities.Filter.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end
 
@@ -394,5 +395,6 @@ defmodule MishkaGervaz.Table.Entities.Filter.Preload do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(preload), do: {:ok, preload}
 end

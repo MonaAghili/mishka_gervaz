@@ -25,6 +25,13 @@ defmodule MishkaGervaz.Form.Web.Renderer do
 
   use Phoenix.Component
 
+  @doc """
+  Renders the form through the template the resource declared.
+
+  Called by `MishkaGervaz.Form.Web.Live`. Splits the state into `@static` and `@state` before
+  handing over, so LiveView can skip the half that never changes, and falls back to the
+  template's loading state until the form has been built.
+  """
   @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     state = assigns[:form_state]

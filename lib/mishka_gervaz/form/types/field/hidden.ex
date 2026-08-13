@@ -2,6 +2,12 @@ defmodule MishkaGervaz.Form.Types.Field.Hidden do
   @moduledoc """
   Hidden input field type.
 
+  ## Example
+
+      field :site_id, :hidden do
+        default "global"
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

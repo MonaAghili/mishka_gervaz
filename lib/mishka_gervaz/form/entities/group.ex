@@ -159,5 +159,6 @@ defmodule MishkaGervaz.Form.Entities.Group.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end

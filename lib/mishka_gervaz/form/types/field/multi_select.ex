@@ -2,6 +2,12 @@ defmodule MishkaGervaz.Form.Types.Field.MultiSelect do
   @moduledoc """
   Multi-select dropdown field type.
 
+  ## Example
+
+      field :roles, :multi_select do
+        options [{"Admin", :admin}, {"Editor", :editor}]
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

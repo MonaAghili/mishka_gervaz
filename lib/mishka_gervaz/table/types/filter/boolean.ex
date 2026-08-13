@@ -4,6 +4,12 @@ defmodule MishkaGervaz.Table.Types.Filter.Boolean do
 
   Renders a checkbox for true/false filtering.
 
+  ## Example
+
+      filter :featured, :boolean do
+        ui do label fn -> dgettext("mishka_gervaz", "Featured only") end end
+      end
+
   See `MishkaGervaz.Table.Types.Filter` (registry),
   `MishkaGervaz.Table.Behaviours.FilterType`, and
   `MishkaGervaz.Table.Entities.Filter`.

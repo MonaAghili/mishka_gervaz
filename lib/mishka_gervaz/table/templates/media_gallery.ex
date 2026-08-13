@@ -578,9 +578,18 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
   def media_type(%{type: type}) when is_atom(type) and not is_nil(type), do: type
   def media_type(_record), do: nil
 
+  @doc """
+  A file's extension as declared by its `format` attribute, or `nil`.
+  """
   def media_ext(%{format: format}) when is_binary(format) and format != "", do: format
   def media_ext(_record), do: nil
 
+  @doc """
+  A file's display name, with its extension when the record carries one.
+
+      iex> media_name(%{name: "cover", format: "png"})
+      "cover.png"
+  """
   def media_name(%{name: name, format: format})
       when is_binary(name) and is_binary(format),
       do: "#{name}.#{format}"
@@ -588,11 +597,23 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
   def media_name(%{name: name}) when is_binary(name), do: name
   def media_name(_record), do: "Untitled"
 
+  @doc """
+  A file's size, humanised, or an em dash when the record has none.
+
+      iex> media_size(%{size: 2048})
+      "2.0 KB"
+  """
   def media_size(%{size: size}) when is_integer(size),
     do: MishkaGervaz.Helpers.format_filesize(size)
 
   def media_size(_record), do: "—"
 
+  @doc """
+  The name of the category a file belongs to, or `nil`.
+
+  Only one of the two category relationships is ever loaded — a tenant's own, or the master
+  alias that bypasses tenancy — so both are tried and whichever holds a record wins.
+  """
   def media_category(record) do
     Enum.find_value([:media_category, :master_media_category], fn key ->
       case Map.get(record, key) do
@@ -602,6 +623,12 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
     end)
   end
 
+  @doc """
+  The date a file was added, formatted for a card, or `nil` when it is not loaded.
+
+      iex> media_date(%{inserted_at: ~U[2026-08-13 10:00:00Z]})
+      "Aug 13, 2026"
+  """
   def media_date(%{inserted_at: %DateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
   def media_date(%{inserted_at: %NaiveDateTime{} = at}), do: Calendar.strftime(at, "%b %d, %Y")
   def media_date(_record), do: nil

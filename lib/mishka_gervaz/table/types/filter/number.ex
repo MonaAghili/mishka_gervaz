@@ -4,6 +4,13 @@ defmodule MishkaGervaz.Table.Types.Filter.Number do
 
   Renders a number input for numeric filtering.
 
+  ## Example
+
+      filter :priority, :number do
+        min 0
+        max 10
+      end
+
   See `MishkaGervaz.Table.Types.Filter` (registry),
   `MishkaGervaz.Table.Behaviours.FilterType`, and
   `MishkaGervaz.Table.Entities.Filter`.

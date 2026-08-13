@@ -2,6 +2,13 @@ defmodule MishkaGervaz.Form.Types.Field.Toggle do
   @moduledoc """
   Toggle switch field type. Boolean variant rendered as a switch instead of a checkbox.
 
+  ## Example
+
+      field :active, :toggle do
+        default true
+        ui do label "Active" end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

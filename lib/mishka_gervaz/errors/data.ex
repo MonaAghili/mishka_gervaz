@@ -16,6 +16,7 @@ defmodule MishkaGervaz.Errors.Data do
     """
     use Splode.Error, fields: [:resource, :reason, :page], class: :data
 
+    @doc false
     def message(%{resource: resource, reason: reason, page: nil}) do
       "Failed to load #{inspect(resource)}: #{format_reason(reason)}"
     end

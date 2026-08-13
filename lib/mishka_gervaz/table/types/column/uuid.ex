@@ -11,6 +11,15 @@ defmodule MishkaGervaz.Table.Types.Column.UUID do
   - `:suffix_length` - Characters to show at end (default: 0)
   - `:copy_button` - Show copy button (default: false)
 
+  ## Example
+
+      column :id do
+        ui do
+          type :uuid
+          extra %{prefix_length: 8, suffix_length: 4, copy_button: true}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

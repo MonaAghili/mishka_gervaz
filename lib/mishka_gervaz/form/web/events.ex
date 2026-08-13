@@ -947,6 +947,13 @@ defmodule MishkaGervaz.Form.Web.Events do
     end
   end
 
+  @doc """
+  Dispatches one `phx-` event to the default handler.
+
+  The entry point `MishkaGervaz.Form.Web.Live` calls for every form event. A resource that
+  wires `events do module MyApp.Form.Events end` replaces this; one that overrides a single
+  sub-handler leaves it alone and the dispatcher routes through the override.
+  """
   @spec handle(String.t(), map(), socket()) :: {:noreply, socket()}
   def handle(event, params, socket) do
     MishkaGervaz.Form.Web.Events.Default.handle(event, params, socket)

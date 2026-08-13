@@ -17,6 +17,7 @@ defmodule MishkaGervaz.Errors.Action do
     """
     use Splode.Error, fields: [:resource, :action, :reason, :record_id], class: :action
 
+    @doc false
     def message(%{resource: resource, action: action, reason: reason, record_id: nil}) do
       "Action #{action} failed on #{inspect(resource)}: #{format_reason(reason)}"
     end

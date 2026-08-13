@@ -9,6 +9,15 @@ defmodule MishkaGervaz.Table.Types.Column.Text do
   - `:max_length` - Truncate text after this many characters (default: nil)
   - `:truncate_suffix` - Suffix for truncated text (default: "...")
 
+  ## Example
+
+      column :excerpt do
+        ui do
+          type :text
+          extra %{max_length: 80, truncate_suffix: "…"}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

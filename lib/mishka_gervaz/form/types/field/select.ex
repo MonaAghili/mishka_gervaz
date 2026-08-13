@@ -2,6 +2,13 @@ defmodule MishkaGervaz.Form.Types.Field.Select do
   @moduledoc """
   Single-select dropdown field type. Trims string values on sanitize.
 
+  ## Example
+
+      field :status, :select do
+        options [{"Draft", :draft}, {"Published", :published}]
+        include_nil "Any"
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

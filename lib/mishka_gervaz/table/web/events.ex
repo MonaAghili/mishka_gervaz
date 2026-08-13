@@ -1083,6 +1083,13 @@ defmodule MishkaGervaz.Table.Web.Events do
 
   defp maybe_put_total_pages(state, _total, _page_size), do: state
 
+  @doc """
+  Deletes one record, runs the `:delete` action hooks and the `after_delete` hook, then drops
+  the row from the stream and the header count.
+
+  Public so a `RecordHandler` override can defer the destroy itself to the default behaviour
+  rather than re-implementing the surrounding bookkeeping.
+  """
   @spec do_delete(State.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def do_delete(state, record, socket) do

@@ -2,6 +2,12 @@ defmodule MishkaGervaz.Form.Types.Field.Date do
   @moduledoc """
   Date picker field type. Validates ISO-8601 date strings.
 
+  ## Example
+
+      field :published_on, :date do
+        ui do label "Publish date" end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

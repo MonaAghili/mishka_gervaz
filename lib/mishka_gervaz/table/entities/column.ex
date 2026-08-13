@@ -344,6 +344,7 @@ defmodule MishkaGervaz.Table.Entities.Column.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end
 
@@ -390,6 +391,7 @@ defmodule MishkaGervaz.Table.Entities.AutoColumns do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(auto_columns), do: {:ok, auto_columns}
 end
 
@@ -438,6 +440,7 @@ defmodule MishkaGervaz.Table.Entities.AutoColumns.Defaults do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(defaults), do: {:ok, defaults}
 end
 
@@ -485,6 +488,7 @@ defmodule MishkaGervaz.Table.Entities.AutoColumns.UiDefaults do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui_defaults), do: {:ok, ui_defaults}
 end
 
@@ -546,6 +550,7 @@ defmodule MishkaGervaz.Table.Entities.AutoColumns.Override do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(%__MODULE__{} = override) do
     {:ok, extract_ui(override)}
   end

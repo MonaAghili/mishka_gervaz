@@ -122,6 +122,7 @@ defmodule MishkaGervaz.Form.Entities.NestedField do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(%__MODULE__{} = nested_field) do
     {:ok, Helpers.extract_singleton_entity(nested_field, :ui)}
   end
@@ -192,5 +193,6 @@ defmodule MishkaGervaz.Form.Entities.NestedField.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end

@@ -29,6 +29,13 @@ defmodule MishkaGervaz.Table.Web.Renderer do
 
   use Phoenix.Component
 
+  @doc """
+  Renders the table through the template currently in effect.
+
+  Called by `MishkaGervaz.Table.Web.Live`. Passes `@static`, `@state`, the `@stream` for the
+  resource's stream name and an `@empty?` flag, and falls back to the loading state until the
+  first read returns.
+  """
   @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     state = assigns[:table_state]

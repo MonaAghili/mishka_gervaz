@@ -2,6 +2,12 @@ defmodule MishkaGervaz.Form.Types.Field.Checkbox do
   @moduledoc """
   Checkbox input field type.
 
+  ## Example
+
+      field :featured, :checkbox do
+        ui do label "Featured" end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

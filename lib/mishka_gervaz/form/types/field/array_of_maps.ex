@@ -2,6 +2,15 @@ defmodule MishkaGervaz.Form.Types.Field.ArrayOfMaps do
   @moduledoc """
   Array-of-maps repeatable field type.
 
+  ## Example
+
+      field :rows, :array_of_maps do
+        ui do
+          add_label "+ Add row"
+          remove_label "Remove"
+        end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

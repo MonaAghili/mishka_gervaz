@@ -2,6 +2,12 @@ defmodule MishkaGervaz.Form.Types.Field.DateTime do
   @moduledoc """
   DateTime picker field type. Accepts both ISO-8601 naive and zoned strings.
 
+  ## Example
+
+      field :published_at, :datetime do
+        ui do label "Publish time" end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

@@ -150,6 +150,21 @@ defmodule MishkaGervaz.Table.Web.UrlSync do
     do_decode(params, prefix, allowed_params, allowed_filters, max_filter_length, nil, %{})
   end
 
+  @doc """
+  `decode/3` with the resource's own `url_sync` configuration overridden.
+
+  Every option defaults to what the resource declared, so pass only what differs:
+
+    * `:allowed_params` — which of `:filters` `:sort` `:page` `:page_size` `:search` `:template`
+      to read
+    * `:allowed_filters` — the filter names that may arrive from the URL
+    * `:max_filter_length` — values longer than this are ignored
+    * `:prefix` — the param prefix
+
+  Returns `nil` when the resource has URL sync disabled, exactly as `decode/3` does.
+
+      UrlSync.decode(params, uri, MyApp.Blog.Post, allowed_filters: [:status])
+  """
   @spec decode(map(), String.t(), module(), decode_opts()) :: url_state() | nil
   def decode(params, uri, resource, opts)
       when is_binary(uri) and is_atom(resource) and not is_nil(resource) and is_list(opts) do

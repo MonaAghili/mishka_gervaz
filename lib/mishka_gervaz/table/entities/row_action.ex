@@ -204,6 +204,7 @@ defmodule MishkaGervaz.Table.Entities.RowAction.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end
 
@@ -238,6 +239,7 @@ defmodule MishkaGervaz.Table.Entities.RowActionDropdown do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(dropdown), do: {:ok, dropdown}
 end
 
@@ -264,5 +266,6 @@ defmodule MishkaGervaz.Table.Entities.DropdownSeparator do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(separator), do: {:ok, separator}
 end

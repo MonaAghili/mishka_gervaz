@@ -298,43 +298,78 @@ defmodule MishkaGervaz.Form.Web.State do
 
     import MishkaGervaz.Helpers, only: [module_to_snake: 2]
 
+    @doc """
+    The stream name derived from a resource when `identity do stream_name … end` is omitted.
+
+        iex> generate_stream_name(MyApp.Blog.Post)
+        :post_form_stream
+    """
     @spec generate_stream_name(module()) :: atom()
     def generate_stream_name(resource) do
       resource |> module_to_snake("_form_stream") |> String.to_atom()
     end
 
+    @doc """
+    The form's layout mode, defaulting to `:standard` when the resource declares none.
+    """
     @spec get_layout_mode(map()) :: :standard | :wizard | :tabs
     def get_layout_mode(%{layout: %{mode: mode}}) when mode in [:standard, :wizard, :tabs],
       do: mode
 
     def get_layout_mode(_config), do: :standard
 
+    @doc """
+    The grid width of the form, defaulting to a single column.
+
+    A group may override it for itself with `ui do columns … end`.
+    """
     @spec get_layout_columns(map()) :: 1 | 2 | 3 | 4
     def get_layout_columns(%{layout: %{columns: cols}}) when cols in [1, 2, 3, 4], do: cols
     def get_layout_columns(_config), do: 1
 
+    @doc """
+    How a wizard or tabs form moves between steps — `:sequential` (the default) or `:free`.
+    """
     @spec get_layout_navigation(map()) :: :sequential | :free
     def get_layout_navigation(%{layout: %{navigation: nav}}) when nav in [:sequential, :free],
       do: nav
 
     def get_layout_navigation(_config), do: :sequential
 
+    @doc """
+    The `uploads do upload … end` entries declared on the resource, or `[]`.
+    """
     @spec get_uploads(map()) :: list(map())
     def get_uploads(%{uploads: uploads}) when is_list(uploads), do: uploads
     def get_uploads(_config), do: []
 
+    @doc """
+    The form's `layout do header … end` map, or `nil` when none is declared.
+    """
     @spec get_header(map()) :: map() | nil
     def get_header(%{layout: %{header: header}}) when is_map(header), do: header
     def get_header(_config), do: nil
 
+    @doc """
+    The form's `layout do footer … end` map, or `nil` when none is declared.
+    """
     @spec get_footer(map()) :: map() | nil
     def get_footer(%{layout: %{footer: footer}}) when is_map(footer), do: footer
     def get_footer(_config), do: nil
 
+    @doc """
+    Every `layout do notice … end` declared on the resource, in declaration order.
+    """
     @spec get_notices(map()) :: list(map())
     def get_notices(%{layout: %{notices: notices}}) when is_list(notices), do: notices
     def get_notices(_config), do: []
 
+    @doc """
+    The resolved submit configuration — the three buttons, their position and shared `ui`.
+
+    Falls back to a full default block rather than `nil`, so a template can read
+    `submit[:create][:label]` without guarding first.
+    """
     @spec get_submit(map()) :: map()
     def get_submit(%{submit: submit}) when is_map(submit), do: submit
 
@@ -348,10 +383,21 @@ defmodule MishkaGervaz.Form.Web.State do
       }
     end
 
+    @doc """
+    The form's lifecycle hooks as a map, or `%{}` when the resource declares none.
+    """
     @spec get_hooks(map()) :: map()
     def get_hooks(%{hooks: hooks}) when is_map(hooks), do: hooks
     def get_hooks(_config), do: %{}
 
+    @doc """
+    The groups belonging to one wizard or tabs step, in the order they were declared.
+
+    Returns every group when the step is unknown, which is what makes a `:standard` form — and a
+    step name that no longer exists — render rather than come back empty.
+
+        groups_for_step(state.static.groups, state.static.steps, state.current_step)
+    """
     @spec groups_for_step(list(map()), list(map()), atom()) :: list(map())
     def groups_for_step(groups, steps, step_name) do
       case Enum.find(steps, &(&1.name == step_name)) do
@@ -363,11 +409,22 @@ defmodule MishkaGervaz.Form.Web.State do
       end
     end
 
+    @doc """
+    The access module used to gate form modes.
+    """
     @spec resolve_access(module()) :: module()
     def resolve_access(_resource) do
       MishkaGervaz.Form.Web.State.Access.Default
     end
 
+    @doc """
+    Whether the current reader may open the form in `mode` (`:create` or `:update`).
+
+    Checks, in order: a per-mode `access` rule, a global `access fn mode, state -> … end` gate,
+    then `source do restricted true end`. A form with no `source` at all is allowed.
+
+        if mode_allowed?(state.static.source, :create, state), do: DataLoader.new_record(socket, state)
+    """
     @spec mode_allowed?(map() | nil, atom(), map()) :: boolean()
     def mode_allowed?(nil, _mode, _state), do: true
 

@@ -2,6 +2,14 @@ defmodule MishkaGervaz.Form.Types.Field.Range do
   @moduledoc """
   Range slider field type. Validates numeric input.
 
+  ## Example
+
+      field :weight, :range do
+        min 0
+        max 100
+        ui do step 5 end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

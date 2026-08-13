@@ -12,6 +12,15 @@ defmodule MishkaGervaz.Table.Types.Column.Link do
   - `:class` - CSS class for link (default: "text-[#4f4bcc] hover:text-[#3a3f8f]")
   - `:label_fn` - Function to generate label (default: uses column value)
 
+  ## Example
+
+      column :title do
+        ui do
+          type :link
+          extra %{path_fn: fn record -> "/admin/posts/" <> record.id end}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

@@ -13,6 +13,15 @@ defmodule MishkaGervaz.Table.Types.Column.Date do
     - "%B %d, %Y" → January 15, 2024
     - "%b %d" → Jan 15
 
+  ## Example
+
+      column :published_on do
+        ui do
+          type :date
+          extra %{format: "%b %d, %Y"}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

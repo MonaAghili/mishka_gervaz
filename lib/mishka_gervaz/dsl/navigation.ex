@@ -24,6 +24,21 @@ defmodule MishkaGervaz.Dsl.Navigation do
 
   @schema []
 
+  @doc """
+  The `navigation` section of the `MishkaGervaz.Domain` extension.
+
+  Holds the `menu_group` entities that build the admin sidebar:
+
+      mishka_gervaz do
+        navigation do
+          menu_group :content do
+            label "Content"
+            icon "hero-document"
+            resources [MyApp.Blog.Post]
+          end
+        end
+      end
+  """
   def section do
     %Spark.Dsl.Section{
       name: :navigation,

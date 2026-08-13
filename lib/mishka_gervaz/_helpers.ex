@@ -139,6 +139,18 @@ defmodule MishkaGervaz.Helpers do
     end
   end
 
+  @doc """
+  A relation option's label, with the live state available to the `display_field`.
+
+  Accepts every shape `display_field` may take — an attribute name, `fn record -> …`, or
+  `fn record, state -> …` for a label that differs by role.
+
+      resolve_label(site, :name, state)
+
+      resolve_label(cat, fn cat, state ->
+        if state.master_user?, do: cat.name <> " — " <> cat.site.name, else: cat.name
+      end, state)
+  """
   @spec resolve_label(struct(), (struct(), map() -> String.t()), map()) :: String.t()
   def resolve_label(record, display_field, state) when is_function(display_field, 2) do
     display_field.(record, state)
@@ -459,6 +471,14 @@ defmodule MishkaGervaz.Helpers do
 
   def known_name?(_, _), do: false
 
+  @doc """
+  Whether `name` is a declared filter, step or upload on this state.
+
+  The guard event handlers use before acting on a name that arrived from the client, so a
+  crafted `phx-value` cannot reach an entity the resource never declared.
+
+      known_name?("status", state, :filters)
+  """
   @spec known_name?(String.t(), map(), :filters | :steps | :uploads) :: boolean()
   def known_name?(name, %{static: static}, kind)
       when is_binary(name) and kind in [:filters, :steps, :uploads] do

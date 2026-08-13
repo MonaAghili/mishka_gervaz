@@ -4,6 +4,12 @@ defmodule MishkaGervaz.Table.Types.Filter.Date do
 
   Renders a date input for date filtering.
 
+  ## Example
+
+      filter :published_on, :date do
+        ui do label "Published on" end
+      end
+
   See `MishkaGervaz.Table.Types.Filter` (registry),
   `MishkaGervaz.Table.Behaviours.FilterType`, and
   `MishkaGervaz.Table.Entities.Filter`.

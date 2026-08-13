@@ -4,6 +4,15 @@ defmodule MishkaGervaz.Table.Types.Filter.DateRange do
 
   Renders two date inputs for filtering records within a date range.
 
+  ## Example
+
+      filter :created_at, :date_range, source: :inserted_at
+
+      filter :updated_at, :date_range do
+        source :updated_at
+        ui do label "Last updated" end
+      end
+
   See `MishkaGervaz.Table.Types.Filter` (registry),
   `MishkaGervaz.Table.Behaviours.FilterType`, and
   `MishkaGervaz.Table.Entities.Filter`.

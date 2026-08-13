@@ -44,5 +44,6 @@ defmodule MishkaGervaz.Table.Entities.ActionHook do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(%__MODULE__{} = hook), do: {:ok, hook}
 end

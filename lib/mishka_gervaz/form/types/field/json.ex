@@ -8,6 +8,15 @@ defmodule MishkaGervaz.Form.Types.Field.Json do
   invalid JSON falls through unchanged so the validator can surface the
   error message.
 
+  ## Example
+
+      field :schema, :json do
+        ui do
+          rows 8
+          placeholder ~s([{"@type": "BlogPosting"}])
+        end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

@@ -37,13 +37,30 @@ defmodule MishkaGervaz.Table.Web.AutoState do
 
   @armed_key :__auto_state_armed__
 
+  @doc """
+  The built-in state-transition flags declared in `hooks do … end`.
+
+  Falls back to the shipped defaults — only `clear_selection_after_bulk` is on — so a resource
+  that declares no hooks still gets sane behaviour.
+  """
   @spec config(State.t()) :: map()
   def config(%State{static: %{hooks: %{__builtins__: %{} = b}}}), do: b
   def config(_state), do: %{clear_selection_after_bulk: true}
 
+  @doc """
+  Whether one built-in transition is switched on.
+
+      if AutoState.enabled?(state, :switch_to_active_on_empty_archive), do: ...
+  """
   @spec enabled?(State.t(), atom()) :: boolean()
   def enabled?(state, key), do: Map.get(config(state), key) == true
 
+  @doc """
+  The raw value of one built-in, for the flags that carry more than a boolean.
+
+      AutoState.value(state, :redirect_on_empty)
+      #=> "/admin/dashboard"
+  """
   @spec value(State.t(), atom()) :: term()
   def value(state, key), do: Map.get(config(state), key)
 

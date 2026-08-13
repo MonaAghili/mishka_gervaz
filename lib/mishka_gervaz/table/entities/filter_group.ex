@@ -177,5 +177,6 @@ defmodule MishkaGervaz.Table.Entities.FilterGroup.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end

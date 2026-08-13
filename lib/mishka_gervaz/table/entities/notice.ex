@@ -216,6 +216,7 @@ defmodule MishkaGervaz.Table.Entities.Notice do
       {:error,
        "invalid notice position #{inspect(other)}. Expected one of #{inspect(@valid_position_atoms)} or `{:before_column, atom}` / `{:after_column, atom}`."}
 
+  @doc false
   def transform(%__MODULE__{} = notice) do
     {:ok, extract_ui(notice)}
   end
@@ -257,5 +258,6 @@ defmodule MishkaGervaz.Table.Entities.Notice.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end

@@ -2,6 +2,17 @@ defmodule MishkaGervaz.Form.Types.Field.Text do
   @moduledoc """
   Default text input field type. Strips HTML tags and trims whitespace on sanitize.
 
+  ## Example
+
+      field :title, :text do
+        required true
+
+        ui do
+          label fn -> dgettext("mishka_gervaz", "Title") end
+          placeholder "Post title"
+        end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

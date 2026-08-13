@@ -6,6 +6,14 @@ defmodule MishkaGervaz.Form.Types.Field.Number do
   reject decimals; other numeric Ash types accept either integers or floats.
   Sanitizes string input by stripping HTML and trimming whitespace.
 
+  ## Example
+
+      field :priority, :number do
+        min 0
+        max 10
+        ui do step 1 end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

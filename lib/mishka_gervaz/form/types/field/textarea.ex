@@ -2,6 +2,15 @@ defmodule MishkaGervaz.Form.Types.Field.Textarea do
   @moduledoc """
   Multi-line text input field type. Pass-through sanitization (preserves newlines and markup).
 
+  ## Example
+
+      field :body, :textarea do
+        ui do
+          rows 8
+          placeholder "Write the post…"
+        end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

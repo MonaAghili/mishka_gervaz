@@ -174,6 +174,26 @@ defmodule MishkaGervaz.Table.Dsl.Defaults do
     ]
   ]
 
+  @doc """
+  The domain-level `table` section — the defaults every resource in the domain inherits.
+
+  A resource overrides these per key, never per block:
+
+      mishka_gervaz do
+        table do
+          actor_key :current_user
+
+          pagination do
+            type :load_more
+            page_size 20
+          end
+
+          actions do
+            read {:master_read, :read}
+          end
+        end
+      end
+  """
   def section do
     %Spark.Dsl.Section{
       name: :table,

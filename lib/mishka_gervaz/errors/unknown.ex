@@ -4,6 +4,7 @@ defmodule MishkaGervaz.Errors.Unknown do
   """
   use Splode.Error, fields: [:error], class: :unknown
 
+  @doc false
   def message(%{error: error}) do
     "Unknown error: #{inspect(error)}"
   end

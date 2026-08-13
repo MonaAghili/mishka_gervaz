@@ -12,6 +12,15 @@ defmodule MishkaGervaz.Table.Types.Column.Number do
   - `:thousands_separator` - Separator for thousands (default: ",")
   - `:decimal_separator` - Decimal separator (default: ".")
 
+  ## Example
+
+      column :price do
+        ui do
+          type :number
+          extra %{precision: 2, prefix: "$"}
+        end
+      end
+
   See `MishkaGervaz.Table.Types.Column` (registry),
   `MishkaGervaz.Table.Behaviours.ColumnType`, and
   `MishkaGervaz.Table.Entities.Column`.

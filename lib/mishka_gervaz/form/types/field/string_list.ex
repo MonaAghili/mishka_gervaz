@@ -7,6 +7,15 @@ defmodule MishkaGervaz.Form.Types.Field.StringList do
   and so on. Sanitize strips HTML and trims each item; empty strings are
   filtered out on `parse_params/2`.
 
+  ## Example
+
+      field :keywords, :string_list do
+        ui do
+          add_label "+ Add keyword"
+          remove_label "Remove"
+        end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

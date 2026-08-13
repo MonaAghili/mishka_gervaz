@@ -77,5 +77,6 @@ defmodule MishkaGervaz.Table.Entities.Footer do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(footer), do: {:ok, footer}
 end

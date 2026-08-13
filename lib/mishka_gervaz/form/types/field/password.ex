@@ -7,6 +7,13 @@ defmodule MishkaGervaz.Form.Types.Field.Password do
   unchanged so trailing/leading characters that matter for hashing aren't
   silently stripped.
 
+  ## Example
+
+      field :password, :password do
+        required true
+        ui do label "Password" end
+      end
+
   See `MishkaGervaz.Form.Behaviours.FieldType` and `MishkaGervaz.Form.Types.Field`.
   """
 

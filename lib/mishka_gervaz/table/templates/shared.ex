@@ -76,6 +76,18 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   defp scope_prefix(nil), do: ""
   defp scope_prefix(scope), do: "##{scope} "
 
+  @doc """
+  Renders the filter bar: the toolbar row, any collapsible filter groups, the active-filter
+  chips and the archive toggle.
+
+  The default `render_filters/1` of every template built with
+  `use MishkaGervaz.Table.Behaviours.Template`. Call it from a custom template rather than
+  rebuilding the bar.
+
+      def render_filters(assigns), do: Shared.render_filters(assigns)
+
+  Expects `@static` and `@state`.
+  """
   def render_filters(assigns) do
     static = assigns.static
     state = assigns.state
@@ -975,6 +987,14 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     }
   end
 
+  @doc """
+  Renders the bulk-action bar shown once rows are selected.
+
+  Only the actions visible in the current archive scope are drawn — see
+  `has_visible_bulk_actions?/2` to decide whether to give it any room at all.
+
+      <div :if={@show_bulk_actions}>{Shared.render_bulk_actions(assigns)}</div>
+  """
   def render_bulk_actions(assigns) do
     static = assigns.static
     state = assigns.state
@@ -1140,6 +1160,12 @@ defmodule MishkaGervaz.Table.Templates.Shared do
   defp bulk_action_visible?(%{visible: nil}, _status, _state), do: true
   defp bulk_action_visible?(_, _status, _state), do: true
 
+  @doc """
+  Renders the Table/Cards switcher for a resource that declared `switchable_templates`.
+
+  Reads `@ui_adapter` when given and falls back to the Tailwind adapter, so it can be called
+  from a context that has not resolved one.
+  """
   def render_template_switcher(assigns) do
     ui_adapter = assigns[:ui_adapter] || MishkaGervaz.UIAdapters.Tailwind
     assigns = assign(assigns, :ui_adapter, ui_adapter)
@@ -1155,6 +1181,13 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     """
   end
 
+  @doc """
+  Renders the pagination control — numbered pages, a load-more button or the infinite-scroll
+  sentinel, whichever the resource configured.
+
+  Reads its labels from `static.pagination_ui`, so `pagination do ui do … end end` on the
+  resource is honoured without the template knowing about it.
+  """
   def render_pagination(assigns) do
     static = assigns.static
     state = assigns.state
@@ -1436,6 +1469,13 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     |> String.replace("{count}", to_string(total_count || ""))
   end
 
+  @doc """
+  Renders one row's action strip: the inline buttons, then any dropdown.
+
+  Honours `actions_layout` placement and each action's `visible` rule, and leaves
+  `:accordion` actions out — the caret is the table's own, not a button. Expects `@record`,
+  `@static`, `@state` and `@myself`.
+  """
   def render_row_actions(assigns) do
     layout = assigns.static.row_actions_layout
     dropdowns = assigns.static.row_action_dropdowns
@@ -1780,6 +1820,15 @@ defmodule MishkaGervaz.Table.Templates.Shared do
     """
   end
 
+  @doc """
+  Renders one cell the way the plain table does — `format` first, then the column's `render`
+  if it has one, then its type module, then the bare value.
+
+  A custom template should call this rather than reading the value itself, or a column's
+  `render` and `ui do type … end` stop working inside it.
+
+      <td :for={column <- @columns}>{Shared.render_cell(%{column: column, record: @record, static: @static, state: @state})}</td>
+  """
   def render_cell(assigns) do
     {column, record, static, state} =
       {assigns.column, assigns.record, assigns[:static], assigns[:state]}

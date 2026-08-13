@@ -496,6 +496,7 @@ defmodule MishkaGervaz.Form.Entities.Field.Ui do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(ui), do: {:ok, ui}
 end
 
@@ -550,5 +551,6 @@ defmodule MishkaGervaz.Form.Entities.Field.Preload do
   @doc false
   def opt_schema, do: @opt_schema
 
+  @doc false
   def transform(preload), do: {:ok, preload}
 end
