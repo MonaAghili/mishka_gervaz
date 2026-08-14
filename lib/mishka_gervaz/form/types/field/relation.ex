@@ -23,6 +23,18 @@ defmodule MishkaGervaz.Form.Types.Field.Relation do
         min_chars 1
       end
 
+  ## Why the rendered ids carry the form's id
+
+  Every DOM id this type hands the adapter is scoped by the id of the form component that is
+  rendering it — `:table_id` (the adapter's name for "the scope this control belongs to") comes
+  from `state_assigns.form_id`, and `:id` comes from the Phoenix form field, which already carries
+  the form's id. A page may mount two `MishkaGervaz.Form.Web.Live` components whose resources
+  share a field name — `/admin/dashboard/runtime/medias` mounts one for
+  `MishkaCmsCore.Runtime.Media` and one for `MishkaCmsCore.Runtime.MediaCategory`, and both have a
+  `site_id` relation. Scoped only by field name, both would render `search-select--site_id`, and
+  morphdom — which matches by id before anything else — would be free to patch one form's dropdown
+  with the other form's markup.
+
   See `MishkaGervaz.Form.Behaviours.FieldType`,
   `MishkaGervaz.Form.Types.Field`, and the table-side counterpart
   `MishkaGervaz.Table.Types.Filter.Relation`.
@@ -71,7 +83,8 @@ defmodule MishkaGervaz.Form.Types.Field.Relation do
       name: field.name,
       filter_name: field.name,
       field: state_assigns[:form_field],
-      id: "form-#{field.name}",
+      id: input_id(state_assigns, field),
+      table_id: state_assigns[:form_id],
       options: option_list,
       placeholder: get_ui(field, :placeholder, "Select..."),
       icon: get_ui(field, :icon),
@@ -110,6 +123,10 @@ defmodule MishkaGervaz.Form.Types.Field.Relation do
 
     Map.put(merged, :__changed__, Map.new(Map.keys(merged), &{&1, true}))
   end
+
+  defp input_id(%{form_field: %{id: id}}, _field) when is_binary(id) and id != "", do: id
+  defp input_id(%{form_id: form_id}, field) when is_binary(form_id), do: "#{form_id}-#{field.name}"
+  defp input_id(_state_assigns, field), do: "form-#{field.name}"
 
   defp normalize_selected(field_values, field_name) do
     case Map.get(field_values || %{}, field_name) do

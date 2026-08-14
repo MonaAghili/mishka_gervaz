@@ -44,6 +44,21 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   `MishkaGervaz.Form.Behaviours.FieldType` and are referenced directly
   in the field DSL (`field :foo, MyApp.FieldTypes.Color`).
 
+  ## Every input carries the form's id, so two forms on one page never collide
+
+  `render_input/4` puts `:table_id` — the UI adapter's name for "the scope this control belongs
+  to" — on the base assigns of every field, alongside the `:id` it takes from the Phoenix form
+  field. The adapter's searchable controls (`search_select`, `load_more_select`, `multi_select`,
+  `combobox`, `string_list_input`) build their wrapper id from that scope plus the field name, and
+  a page is free to mount two `MishkaGervaz.Form.Web.Live` components whose resources share a field
+  name: `/admin/dashboard/runtime/medias` mounts one for `MishkaCmsCore.Runtime.Media` and one for
+  `MishkaCmsCore.Runtime.MediaCategory`, both with a `site_id` relation. Without the scope both
+  render `search-select--site_id`, and morphdom — which matches nodes by id before anything else —
+  is then free to patch one form's dropdown with the other form's markup.
+
+  `render_string_list_input/4` sets the same scope itself because it builds its assigns from the
+  template assigns rather than from that base.
+
   ## The upload progress bar fills with an inline `style`
 
   `render_upload_entries/1` sets its track width with `style="width: N%"`. The percentage arrives
@@ -1031,6 +1046,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
       |> assign(:field, form_field)
       |> assign(:name, form_field.name)
       |> assign(:id, form_field.id)
+      |> assign(:table_id, assigns.static.id)
       |> assign(:value, Phoenix.HTML.Form.input_value(assigns.state.form, field.name))
       |> assign(:placeholder, resolve_label(get_in_map(field, [:ui, :placeholder])))
       |> assign(:autocomplete, get_in_map(field, [:ui, :autocomplete]))
@@ -1151,6 +1167,7 @@ defmodule MishkaGervaz.Form.Templates.Standard do
 
         state_assigns = %{
           form_field: form_field,
+          form_id: assigns.static.id,
           myself: assigns[:myself],
           field_values: assigns.state.field_values,
           current_value: current_value,
@@ -1174,7 +1191,6 @@ defmodule MishkaGervaz.Form.Templates.Standard do
         |> assign(:function, :combobox)
         |> assign(:options, options)
         |> assign(:field_name, field.name)
-        |> assign(:table_id, assigns.static.id)
         |> assign(:target, assigns[:myself])
         |> dynamic_component()
 

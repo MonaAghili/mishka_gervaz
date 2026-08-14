@@ -33,6 +33,19 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
   something. `split_actions/3` decides which is which, and `:overlay_action` / `:primary_action`
   below let a resource whose actions are named differently say so.
 
+  ## The thumbnail that fails to load
+
+  A card paints its type glyph behind the thumbnail, so a file whose bytes have gone only has to hide
+  the broken `<img>` for the glyph to be what you see; a thumbnail that does arrive is put on white,
+  or a transparent PNG picks up the tile's tint. Both need to know how the image ended, which is a
+  question only the browser can answer.
+
+  This requires the consuming app to register a `MediaThumb` JS hook in its ADMIN bundle. It reads
+  `data-loaded-background` from the hook element for the colour a loaded image sits on, and binds
+  `load`/`error` on the `<img>` inside it. The `onload=`/`onerror=` attributes it replaces cannot be
+  used by a host that enforces a Content-Security-Policy: `script-src` has no nonce or hash that
+  applies to an inline event handler, so the attribute itself is the violation.
+
   ## Options
   - `:columns` - Number of grid columns (3, 4, 6, or 8)
   - `:overlay_action` - the action drawn as the star over the thumbnail (default `:toggle_featured`)
@@ -304,14 +317,19 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
           </span>
         </span>
 
-        <div :if={@image_url && @is_image} id={"#{@id}-thumb"} phx-update="ignore" class="contents">
+        <div
+          :if={@image_url && @is_image}
+          id={"#{@id}-thumb"}
+          phx-hook="MediaThumb"
+          phx-update="ignore"
+          data-loaded-background="#fff"
+          class="contents"
+        >
           <img
             src={@image_url}
             alt=""
             loading="lazy"
             class="absolute inset-0 size-full object-cover"
-            onload="this.style.background='#fff';"
-            onerror="this.style.display='none';"
           />
         </div>
 
