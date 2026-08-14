@@ -44,6 +44,16 @@ defmodule MishkaGervaz.Form.Templates.Standard do
   `MishkaGervaz.Form.Behaviours.FieldType` and are referenced directly
   in the field DSL (`field :foo, MyApp.FieldTypes.Color`).
 
+  ## The upload progress bar fills with an inline `style`
+
+  `render_upload_entries/1` sets its track width with `style="width: N%"`. The percentage arrives
+  from LiveView's upload state as the bytes land, so `w-[N%]` would be a class Tailwind's
+  build-time scanner never sees a literal for: no rule is generated, and the bar stays empty at
+  every width with nothing raised. Declaring the hundred and one widths is not open to this module
+  either — Gervaz is a library, and the Tailwind build that would carry the declaration belongs to
+  whichever application mounts the form.
+  `MishkaGervaz.UIAdapters.Tailwind.upload_progress/1` renders the same bar the same way.
+
   See `MishkaGervaz.Form.Behaviours.Template`,
   `MishkaGervaz.Form.Behaviours.FieldType`,
   `MishkaGervaz.Behaviours.UIAdapter`,

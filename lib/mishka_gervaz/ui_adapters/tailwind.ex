@@ -2339,6 +2339,20 @@ defmodule MishkaGervaz.UIAdapters.Tailwind do
     """
   end
 
+  @doc """
+  Upload progress bar: the entry's filename, its percentage, and a track filled to that percentage.
+
+  ## Assigns
+    * `:entry` - a `Phoenix.LiveView.UploadEntry`
+    * `:class` - wrapper classes (default `"w-full"`)
+
+  The fill width rides an inline `style`, not a Tailwind class, for the same reason as `cell_bars/1`
+  above: the percentage arrives from LiveView's upload state as the bytes land, so there is no
+  literal for Tailwind's build-time scanner to find. Written as `w-[\#{@entry.progress}%]` it
+  generates no rule at any width and the bar simply stays empty, with nothing raised. Declaring the
+  hundred and one widths would not rescue it either — Gervaz is a library, and the Tailwind build
+  that would have to carry that declaration belongs to whichever application mounts the form.
+  """
   @impl true
   def upload_progress(assigns) do
     assigns =

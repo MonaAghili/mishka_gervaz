@@ -140,7 +140,7 @@ defmodule MishkaGervaz.Table.Templates.MediaGallery do
           myself={@myself}
         />
 
-        <div class="relative" style="isolation: isolate;">
+        <div class="relative isolate">
           <.render_loading_overlay
             :if={
               @state.has_initial_data? and @state.loading == :loading and

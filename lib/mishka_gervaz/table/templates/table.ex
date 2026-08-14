@@ -175,8 +175,7 @@ defmodule MishkaGervaz.Table.Templates.Table do
 
           <div
             :if={not @empty?}
-            class="relative overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[16px] border border-[#ecebe6] bg-white shadow-[0_1px_2px_rgba(30,28,24,0.04)] max-[980px]:overflow-visible! max-[980px]:rounded-none! max-[980px]:border-0! max-[980px]:bg-transparent! max-[980px]:shadow-none!"
-            style="isolation: isolate;"
+            class="relative isolate overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[16px] border border-[#ecebe6] bg-white shadow-[0_1px_2px_rgba(30,28,24,0.04)] max-[980px]:overflow-visible! max-[980px]:rounded-none! max-[980px]:border-0! max-[980px]:bg-transparent! max-[980px]:shadow-none!"
           >
             <.render_loading_overlay
               :if={
@@ -723,8 +722,10 @@ defmodule MishkaGervaz.Table.Templates.Table do
             phx-click="expand_row"
             phx-value-id={@record.id}
             phx-target={@myself}
-            class="grid size-[26px] place-items-center text-[#a8a5a0] transition-transform duration-200 hover:text-[#5c5a54] max-[980px]:size-[30px] max-[980px]:rounded-[8px] max-[980px]:border max-[980px]:border-[#ecebe6] max-[980px]:bg-[#faf9f6]"
-            style={if @is_expanded, do: "transform: rotate(90deg)", else: ""}
+            class={[
+              "grid size-[26px] place-items-center text-[#a8a5a0] transition-transform duration-200 hover:text-[#5c5a54] max-[980px]:size-[30px] max-[980px]:rounded-[8px] max-[980px]:border max-[980px]:border-[#ecebe6] max-[980px]:bg-[#faf9f6]",
+              @is_expanded && "[transform:rotate(90deg)]"
+            ]}
           >
             <svg
               width="15"
