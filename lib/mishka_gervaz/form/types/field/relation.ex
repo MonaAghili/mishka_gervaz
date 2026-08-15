@@ -125,7 +125,10 @@ defmodule MishkaGervaz.Form.Types.Field.Relation do
   end
 
   defp input_id(%{form_field: %{id: id}}, _field) when is_binary(id) and id != "", do: id
-  defp input_id(%{form_id: form_id}, field) when is_binary(form_id), do: "#{form_id}-#{field.name}"
+
+  defp input_id(%{form_id: form_id}, field) when is_binary(form_id),
+    do: "#{form_id}-#{field.name}"
+
   defp input_id(_state_assigns, field), do: "form-#{field.name}"
 
   defp normalize_selected(field_values, field_name) do

@@ -149,13 +149,20 @@ defmodule MishkaGervaz.Table.Web.DataLoader.QueryBuilder do
           |> MapSet.new(& &1.name)
 
         Enum.reduce(path_params, query, fn {param_name, value}, acc ->
-          if MapSet.member?(attribute_names, param_name) do
-            Ash.Query.filter(acc, ^ref(param_name) == ^value)
-          else
-            acc
+          case MapSet.member?(attribute_names, param_name) do
+            true -> filter_path_param(acc, param_name, value)
+            false -> acc
           end
         end)
       end
+
+      # A nil path param means "the rows where this column is empty", which in SQL is `IS NULL`.
+      # `= NULL` is never true, so a table scoped on a nullable attribute would silently read back
+      # empty instead of showing that scope's rows.
+      defp filter_path_param(query, name, nil), do: Ash.Query.filter(query, is_nil(^ref(name)))
+
+      defp filter_path_param(query, name, value),
+        do: Ash.Query.filter(query, ^ref(name) == ^value)
 
       @doc """
       Apply default filter behavior when no type_module is configured.

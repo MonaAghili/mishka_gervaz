@@ -637,6 +637,21 @@ defmodule MishkaGervaz.Table.Web.DataLoaderTest do
       refute result == query
     end
 
+    # A NIL PATH PARAM MEANS "the rows where this column is empty", which in SQL is `IS NULL`.
+    # `= NULL` is never true of any row, so a table scoped on a nullable attribute read back empty
+    # and looked like it had no data rather than like it had a broken filter.
+    test "apply_path_params asks for IS NULL when the value is nil" do
+      alias MishkaGervaz.Table.Web.DataLoader.QueryBuilder
+
+      query = Ash.Query.new(FilterableResource)
+
+      result = QueryBuilder.Default.apply_path_params(query, %{category: nil}, FilterableResource)
+
+      refute result == query
+      assert inspect(result.filter) =~ "is_nil"
+      refute inspect(result.filter) =~ "== nil"
+    end
+
     test "apply_path_params is no-op for empty map" do
       alias MishkaGervaz.Table.Web.DataLoader.QueryBuilder
 
